@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+._*
+
+# Node / Next.js (for when we scaffold the app)
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Environment & secrets
+.env
+.env.local
+.env*.local
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+*.log
+
+# Editor
+.vscode/
+.idea/
