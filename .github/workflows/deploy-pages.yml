@@ -29,11 +29,19 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      # The site is plain static HTML, so the repo root ships as-is
+      # Pages serves the static design preview only — the Next.js app needs a
+      # server, so its source is excluded from the published artifact.
+      - name: Stage static site
+        run: |
+          mkdir -p _site
+          cp index.html concepts.html _site/
+          cp -R public design-previews _site/
+          touch _site/.nojekyll
+
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: '_site'
 
       - name: Deploy
         id: deployment

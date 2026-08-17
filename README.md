@@ -1,48 +1,106 @@
 # Bon Bon's Sweets & More
 
-Website project. **Current stage: design 3 chosen and expanded.**
+A Next.js + MongoDB site for a handmade dessert business.
 
 ---
 
-## The live site
+## Two things live in this repo
 
-**https://eanthonycarranza.github.io/BonBons/**
+| | What it is | Where it runs |
+|---|---|---|
+| **`index.html` / `concepts.html`** | The original single-page design preview | GitHub Pages — **https://eanthonycarranza.github.io/BonBons/** |
+| **`app/`, `components/`, `lib/`** | The real Next.js app | Needs Node locally; deploys to Vercel |
 
-That's the chosen direction (Design 3, "Party Pop") built out properly. It updates
-automatically on every push to `main`.
+**GitHub Pages cannot run the Next.js app.** Pages only serves static files, and this
+app has API routes and a database behind it. The static preview stays where it is so
+your link keeps working; the real app needs a host that can run a server (Vercel is
+free and made by the Next.js team).
 
-Earlier concepts are still viewable at
-[`concepts.html`](https://eanthonycarranza.github.io/BonBons/concepts.html).
+---
 
-### What the expanded version added
+## Pages
 
-- **Shopping cart** — add products, remove them, live subtotal, free-delivery
-  progress ("$12 more for free local delivery"), saved between visits
-- **Build-a-box configurator** — pick a size, add treats with steppers, live
-  running total; it won't let you overfill a box, and downsizing trims the
-  contents instead of breaking
-- **Delivery ZIP checker** — customers self-qualify before ordering
-- **Quote request form** — date, occasion, headcount, colors, pickup vs delivery,
-  treat interests, with inline validation
-- **FAQ accordion** covering lead time, color matching, allergies, deposits
-- Reviews with an aggregate score, expanded product grid (8 items with badges),
-  dessert-table section, newsletter signup
-- Mobile: sticky order bar, slide-out cart, 44px touch targets throughout
-- Accessibility: skip link, keyboard-operable cart (Esc closes), focus styles,
-  labelled form fields, honours reduced-motion preferences
+| Route | What it does |
+|---|---|
+| `/` | Home — hero, featured treats, occasions, dessert tables, reviews, newsletter |
+| `/shop` | Full catalogue, grouped by category, from the database |
+| `/shop/[slug]` | Product detail with quantity picker, allergens, related items |
+| `/build-a-box` | Box configurator — size, treats, live total |
+| `/dessert-tables` | Service page with the four-step process |
+| `/occasions` | Index of occasion types |
+| `/occasions/[slug]` | Weddings, birthdays, corporate, baby showers |
+| `/about` | Story and how-we-work |
+| `/faq` | Accordion |
+| `/quote` | Quote request form → saved to MongoDB |
+| `/cart` | Review order and send it → saved to MongoDB |
+| `/admin` | Password-protected dashboard: quotes, orders, seed catalogue |
+| `/sitemap.xml`, `/robots.txt` | Generated automatically |
 
-### Before this goes live for real
+### API routes
 
-These are placeholders in `index.html` that need your real values:
+`GET/POST /api/products` · `POST/GET /api/quotes` · `POST/GET /api/orders` ·
+`POST /api/subscribe` · `POST /api/seed` · `POST /api/admin/login` · `POST /api/admin/logout`
 
-1. **`DELIVERY_ZIPS`** (in the script near the top) — currently sample ZIP codes.
-   Replace with your actual service area.
-2. **Prices** in the `PRODUCTS` and box-size lists.
-3. **Phone and email** — `(555) 010-2288` and `hello@bonbons.com` appear in the
-   footer, FAQ and quote form.
-4. **Product photos** — shown as colored placeholder tiles.
-5. **The forms don't submit anywhere yet.** They validate and show a confirmation,
-   but nothing is sent or stored. That needs the Next.js + MongoDB backend.
+---
+
+## Running it
+
+**1. Install Node.js** (still not installed on this Mac). Get the LTS build:
+https://nodejs.org
+
+**2. Install dependencies**
+
+```bash
+cd "/Users/acarranza/Documents/Claude Project/Bon Bon's" && npm install
+```
+
+**3. Create your env file**
+
+```bash
+cp .env.example .env.local
+```
+
+**4. Start it**
+
+```bash
+npm run dev
+```
+
+Then open http://localhost:3000
+
+### It works without a database
+
+If `MONGODB_URI` is empty, the whole site still runs — the catalogue falls back to the
+sample products in `lib/sample-data.js`, and the forms accept input but tell you plainly
+that nothing was stored. So you can look at every page before setting up MongoDB.
+
+### Adding MongoDB
+
+1. Make a free cluster at https://mongodb.com/atlas
+2. **Connect → Drivers** → copy the connection string
+3. Paste it into `.env.local` as `MONGODB_URI`, replacing `<password>` with your real one
+4. Restart `npm run dev`
+5. Set `ADMIN_PASSWORD` in `.env.local`, visit `/admin`, log in, and click **Seed sample products**
+
+### Deploying to Vercel
+
+1. Sign in at https://vercel.com with your GitHub account
+2. **Add New → Project → import `EAnthonycarranza/BonBons`**
+3. Add `MONGODB_URI`, `ADMIN_PASSWORD` and `ADMIN_SECRET` as environment variables
+4. Deploy — every push to `main` redeploys automatically
+
+---
+
+## Still placeholder — replace before launch
+
+1. **`DELIVERY_ZIPS`** in `lib/sample-data.js` — sample ZIP codes. The site will tell
+   customers you deliver to them based on this list, so it matters.
+2. **Prices** in `SAMPLE_PRODUCTS` and `BOX_SIZES`.
+3. **Phone and email** in the `SITE` object.
+4. **Product photos** — currently colored placeholder tiles.
+5. **Payment** — orders are recorded and confirmed by email; no card processing yet.
+6. **Admin auth** is a single shared password. Fine for one owner; if staff need
+   separate logins, swap `lib/auth.js` for NextAuth or Clerk.
 
 ---
 
