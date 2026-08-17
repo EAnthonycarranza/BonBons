@@ -1,18 +1,59 @@
 # Bon Bon's Sweets & More
 
-Website project. **Current stage: choosing a home page design.**
+Website project. **Current stage: design 3 chosen and expanded.**
 
 ---
 
-## Step 1 — Review the three designs (do this now)
+## The live site
 
-Open this file in your browser:
+**https://eanthonycarranza.github.io/BonBons/**
 
-```
-Bon Bon's/design-previews/index.html
-```
+That's the chosen direction (Design 3, "Party Pop") built out properly. It updates
+automatically on every push to `main`.
 
-Or double-click it in Finder. It links to all three. Each one is a complete, scrollable home page — nav, hero, product section, social proof, call-to-action and footer — with the real logo and real-ish copy in place. No installation needed; they're plain HTML files.
+Earlier concepts are still viewable at
+[`concepts.html`](https://eanthonycarranza.github.io/BonBons/concepts.html).
+
+### What the expanded version added
+
+- **Shopping cart** — add products, remove them, live subtotal, free-delivery
+  progress ("$12 more for free local delivery"), saved between visits
+- **Build-a-box configurator** — pick a size, add treats with steppers, live
+  running total; it won't let you overfill a box, and downsizing trims the
+  contents instead of breaking
+- **Delivery ZIP checker** — customers self-qualify before ordering
+- **Quote request form** — date, occasion, headcount, colors, pickup vs delivery,
+  treat interests, with inline validation
+- **FAQ accordion** covering lead time, color matching, allergies, deposits
+- Reviews with an aggregate score, expanded product grid (8 items with badges),
+  dessert-table section, newsletter signup
+- Mobile: sticky order bar, slide-out cart, 44px touch targets throughout
+- Accessibility: skip link, keyboard-operable cart (Esc closes), focus styles,
+  labelled form fields, honours reduced-motion preferences
+
+### Before this goes live for real
+
+These are placeholders in `index.html` that need your real values:
+
+1. **`DELIVERY_ZIPS`** (in the script near the top) — currently sample ZIP codes.
+   Replace with your actual service area.
+2. **Prices** in the `PRODUCTS` and box-size lists.
+3. **Phone and email** — `(555) 010-2288` and `hello@bonbons.com` appear in the
+   footer, FAQ and quote form.
+4. **Product photos** — shown as colored placeholder tiles.
+5. **The forms don't submit anywhere yet.** They validate and show a confirmation,
+   but nothing is sent or stored. That needs the Next.js + MongoDB backend.
+
+---
+
+## The original six concepts (for reference)
+
+Design 3 won and has been built out above. The earlier concepts are kept for
+reference — useful if you later want to borrow a section from another direction.
+
+Concepts 1–3 are HTML, viewable at
+[`concepts.html`](https://eanthonycarranza.github.io/BonBons/concepts.html)
+or locally in `design-previews/`.
 
 | # | Name | Personality | Best if you want to… |
 |---|------|-------------|----------------------|
@@ -56,7 +97,7 @@ These are real Figma frames — you can open, edit, comment on and hand them to 
 
 ---
 
-## Step 2 — Install Node.js (you can do this while reviewing)
+## Next — Install Node.js
 
 Node.js isn't installed on this Mac yet, and it's required for Next.js. Download the **LTS** installer:
 
@@ -70,9 +111,9 @@ node -v && npm -v
 
 ---
 
-## Step 3 — I build the real site
+## Then — the real Next.js + MongoDB build
 
-Once you pick a direction, I'll build it as a Next.js + MongoDB app:
+Design 3 is chosen, so the build is next. It becomes a Next.js + MongoDB app:
 
 - **Next.js (App Router)** — the pages, routing, and the API routes that replace a separate Express server
 - **MongoDB Atlas + Mongoose** — products, custom-order requests, and customer reviews
@@ -91,12 +132,14 @@ You'll need a free MongoDB Atlas account for the database (https://mongodb.com/a
 ```
 Bon Bon's/
 ├── README.md                 ← you are here
+├── index.html                ← ★ THE SITE — expanded Design 3
+├── concepts.html             ← the original side-by-side chooser
+├── .github/workflows/        ← auto-deploys to GitHub Pages on push
 ├── design-previews/
-│   ├── index.html            ← START HERE: side-by-side chooser
+│   ├── index.html            ← chooser (local copy)
 │   ├── design-1.html         ← Candy Carnival
 │   ├── design-2.html         ← Sweet Boutique
-│   ├── design-3.html         ← Party Pop
-│   └── _icons.html           ← shared SVG treat illustrations
+│   └── design-3.html         ← Party Pop (original, pre-expansion)
 ├── public/
 │   ├── logo.png              ← web-sized logo (1000px, white background)
 │   ├── logo-transparent.png  ← ★ transparent version — use this one
