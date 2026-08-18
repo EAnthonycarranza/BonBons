@@ -155,7 +155,7 @@ export default function QuoteForm() {
           <label htmlFor="f-zip">Delivery ZIP code</label>
           <input id="f-zip" inputMode="numeric" maxLength={5} value={form.zip} onChange={set("zip")}
             placeholder="e.g. 78209" />
-          <div className="help">We'll confirm whether you're inside our delivery area.</div>
+          <div className="help">We&rsquo;ll confirm whether you&rsquo;re inside our delivery area.</div>
           <div className="err">{errors.zip}</div>
         </div>
       )}

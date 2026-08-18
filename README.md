@@ -45,22 +45,24 @@ free and made by the Next.js team).
 
 ## Running it
 
-**1. Install Node.js** (still not installed on this Mac). Get the LTS build:
-https://nodejs.org
+**Node.js v24.19.0 is installed** at `~/.local/node` and on your PATH via `~/.zshrc`.
+To remove it later: `rm -rf ~/.local/node` and delete that line from `~/.zshrc`.
 
-**2. Install dependencies**
+**1. Install dependencies**
 
 ```bash
-cd "/Users/acarranza/Documents/Claude Project/Bon Bon's" && npm install
+cd "/Users/acarranza/Documents/Claude Project/BonBons" && npm install
 ```
 
-**3. Create your env file**
+**2. Create your env file**
 
 ```bash
 cp .env.example .env.local
 ```
 
-**4. Start it**
+(This already exists — it was created during setup.)
+
+**3. Start it**
 
 ```bash
 npm run dev
@@ -88,6 +90,17 @@ that nothing was stored. So you can look at every page before setting up MongoDB
 2. **Add New → Project → import `EAnthonycarranza/BonBons`**
 3. Add `MONGODB_URI`, `ADMIN_PASSWORD` and `ADMIN_SECRET` as environment variables
 4. Deploy — every push to `main` redeploys automatically
+
+---
+
+## Why the folder is named `BonBons`
+
+The project folder used to be `Bon Bon's`. **Next.js cannot build from a path containing
+an apostrophe.** Its metadata-route loader generates JavaScript with the file path inside
+a single-quoted string, so the `'` closes the string early and `sitemap.js` / `robots.js`
+fail with a parse error. Renaming the folder to `BonBons` fixed it.
+
+If you ever move this project, keep apostrophes out of the path.
 
 ---
 
