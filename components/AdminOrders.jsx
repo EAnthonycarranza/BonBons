@@ -89,9 +89,9 @@ function ContactLinks({ customer }) {
   );
 }
 
-function Field({ label, children, wide = false, hint }) {
+function Field({ label, children, wide = false, compact = false, hint }) {
   return (
-    <label className={`crm-field${wide ? " crm-field-wide" : ""}`}>
+    <label className={`crm-field${wide ? " crm-field-wide" : ""}${compact ? " crm-field-compact" : ""}`}>
       <span>{label}</span>
       {children}
       {hint ? <small>{hint}</small> : null}
@@ -284,10 +284,10 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
               <Field label="Confirmed total">
                 <div className="crm-money-input"><span>$</span><input type="number" min="0" step="0.01" value={form.confirmedTotal} onChange={(event) => change("confirmedTotal", event.target.value)} /></div>
               </Field>
-              <Field label="Pickup date">
+              <Field label="Pickup date" compact>
                 <input type="date" value={form.pickupDate} onChange={(event) => change("pickupDate", event.target.value)} />
               </Field>
-              <Field label="Pickup time">
+              <Field label="Pickup time" compact>
                 <input type="time" value={form.pickupTime} onChange={(event) => change("pickupTime", event.target.value)} />
               </Field>
               <Field label="Pickup location" wide>

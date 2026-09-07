@@ -655,6 +655,11 @@ body:has(.admin-page) .mbar{display:none}
 .crm-field > span,.crm-email-note > span{color:#BFB3C7;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
 .crm-field input,.crm-field select,.crm-field textarea,.crm-email-note textarea{width:100%;border:1px solid var(--stroke-2);border-radius:7px;background:#0D0813;color:#F2EAF5;padding:10px 11px;font-size:13px;outline:none;color-scheme:dark}
 .crm-field input,.crm-field select{height:42px}.crm-field textarea,.crm-email-note textarea{min-height:78px;resize:vertical;line-height:1.5}
+/* iOS renders date/time inputs as a native control that centres its value and
+   ignores the set height, so they drift out of line with the neighbouring selects. */
+.crm-field input[type=date],.crm-field input[type=time]{-webkit-appearance:none;appearance:none;text-align:left;min-height:42px}
+.crm-field input[type=date]::-webkit-date-and-time-value,.crm-field input[type=time]::-webkit-date-and-time-value{text-align:left;margin:0}
+.crm-field input[type=date]::-webkit-calendar-picker-indicator,.crm-field input[type=time]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.5}
 .crm-pickup-picker{display:grid;gap:8px}.crm-pickup-picker-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .crm-pickup-picker-actions a,.crm-pickup-picker-actions button{border:0;background:transparent;color:#CFC2D7;font:700 10.5px/1.4 var(--sans);padding:0;text-decoration:underline;text-decoration-color:#62546D;text-underline-offset:3px;cursor:pointer}
 .crm-pickup-picker-actions a:hover,.crm-pickup-picker-actions button:hover{color:var(--pink-2)}.crm-pickup-picker-actions span{color:#817487;font-size:10.5px}
