@@ -1,9 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import { OCCASIONS } from "@/lib/sample-data";
 
 export const metadata = {
   title: "Occasions",
-  description: "Weddings, showers, birthdays, quinces and corporate events — built for the day that matters.",
+  description:
+    "Custom cake pops for weddings, showers, birthdays, quinces, gifting, and corporate events.",
 };
 
 export default function OccasionsPage() {
@@ -13,20 +15,45 @@ export default function OccasionsPage() {
         <div className="sec-top">
           <div>
             <div className="eyebrow">Occasions</div>
-            <h2>Built for the day that matters</h2>
-            <p>Every celebration has a different shape. Here&apos;s how we approach the common ones.</p>
+            <h1>
+              Little pops.
+              <br />
+              <em>Big occasions.</em>
+            </h1>
+            <p>
+              See how custom cake pops can be flavored, finished, and packaged
+              for your kind of celebration.
+            </p>
           </div>
         </div>
 
-        <div className="grid" style={{ gridTemplateColumns: "repeat(2,minmax(0,1fr))" }}>
-          {OCCASIONS.map((o) => (
-            <Link key={o.slug} href={`/occasions/${o.slug}`} className="oc"
-              style={{ background: o.gradient, minHeight: 220 }}>
+        <div className="occasion-grid">
+          {OCCASIONS.map((o, index) => (
+            <Link
+              key={o.slug}
+              href={`/occasions/${o.slug}`}
+              className="occasion-photo-card rv-anim"
+            >
+              <Image
+                src={
+                  [
+                    "/products/bonbons-real-assortment.jpg",
+                    "/products/bonbons-real-party-box.jpg",
+                    "/products/bonbons-real-gift-box.jpg",
+                    "/products/bonbons-real-colorful-pops.jpg",
+                  ][index % 4]
+                }
+                alt=""
+                fill
+                sizes="(max-width:760px) 100vw, 50vw"
+              />
               <div>
-                <h3>{o.title}</h3>
+                <h2>{o.title}</h2>
                 <p>{o.short}</p>
+                <span className="text-link">
+                  Make it special <span aria-hidden="true">↗</span>
+                </span>
               </div>
-              <span className="go">→</span>
             </Link>
           ))}
         </div>

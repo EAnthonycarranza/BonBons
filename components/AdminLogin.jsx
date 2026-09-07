@@ -1,6 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import AdminIcon from "./AdminIcon";
 
 export default function AdminLogin({ passwordSet }) {
   const router = useRouter();
@@ -28,12 +31,11 @@ export default function AdminLogin({ passwordSet }) {
   }
 
   return (
-    <>
-      <div className="eyebrow">Staff only</div>
-      <h1 style={{ fontSize: 34, marginTop: 10, marginBottom: 8 }}>Dashboard login</h1>
-      <p style={{ color: "var(--muted)", marginBottom: 24 }}>
-        Quotes and orders from the site land here.
-      </p>
+    <div className="admin-login-card">
+      <Link href="/" className="admin-login-logo"><Image src="/logo-transparent.png" alt="Bon Bon’s Sweets & More" width={110} height={110}/></Link>
+      <div className="admin-kicker">Bon Bon&apos;s · Staff only</div>
+      <h1>Welcome to the shop desk.</h1>
+      <p>Your flavors, pickup orders, and customer details—all in one place.</p>
 
       {!passwordSet && (
         <p className="fill-warn" style={{ marginBottom: 18 }}>
@@ -42,17 +44,18 @@ export default function AdminLogin({ passwordSet }) {
         </p>
       )}
 
-      <form onSubmit={submit} className="tile" style={{ padding: 26 }}>
+      <form onSubmit={submit}>
         <div className="field">
           <label htmlFor="pw" style={{ color: "var(--cream)" }}>Password</label>
-          <input id="pw" type="password" value={password} autoComplete="current-password"
+          <input id="pw" type="password" value={password} autoComplete="current-password" required
             onChange={(e) => setPassword(e.target.value)} />
         </div>
         {error && <p className="err" style={{ display: "block", marginBottom: 12 }} role="alert">{error}</p>}
-        <button className="btn btn-pink btn-block" type="submit" disabled={busy || !passwordSet}>
-          {busy ? "Checking…" : "Log in"}
+        <button className="admin-btn admin-btn-primary" type="submit" disabled={busy || !passwordSet}>
+          {busy ? "Checking…" : "Log in"}<AdminIcon name="arrow"/>
         </button>
       </form>
-    </>
+      <Link href="/" className="admin-login-back">Back to the website</Link>
+    </div>
   );
 }

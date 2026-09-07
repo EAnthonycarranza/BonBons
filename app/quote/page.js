@@ -1,19 +1,28 @@
 import QuoteForm, { QuoteAside } from "@/components/QuoteForm";
 
 export const metadata = {
-  title: "Get a quote",
-  description: "Tell us about your celebration and we'll send a quote, usually the same business day.",
+  title: "Custom and event cake pop requests",
+  description:
+    "Ask about custom colors, larger quantities, or cake pops for an event.",
 };
 
 export default function QuotePage() {
   return (
-    <section className="light flat">
-      <div className="wrap sec">
-        <div className="sec-top">
+    <section className="light flat sec">
+      <div className="wrap">
+        <div className="sec-top rv-anim">
           <div>
-            <div className="eyebrow">Get a quote</div>
-            <h2>Tell us about your celebration</h2>
-            <p>About a minute to fill in. Most quotes come back the same business day.</p>
+            <div className="eyebrow">Custom &amp; event orders</div>
+            <h1>
+              For the moments
+              <br />
+              worth <em>making your own.</em>
+            </h1>
+            <p>
+              Cake pops are available one at a time or four for $10 in the shop.
+              Use this form when you want custom colors, a larger quantity, or
+              an event theme.
+            </p>
           </div>
         </div>
         <div className="form-wrap">

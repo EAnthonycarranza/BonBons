@@ -3,10 +3,12 @@ import { OCCASIONS } from "@/lib/sample-data";
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://bonbons.example.com";
 
+export const dynamic = "force-dynamic";
+
 export default async function sitemap() {
   const now = new Date();
   const staticRoutes = [
-    "", "/shop", "/build-a-box", "/dessert-tables",
+    "", "/shop", "/build-a-box",
     "/occasions", "/about", "/faq", "/quote",
   ].map((p) => ({ url: `${BASE}${p}`, lastModified: now }));
 

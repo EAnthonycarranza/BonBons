@@ -9,52 +9,129 @@ export default function SiteFooter() {
       <div className="wrap">
         <div className="foot-grid">
           <div className="brandcol">
-            <Image src="/logo-transparent.png" alt={SITE.name} width={200} height={200} style={{ height: 88, width: "auto" }} />
+            <Image
+              src="/logo-transparent.png"
+              alt={SITE.name}
+              width={200}
+              height={200}
+              style={{ height: 88, width: "auto" }}
+            />
             <div className="tag">{SITE.tagline}</div>
+            <p>
+              Handmade in San Antonio, with a little faith and a whole lot of
+              love.
+            </p>
             <div className="socials">
-              <a href="#" aria-label="Instagram"><Icon name="i-ig" /></a>
-              <a href="#" aria-label="Facebook"><Icon name="i-fb" /></a>
-              <a href="#" aria-label="TikTok"><Icon name="i-tt" /></a>
+              <a
+                href={SITE.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Follow ${SITE.name} on Instagram`}
+              >
+                <Icon name="i-ig" />
+              </a>
+              <a
+                href={SITE.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Follow ${SITE.name} on Facebook`}
+              >
+                <Icon name="i-fb" />
+              </a>
+              <a
+                href={SITE.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Follow ${SITE.name} on TikTok`}
+              >
+                <Icon name="i-tt" />
+              </a>
+            </div>
+            <div
+              className="footer-social-names"
+              aria-label="Social media profiles"
+            >
+              <a
+                href={SITE.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Instagram
+              </a>
+              <span aria-hidden="true">·</span>
+              <a href={SITE.facebook} target="_blank" rel="noopener noreferrer">
+                Facebook
+              </a>
+              <span aria-hidden="true">·</span>
+              <a href={SITE.tiktok} target="_blank" rel="noopener noreferrer">
+                TikTok
+              </a>
             </div>
           </div>
 
           <div>
-            <h4>Shop</h4>
+            <h4>Cake Pops</h4>
             <ul>
-              <li><Link href="/shop">All treats</Link></li>
-              <li><Link href="/build-a-box">Build a box</Link></li>
-              <li><Link href="/shop/party-favors">Party favors</Link></li>
-              <li><Link href="/quote">Gift cards</Link></li>
+              <li>
+                <Link href="/shop">Shop all cake pops</Link>
+              </li>
+              <li>
+                <Link href="/shop">Singles · $4 each</Link>
+              </li>
+              <li>
+                <Link href="/build-a-box">Build a four-pack · $10</Link>
+              </li>
+              <li>
+                <Link href="/shop">
+                  Current flavors
+                </Link>
+              </li>
             </ul>
           </div>
 
           <div>
-            <h4>Services</h4>
+            <h4>Custom &amp; Events</h4>
             <ul>
-              <li><Link href="/dessert-tables">Dessert tables</Link></li>
-              <li><Link href="/occasions/weddings-showers">Weddings</Link></li>
-              <li><Link href="/occasions/corporate">Corporate</Link></li>
-              <li><Link href="/faq">Delivery areas</Link></li>
+              <li>
+                <Link href="/quote">Tell us what you need</Link>
+              </li>
+              <li>
+                <Link href="/quote">
+                  Custom color cake pops
+                </Link>
+              </li>
+              <li>
+                <Link href="/occasions">Event cake pop ideas</Link>
+              </li>
+              <li>
+                <Link href="/faq">Ordering &amp; lead times</Link>
+              </li>
             </ul>
           </div>
 
           <div>
-            <h4>Pickup &amp; Delivery</h4>
+            <h4>Pickup &amp; Payment</h4>
             <ul>
-              <li>{SITE.hours}</li>
-              <li>Local delivery available</li>
+              <li>San Antonio · by appointment</li>
+              <li>Pickup only—no delivery</li>
+              <li><a href={SITE.paymentUrl} target="_blank" rel="noopener noreferrer">Payment options ↗</a></li>
               <li><a href={SITE.phoneHref}>{SITE.phone}</a></li>
               <li><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
+              <li>
+                <Link href="/faq">How pickup works →</Link>
+              </li>
             </ul>
-            <div className="pay">
-              <span>VISA</span><span>MC</span><span>AMEX</span><span>APPLE PAY</span>
-            </div>
           </div>
         </div>
 
         <div className="foot-bot">
-          <span>© {new Date().getFullYear()} {SITE.name}</span>
-          <span><Link href="/admin">Staff login</Link></span>
+          <span>
+            © {new Date().getFullYear()} {SITE.name}
+          </span>
+          <span>Made with care. Shared with love.</span>
+          <span>
+            <Link href="/admin">Staff login</Link>
+          </span>
         </div>
       </div>
     </footer>

@@ -4,25 +4,16 @@ import { useEffect } from "react";
 /**
  * Adds the scroll-reveal behaviour to elements marked `.rv-anim`.
  *
- * The hiding CSS is scoped to `html.reveal-ready`, which is only added here —
- * so if this never runs, content stays visible instead of being stuck at
- * opacity 0. The timeout and visibilitychange handler cover the case where the
- * observer is paused (a background tab) and would otherwise never fire.
+ * Content is visible by default; entering the viewport only starts a finite
+ * animation. This component lives in the persistent root layout, so watch for
+ * new route content (including streamed sections), not just the initial page.
  */
 export default function Reveal() {
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const targets = Array.from(document.querySelectorAll(".rv-anim"));
-    if (!targets.length) return;
+    const main = document.getElementById("main");
+    if (!main || reduce || !("IntersectionObserver" in window)) return;
 
-    const revealAll = () => targets.forEach((el) => el.classList.add("in"));
-
-    if (reduce || !("IntersectionObserver" in window)) {
-      revealAll();
-      return;
-    }
-
-    document.documentElement.classList.add("reveal-ready");
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((en) => {
@@ -34,17 +25,27 @@ export default function Reveal() {
       },
       { rootMargin: "0px 0px -60px 0px", threshold: 0.08 }
     );
-    targets.forEach((el) => io.observe(el));
+    const visitTargets = (node, visit) => {
+      if (node.nodeType !== 1) return;
+      if (node.matches(".rv-anim")) visit(node);
+      node.querySelectorAll(".rv-anim").forEach(visit);
+    };
+    const observe = (el) => {
+      if (!el.classList.contains("in")) io.observe(el);
+    };
+    visitTargets(main, observe);
 
-    const safety = setTimeout(revealAll, 3000);
-    const onVisible = () => { if (!document.hidden) setTimeout(revealAll, 400); };
-    document.addEventListener("visibilitychange", onVisible);
+    const mutations = "MutationObserver" in window ? new MutationObserver((records) => {
+      records.forEach(({ removedNodes, addedNodes }) => {
+        removedNodes.forEach((node) => visitTargets(node, (el) => io.unobserve(el)));
+        addedNodes.forEach((node) => visitTargets(node, observe));
+      });
+    }) : null;
+    mutations?.observe(main, { childList: true, subtree: true });
 
     return () => {
-      clearTimeout(safety);
-      document.removeEventListener("visibilitychange", onVisible);
+      mutations?.disconnect();
       io.disconnect();
-      document.documentElement.classList.remove("reveal-ready");
     };
   }, []);
 

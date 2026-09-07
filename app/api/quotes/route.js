@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
-import { connectToDatabase, hasDatabase } from "@/lib/mongodb";
-import Quote from "@/lib/models/Quote";
 import { isAdmin } from "@/lib/auth";
-import { isEmail, plain } from "@/lib/format";
+import { isEmail, isPhone } from "@/lib/format";
+import {
+  callSupabaseData,
+  hasSupabaseDatabase,
+  quoteToRow,
+  toQuote,
+} from "@/lib/supabase-data";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +22,7 @@ export async function POST(request) {
   const errors = [];
   if (!body.name || !String(body.name).trim()) errors.push("name");
   if (!isEmail(body.email)) errors.push("email");
+  if (!isPhone(body.phone)) errors.push("phone");
   if (!body.eventDate) errors.push("eventDate");
   if (errors.length) {
     return NextResponse.json(
@@ -33,37 +38,28 @@ export async function POST(request) {
     eventDate: String(body.eventDate),
     occasion: String(body.occasion || ""),
     guests: body.guests ? Number(body.guests) : null,
-    fulfilment: body.fulfilment === "Delivery" ? "Delivery" : "Pickup",
-    zip: String(body.zip || "").trim(),
+    fulfilment: "Pickup",
+    zip: "",
     interests: Array.isArray(body.interests) ? body.interests.slice(0, 20) : [],
     colors: String(body.colors || "").trim(),
     notes: String(body.notes || "").trim(),
   };
 
-  if (!hasDatabase()) {
-    return NextResponse.json({
-      ok: true,
-      stored: false,
-      message:
-        "This preview isn't connected to a database yet, so nothing was saved. " +
-        "Once MongoDB is set up, requests like this land in the admin dashboard.",
-    });
-  }
-
-  const conn = await connectToDatabase();
-  if (!conn) {
+  if (!hasSupabaseDatabase()) {
     return NextResponse.json(
-      { error: "We couldn't reach the database. Please call or text us instead." },
+      { error: "Online requests are temporarily unavailable. Please call or text the owner instead." },
       { status: 503 }
     );
   }
 
   try {
-    await Quote.create(doc);
+    await callSupabaseData("create_quote", { quote: quoteToRow(doc) });
     return NextResponse.json({
       ok: true,
       stored: true,
-      message: `We'll email a quote to ${doc.email}, usually the same business day.`,
+      message:
+        `We'll contact you at ${doc.email} or ${doc.phone} to confirm the design, ` +
+        "pickup time, price, and payment arrangement.",
     });
   } catch (err) {
     console.error("Quote save failed:", err.message);
@@ -75,9 +71,12 @@ export async function GET() {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Not authorised." }, { status: 401 });
   }
-  if (!hasDatabase()) return NextResponse.json({ quotes: [] });
-  const conn = await connectToDatabase();
-  if (!conn) return NextResponse.json({ quotes: [] });
-  const quotes = await Quote.find().sort({ createdAt: -1 }).limit(100).lean();
-  return NextResponse.json({ quotes: quotes.map(plain) });
+  if (!hasSupabaseDatabase()) return NextResponse.json({ quotes: [] });
+  try {
+    const { data } = await callSupabaseData("list_quotes");
+    return NextResponse.json({ quotes: data.map(toQuote) });
+  } catch (err) {
+    console.error("Request list failed:", err.message);
+    return NextResponse.json({ error: "Could not load custom requests." }, { status: 503 });
+  }
 }

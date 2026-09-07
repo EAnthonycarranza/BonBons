@@ -1,143 +1,51 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { money } from "@/lib/format";
+import Image from "next/image";
+import Link from "next/link";
+import MenuManager from "./MenuManager";
+import AdminOrders from "./AdminOrders";
+import AdminSettings from "./AdminSettings";
+import AdminIcon from "./AdminIcon";
 
-function Panel({ title, children, count }) {
-  return (
-    <div className="tile" style={{ padding: 24, marginBottom: 18 }}>
-      <h2 style={{ fontSize: 20, marginBottom: 14 }}>
-        {title} {typeof count === "number" && <span style={{ color: "var(--muted)" }}>({count})</span>}
-      </h2>
-      {children}
-    </div>
-  );
-}
+const SECTIONS = [
+  { id: "menu", label: "Cake-pop menu", icon: "menu", note: "Flavors & availability" },
+  { id: "orders", label: "Pickup orders", icon: "orders", note: "Requests & confirmations" },
+  { id: "settings", label: "Shop settings", icon: "settings", note: "Pickup, contact & payment" },
+];
 
 export default function AdminDashboard({ dbReady }) {
   const router = useRouter();
-  const [quotes, setQuotes] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [seedMsg, setSeedMsg] = useState("");
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [q, o] = await Promise.all([
-        fetch("/api/quotes").then((r) => r.json()),
-        fetch("/api/orders").then((r) => r.json()),
-      ]);
-      setQuotes(q.quotes || []);
-      setOrders(o.orders || []);
-    } catch {
-      /* leave lists empty; the empty states explain what to do */
-    }
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  async function seed() {
-    setSeedMsg("Seeding…");
-    const res = await fetch("/api/seed", { method: "POST" });
-    const data = await res.json();
-    setSeedMsg(res.ok ? `Done — ${data.created} created, ${data.updated} updated.` : data.error);
-  }
-
+  const [section, setSection] = useState("menu");
+  const [visited, setVisited] = useState({ menu: true });
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [error, setError] = useState("");
   async function logout() {
-    await fetch("/api/admin/logout", { method: "POST" });
-    router.refresh();
+    setLoggingOut(true); setError("");
+    try {
+      const response = await fetch("/api/admin/logout", { method: "POST" });
+      if (!response.ok) throw new Error("Could not log out. Please try again.");
+      router.refresh();
+    } catch (err) { setError(err.message); setLoggingOut(false); }
   }
-
-  return (
-    <>
-      <div className="sec-top" style={{ marginBottom: 24 }}>
-        <div>
-          <div className="eyebrow">Staff dashboard</div>
-          <h1 style={{ fontSize: 34, marginTop: 8 }}>Incoming work</h1>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn btn-ghost btn-sm" onClick={load}>Refresh</button>
-          <button className="btn btn-ghost btn-sm" onClick={logout}>Log out</button>
-        </div>
+  return <div className="admin-application">
+    <aside className="admin-sidebar">
+      <Link className="admin-brand" href="/"><Image src="/logo-transparent.png" alt="Bon Bon’s Sweets & More" width={58} height={58}/><span><b>Bon Bon&apos;s</b><small>THE SHOP DESK</small></span></Link>
+      <div className="admin-workspace-label">Your workspace</div>
+      <nav aria-label="Admin navigation">{SECTIONS.map(item=><button key={item.id} type="button" aria-label={item.label} className={section===item.id?"is-active":""} aria-current={section===item.id?"page":undefined} onClick={()=>{setVisited(current=>({...current,[item.id]:true}));setSection(item.id);}}><AdminIcon name={item.icon}/><span><b>{item.label}</b><small>{item.note}</small></span>{section===item.id?<i/>:null}</button>)}</nav>
+      <div className="admin-sidebar-note"><span>Made with love.<br/>Managed with care.</span><p>Your menu, orders, and everyday details—all right here.</p></div>
+      <div className="admin-sidebar-bottom"><Link href="/" target="_blank"><AdminIcon name="external"/>Open website</Link><button onClick={logout} disabled={loggingOut}><AdminIcon name="logout"/>{loggingOut?"Logging out…":"Log out"}</button><div className="admin-staff"><span>B</span><div><b>Bon Bon&apos;s team</b><small>Administrator</small></div></div></div>
+    </aside>
+    <div className="admin-main">
+      <header className="admin-topbar"><div><span>Workspace</span><span className="admin-breadcrumb-separator">/</span><b>{SECTIONS.find(item=>item.id===section).label}</b></div><span className="admin-staff-badge">Staff only</span></header>
+      <div className="admin-content">
+        {!dbReady?<p className="admin-alert is-error" role="alert">The database is not connected. Changes and customer requests cannot be saved yet.</p>:null}
+        {error?<p className="admin-alert is-error" role="alert">{error}</p>:null}
+        <div hidden={section!=="menu"}><MenuManager/></div>
+        {visited.orders?<div hidden={section!=="orders"}><AdminOrders dbReady={dbReady}/></div>:null}
+        {visited.settings?<div hidden={section!=="settings"}><AdminSettings/></div>:null}
       </div>
-
-      {!dbReady && (
-        <p className="fill-warn" style={{ marginBottom: 18 }}>
-          No database is connected, so nothing is being stored yet. Add <code>MONGODB_URI</code> to
-          <code> .env.local</code> and restart to start collecting quotes and orders.
-        </p>
-      )}
-
-      {dbReady && (
-        <Panel title="Catalogue">
-          <p style={{ color: "var(--muted)", marginBottom: 14 }}>
-            Load the starter products into MongoDB. Safe to run more than once.
-          </p>
-          <button className="btn btn-gold btn-sm" onClick={seed}>Seed sample products</button>
-          {seedMsg && <p style={{ marginTop: 12, color: "var(--mint)" }}>{seedMsg}</p>}
-        </Panel>
-      )}
-
-      <Panel title="Quote requests" count={quotes.length}>
-        {loading ? <p style={{ color: "var(--muted)" }}>Loading…</p>
-          : quotes.length === 0 ? <p style={{ color: "var(--muted)" }}>Nothing yet.</p>
-          : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-                <thead>
-                  <tr style={{ textAlign: "left", color: "var(--muted)" }}>
-                    <th style={{ padding: "8px 10px" }}>Name</th>
-                    <th style={{ padding: "8px 10px" }}>Date</th>
-                    <th style={{ padding: "8px 10px" }}>Occasion</th>
-                    <th style={{ padding: "8px 10px" }}>How</th>
-                    <th style={{ padding: "8px 10px" }}>Contact</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {quotes.map((q) => (
-                    <tr key={q._id} style={{ borderTop: "1px solid var(--stroke)" }}>
-                      <td style={{ padding: "10px" }}>{q.name}</td>
-                      <td style={{ padding: "10px" }}>{q.eventDate}</td>
-                      <td style={{ padding: "10px" }}>{q.occasion}</td>
-                      <td style={{ padding: "10px" }}>{q.fulfilment}</td>
-                      <td style={{ padding: "10px" }}>
-                        <a href={`mailto:${q.email}`}>{q.email}</a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-      </Panel>
-
-      <Panel title="Orders" count={orders.length}>
-        {loading ? <p style={{ color: "var(--muted)" }}>Loading…</p>
-          : orders.length === 0 ? <p style={{ color: "var(--muted)" }}>Nothing yet.</p>
-          : (
-            <div style={{ display: "grid", gap: 12 }}>
-              {orders.map((o) => (
-                <div key={o._id} style={{ border: "1px solid var(--stroke)", borderRadius: 14, padding: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                    <b>{o.customer?.name}</b>
-                    <b>{money(o.subtotal)}</b>
-                  </div>
-                  <div style={{ color: "var(--muted)", fontSize: 14, marginTop: 4 }}>
-                    {o.fulfilment} · wanted {o.wantedDate || "—"} · {o.customer?.email}
-                  </div>
-                  <ul style={{ listStyle: "none", marginTop: 10, fontSize: 14, display: "grid", gap: 4 }}>
-                    {o.items?.map((i, n) => (
-                      <li key={n} style={{ color: "#CFC5D8" }}>{i.qty}× {i.name} — {money(i.price * i.qty)}</li>
-                    ))}
-                  </ul>
-                  {o.notes && <p style={{ marginTop: 10, fontSize: 14, color: "var(--gold)" }}>Note: {o.notes}</p>}
-                </div>
-              ))}
-            </div>
-          )}
-      </Panel>
-    </>
-  );
+      <footer className="admin-bottomline"><span>Bon Bon&apos;s Sweets &amp; More</span><span>San Antonio, Texas · Pickup only</span></footer>
+    </div>
+  </div>;
 }

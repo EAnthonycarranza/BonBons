@@ -1,0 +1,16 @@
+/.env
+/.env.*
+/.git
+/.github
+/.next
+/node_modules
+/design-previews
+/design-qa*
+/tests
+/supabase/migrations
+/supabase/schema.sql
+/supabase/menu-catalog.sql
+/supabase/functions/bonbons-data
+/concepts*.html
+/index.html
+/.DS_Store

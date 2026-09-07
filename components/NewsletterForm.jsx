@@ -21,7 +21,10 @@ export default function NewsletterForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
-      setState({ status: "done", msg: data.message || "Thanks! You're on the list." });
+      setState({
+        status: "done",
+        msg: data.message || "Thanks! You're on the list.",
+      });
       setEmail("");
     } catch (err) {
       setState({ status: "error", msg: err.message });
@@ -31,7 +34,9 @@ export default function NewsletterForm() {
   return (
     <>
       <form onSubmit={submit}>
-        <label className="sr-only" htmlFor="newsEmail">Email address</label>
+        <label className="sr-only" htmlFor="newsEmail">
+          Email address
+        </label>
         <input
           id="newsEmail"
           type="email"
@@ -39,12 +44,22 @@ export default function NewsletterForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <button className="btn btn-gold" type="submit" disabled={state.status === "sending"}>
+        <button
+          className="btn btn-pink"
+          type="submit"
+          disabled={state.status === "sending"}
+        >
           {state.status === "sending" ? "Sending…" : "Subscribe"}
         </button>
       </form>
       {state.msg && (
-        <div className={`ok show`} role="status" style={state.status === "error" ? { color: "var(--gold)" } : undefined}>
+        <div
+          className={`ok show`}
+          role="status"
+          style={
+            state.status === "error" ? { color: "var(--gold)" } : undefined
+          }
+        >
           {state.msg}
         </div>
       )}

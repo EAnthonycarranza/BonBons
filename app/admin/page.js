@@ -1,21 +1,20 @@
 import { isAdmin } from "@/lib/auth";
-import { hasDatabase } from "@/lib/mongodb";
+import { hasSupabaseDatabase } from "@/lib/supabase-data";
 import AdminLogin from "@/components/AdminLogin";
 import AdminDashboard from "@/components/AdminDashboard";
+import "./admin.css";
 
 export const metadata = { title: "Staff dashboard", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const authed = await isAdmin();
-  const dbReady = hasDatabase();
+  const dbReady = hasSupabaseDatabase();
   const passwordSet = Boolean(process.env.ADMIN_PASSWORD);
 
   return (
-    <section className="sec">
-      <div className="wrap" style={{ maxWidth: authed ? undefined : 520 }}>
-        {authed ? <AdminDashboard dbReady={dbReady} /> : <AdminLogin passwordSet={passwordSet} />}
-      </div>
-    </section>
+    <div className="admin-root">
+      {authed ? <AdminDashboard dbReady={dbReady} /> : <div className="admin-login-page"><AdminLogin passwordSet={passwordSet} /></div>}
+    </div>
   );
 }

@@ -1,28 +1,30 @@
 import { NextResponse } from "next/server";
-import { connectToDatabase, hasDatabase } from "@/lib/mongodb";
-import Product from "@/lib/models/Product";
 import { SAMPLE_PRODUCTS } from "@/lib/sample-data";
 import { isAdmin } from "@/lib/auth";
+import {
+  callSupabaseData,
+  hasSupabaseDatabase,
+  productToRow,
+} from "@/lib/supabase-data";
 
 export const dynamic = "force-dynamic";
 
-/** Loads the sample catalogue into MongoDB. Admin only, and safe to re-run. */
+/** Loads the current starter catalogue into Supabase. Admin only and idempotent. */
 export async function POST() {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Not authorised." }, { status: 401 });
   }
-  if (!hasDatabase()) {
-    return NextResponse.json({ error: "Set MONGODB_URI in .env.local first." }, { status: 503 });
+  if (!hasSupabaseDatabase()) {
+    return NextResponse.json({ error: "Supabase is not configured." }, { status: 503 });
   }
-  const conn = await connectToDatabase();
-  if (!conn) return NextResponse.json({ error: "Database unavailable." }, { status: 503 });
 
-  let created = 0;
-  let updated = 0;
-  for (const p of SAMPLE_PRODUCTS) {
-    const res = await Product.updateOne({ slug: p.slug }, { $set: p }, { upsert: true });
-    if (res.upsertedCount) created += 1;
-    else if (res.modifiedCount) updated += 1;
+  try {
+    const { created, updated } = await callSupabaseData("seed_products", {
+      products: SAMPLE_PRODUCTS.map(productToRow),
+    });
+    return NextResponse.json({ ok: true, created, updated, total: SAMPLE_PRODUCTS.length });
+  } catch (err) {
+    console.error("Product seed failed:", err.message);
+    return NextResponse.json({ error: "Could not seed products." }, { status: 500 });
   }
-  return NextResponse.json({ ok: true, created, updated, total: SAMPLE_PRODUCTS.length });
 }

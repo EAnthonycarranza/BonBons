@@ -11,10 +11,10 @@ export default function NotFound() {
           That page melted.
         </h1>
         <p style={{ color: "var(--muted)", marginTop: 16, maxWidth: "44ch", marginInline: "auto" }}>
-          We couldn&apos;t find what you were looking for — but the treats are all still here.
+          We couldn&apos;t find what you were looking for — but the cake pops are all still here.
         </p>
         <div className="hero-cta" style={{ justifyContent: "center" }}>
-          <Link className="btn btn-pink" href="/shop">Shop treats</Link>
+          <Link className="btn btn-pink" href="/shop">Shop cake pops</Link>
           <Link className="btn btn-ghost" href="/">Back home</Link>
         </div>
       </div>

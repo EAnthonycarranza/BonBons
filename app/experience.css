@@ -1,0 +1,233 @@
+/* Responsive, progressively enhanced interactions. Nothing is hidden while
+   waiting for JavaScript, an observer, or a third-party embed to load. */
+:root {
+  --ease-out: cubic-bezier(.22, .68, .22, 1);
+  --motion-fast: 180ms;
+  --motion-panel: 420ms;
+}
+html { scroll-padding-top: 110px; }
+.field, .form-wrap > *, .builder > *, .checkout-details form { min-width: 0; }
+.field input, .field select, .field textarea {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
+  scroll-margin-block: 110px 100px;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--pink-2);
+  box-shadow: 0 0 0 3px #ff90c514;
+}
+/* iOS gives native date controls an intrinsic width. Constrain the control AND
+   its internal value, without removing the native calendar interaction. */
+.field input[type="date"], .field input[type="datetime-local"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  height: 52px;
+  appearance: none;
+  -webkit-appearance: none;
+  text-align: left;
+}
+.field input::-webkit-date-and-time-value { min-width: 0; text-align: left; }
+.field input::-webkit-datetime-edit { min-width: 0; padding: 0; }
+.field .err:empty { display: none; }
+.field .help { line-height: 1.6; margin-top: 8px; }
+
+.checkout-page { padding-top: 64px; }
+.checkout-heading { align-items: end; margin-bottom: 38px; }
+.checkout-heading h1 { font-family: var(--display); font-weight: 400; }
+.checkout-heading p { max-width: 48ch; }
+.checkout-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr); gap: 40px; }
+.checkout-card-heading { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 24px; }
+.checkout-card-heading h2 { font: 500 29px/1.15 var(--display); letter-spacing: -.02em; }
+.checkout-card-heading p { margin-top: 7px; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.checkout-step {
+  display: grid; place-items: center; flex: 0 0 32px; height: 32px;
+  margin-top: 2px; border: 1px solid var(--stroke-2); border-radius: 50%;
+  color: var(--pink-2); font-size: 10px; letter-spacing: .06em;
+}
+.checkout-details { padding: 30px; scroll-margin-top: 110px; }
+.checkout-details .field { margin-bottom: 20px; }
+.checkout-details .field label { font-size: 13px; margin-bottom: 9px; }
+.checkout-details .pickup-notice { margin-block: 24px; }
+.checkout-summary .tile { background: #19121e; }
+.checkout-summary .ci:last-child { border-bottom: 0; }
+.checkout-summary .dnote { margin-bottom: 0; }
+.continue-details { display: none; }
+.ci .info b, .ci .info span { overflow-wrap: anywhere; }
+.ci-rm { min-height: 32px; text-underline-offset: 4px; }
+.stepper output { font-variant-numeric: tabular-nums; }
+.drawer { transition: transform var(--motion-panel) var(--ease-out); }
+.drawer-body { min-height: 0; overscroll-behavior: contain; }
+.drawer-top { flex-shrink: 0; }
+.drawer-foot { overflow-y: auto; max-height: 52%; flex-shrink: 0; overscroll-behavior: contain; }
+.overlay { transition: opacity 320ms var(--ease-out); }
+.treat { transition: border-color 240ms, background 240ms; }
+.treat.is-picked { border-color: #a8628c; background: #25182b; }
+.treat .tn { min-width: 0; }
+.pack-slot { transition: border-color 240ms, background 240ms; }
+.pack-slot.is-filled { border-style: solid; border-color: #a8628c; }
+.pack-progress span { transition: width var(--motion-panel) var(--ease-out); }
+.faq-answer-shell, .social-accordion-content {
+  transition-duration: var(--motion-panel), 280ms, 0s;
+  transition-timing-function: var(--ease-out), ease, linear;
+}
+.faq-question::after, .social-accordion-toggle { transition: transform var(--motion-panel) var(--ease-out); }
+.btn, .add, .stepper button, .cart-btn, .socials a {
+  transition: transform var(--motion-fast) var(--ease-out), background var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active:not(:disabled), .add:active, .stepper button:active:not(:disabled) { transform: scale(.97); }
+.mbar { transition: transform 240ms var(--ease-out), visibility 240ms; }
+body:has(input:focus, textarea:focus, select:focus) .mbar { visibility: hidden; transform: translateY(110%); }
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  .rv-anim.in { animation: soft-entry 680ms var(--ease-out) backwards; }
+  .rv-anim[data-motion="card"].in, .faq-item.rv-anim.in { animation-duration: 520ms; }
+  .editorial-hero-copy.in, .story-hero-copy.in { animation: none; }
+  .editorial-hero-copy.in > *, .story-hero-copy.in > * { animation: soft-entry 700ms var(--ease-out) backwards; }
+  .editorial-hero-copy.in > :nth-child(2), .story-hero-copy.in > :nth-child(2) { animation-delay: 70ms; }
+  .editorial-hero-copy.in > :nth-child(3), .story-hero-copy.in > :nth-child(3) { animation-delay: 140ms; }
+  .editorial-hero-copy.in > :nth-child(n+4), .story-hero-copy.in > :nth-child(n+4) { animation-delay: 210ms; }
+  .editorial-hero-photo.in .hero-photo-arch img { animation: photo-settle 1100ms var(--ease-out) backwards; }
+  .grid .prod.in:nth-child(3n+2) { animation-delay: 65ms; }
+  .grid .prod.in:nth-child(3n+3) { animation-delay: 130ms; }
+  .stepper output, .cart-btn .count { animation: quantity-change 220ms var(--ease-out); }
+  .drawer.open .ci { animation: soft-entry 420ms var(--ease-out) backwards; }
+  .drawer.open .ci:nth-child(2) { animation-delay: 45ms; }
+  .drawer.open .ci:nth-child(n+3) { animation-delay: 90ms; }
+  .form-ok { animation: soft-entry 450ms var(--ease-out); }
+  .bundle-nudge { animation: soft-entry 360ms var(--ease-out); }
+}
+@keyframes soft-entry {
+  from { opacity: 0; translate: 0 16px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes photo-settle { from { transform: scale(1.045); } to { transform: scale(1); } }
+@keyframes quantity-change {
+  from { opacity: .45; transform: translateY(3px) scale(.92); }
+  to { opacity: 1; transform: none; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .prod { transition: border-color 300ms, box-shadow 300ms; }
+  .prod:hover { border-color: #9c6d86; box-shadow: 0 12px 32px #0002; }
+  .prod .ph.photo img, .maker-teaser-photo img { transition: transform 800ms var(--ease-out); }
+  .prod:hover .ph.photo img, .maker-teaser-photo:hover img { transform: scale(1.035); }
+}
+@media (hover: none) {
+  .btn:hover, .btn-pink:hover, .prod:hover, .occasion-photo-card:hover > img { transform: none; }
+}
+@media (max-width: 1080px) {
+  .mobile-menu {
+    max-height: calc(100dvh - 124px);
+    overscroll-behavior: contain;
+    transition: opacity 260ms, transform var(--motion-panel) var(--ease-out), visibility 0s linear var(--motion-panel);
+  }
+  .mobile-menu-inner { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  .mobile-menu.open { transition-delay: 0s; }
+  @media (prefers-reduced-motion: no-preference) {
+    .mobile-menu.open .mobile-menu-links > a {
+      animation: soft-entry 360ms var(--ease-out) backwards;
+      animation-delay: calc(var(--item-index, 0) * 45ms);
+    }
+  }
+}
+@media (max-width: 980px) {
+  .checkout-layout { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  .continue-details { display: flex; width: 100%; margin-top: 14px; }
+}
+@media (max-width: 760px) {
+  html { scroll-padding-top: 94px; }
+  .field input, .field select, .field textarea { font-size: 16px; width: 100%; }
+  .field input, .field select { min-height: 52px; }
+  .field textarea { min-height: 112px; }
+  .field label { font-size: 13px; }
+  .checkout-page { padding-top: 36px; }
+  .checkout-heading { gap: 18px; margin-bottom: 30px; }
+  .checkout-heading h1 { font-size: clamp(36px, 9vw, 48px); line-height: 1.06; }
+  .checkout-heading p { font-size: 14px; line-height: 1.7; }
+  .checkout-heading > .btn { min-height: 44px; padding: 10px 16px; font-size: 12px; }
+  .checkout-details { padding: 22px 18px; scroll-margin-top: 94px; }
+  .checkout-card-heading { gap: 11px; margin-bottom: 22px; }
+  .checkout-card-heading h2 { font-size: 28px; }
+  .checkout-card-heading p { font-size: 12px; }
+  .checkout-step { flex-basis: 28px; height: 28px; }
+  .checkout-details .pickup-notice { gap: 12px; padding: 16px 14px; }
+  .checkout-details .pickup-notice b { font-size: 13px; }
+  .checkout-details .pickup-notice span { font-size: 12px; line-height: 1.7; }
+  .checkout-details .pickup-notice svg { width: 18px; height: 18px; }
+  .checkout-details .btn-block { min-height: 52px; padding-inline: 10px; }
+  .checkout-summary .ci { gap: 12px; }
+  .ci .ph { width: 48px; height: 56px; }
+  .ci .info b { font-size: 13px; line-height: 1.45; }
+  .ci .info span { display: block; font-size: 11px; line-height: 1.6; margin-top: 4px; }
+  .stepper button, .ci .stepper button { width: 44px; height: 44px; font-size: 20px; }
+  .stepper output { min-width: 26px; font-size: 16px; }
+  .prod .add, .socials a { width: 44px; height: 44px; }
+  .burger { width: 44px; height: 44px; border-radius: 9px; }
+  .nav-in { gap: 10px; }
+  .nav-actions { gap: 8px; }
+  .cart-btn { padding: 10px; gap: 7px; }
+  .drawer {
+    top: auto; bottom: 0; left: 0; width: 100%;
+    height: min(780px, 90dvh); max-height: 90dvh;
+    border: 1px solid var(--stroke-2); border-bottom: 0;
+    border-radius: 22px 22px 0 0;
+    transform: translateY(105%);
+    overflow: hidden;
+  }
+  .drawer.open { transform: none; }
+  .drawer-top { padding: 18px 20px; }
+  .drawer-top h2 { font-size: 27px; }
+  .drawer-body { padding: 8px 20px; }
+  .drawer-foot { padding: 18px 20px max(20px, env(safe-area-inset-bottom)); }
+  .drawer .x { width: 44px; height: 44px; }
+  .drawer .dnote { font-size: 12px; line-height: 1.6; }
+  .treat { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 12px; padding: 14px; }
+  .treat .treat-photo { width: 48px; height: 52px; }
+  .treat .tn { align-self: center; }
+  .treat .tn b { font-size: 14px; }
+  .treat .tn span { line-height: 1.6; }
+  .treat .stepper { grid-column: 2; justify-self: start; }
+  .b-card, .summary { padding: 22px 18px; }
+  .builder { gap: 24px; }
+  .social-accordion-summary { padding: 18px 16px; gap: 12px; }
+  .social-accordion-panel { padding-inline: 16px; }
+  .social-accordion-title > b { font-size: 17px; }
+  .faq-question { padding-block: 22px; font-size: 15px; line-height: 1.6; }
+  .faq .a { font-size: 14px; }
+}
+@media (max-width: 420px) {
+  .wrap { padding-inline: 18px; }
+  .brand { gap: 8px; }
+  .brand-wordmark strong { font-size: 21px; }
+  .brand img { height: 42px !important; }
+  .ci { display: grid; grid-template-columns: 44px minmax(0, 1fr); }
+  .ci .ph { width: 44px; height: 52px; }
+  .ci .right { grid-column: 2; display: flex; align-items: center; justify-content: space-between; text-align: left; }
+  .ci .right br { display: none; }
+  .ci-rm { margin: 0; min-height: 44px; padding-inline: 8px; }
+  .ci .right b { font-size: 16px; }
+}
+@media (max-width: 350px) {
+  .wrap { padding-inline: 14px; }
+  .brand-wordmark strong { font-size: 18px; }
+  .brand-wordmark small { font-size: 6px; }
+  .brand img { height: 36px !important; }
+  .nav-actions { gap: 6px; }
+  .cart-btn { padding-inline: 8px; }
+  .checkout-details { padding-inline: 14px; }
+}
+/* Also handles a preference changed while the page is already open. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

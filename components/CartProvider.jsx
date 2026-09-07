@@ -1,8 +1,11 @@
 "use client";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { buildFourPacksFromSingles, getCartPricing } from "@/lib/pricing";
 
 const CartContext = createContext(null);
-const STORAGE_KEY = "bb_cart";
+// A new key keeps outdated dozen-priced items from older visits out of the
+// current $4-single / $10-four-pack request flow.
+const STORAGE_KEY = "bb_cart_v2";
 
 export function useCart() {
   const ctx = useContext(CartContext);
@@ -51,7 +54,7 @@ export function CartProvider({ children }) {
       next[i] = { ...next[i], qty: next[i].qty + (item.qty || 1) };
       return next;
     });
-    say(`${item.name} added to cart`);
+    say(`${item.name} added to your request`);
   }, [say]);
 
   const remove = useCallback((key) => setItems((p) => p.filter((i) => i.key !== key)), []);
@@ -61,12 +64,32 @@ export function CartProvider({ children }) {
   }, []);
   const clear = useCallback(() => setItems([]), []);
 
+  const convertSinglesToFourPacks = useCallback(() => {
+    const { packCount, convertedPops } = buildFourPacksFromSingles(items);
+    if (!packCount) return;
+
+    setItems((current) => buildFourPacksFromSingles(current).items);
+    say(`Switched ${convertedPops} singles to ${packCount} four-pack${packCount === 1 ? "" : "s"}`);
+  }, [items, say]);
+
   const count = useMemo(() => items.reduce((n, i) => n + i.qty, 0), [items]);
-  const subtotal = useMemo(() => items.reduce((n, i) => n + i.price * i.qty, 0), [items]);
+  const pricing = useMemo(() => getCartPricing(items), [items]);
+  const subtotal = pricing.subtotal;
 
   const value = useMemo(
-    () => ({ items, add, remove, setQty, clear, count, subtotal, open, setOpen, toast, say, ready }),
-    [items, add, remove, setQty, clear, count, subtotal, open, toast, say, ready]
+    () => ({
+      items, add, remove, setQty, clear, count, subtotal,
+      singlePopCount: pricing.singlePopCount,
+      suggestedFourPacks: pricing.suggestedFourPacks,
+      potentialSavings: pricing.potentialSavings,
+      convertSinglesToFourPacks,
+      open, setOpen, toast, say, ready,
+    }),
+    [
+      items, add, remove, setQty, clear, count, subtotal,
+      pricing.singlePopCount, pricing.suggestedFourPacks, pricing.potentialSavings,
+      convertSinglesToFourPacks, open, toast, say, ready,
+    ]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

@@ -3,21 +3,39 @@
   "version": "1.0.0",
   "private": true,
   "description": "Bon Bon's Sweets & More — handmade treats and dessert tables",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:heroku": "node scripts/check-production-env.mjs && next start --hostname 0.0.0.0",
     "lint": "next lint",
-    "seed": "node lib/seed.mjs"
+    "test:email": "node --experimental-vm-modules --test tests/email.test.mjs",
+    "test:reveal": "node --experimental-vm-modules --test tests/reveal.test.mjs",
+    "test:config": "node --test tests/production-env.test.mjs",
+    "test:menu": "node --test tests/menu.test.mjs",
+    "test:mobile": "node --test tests/mobile-experience.test.mjs",
+    "test:photos": "node --test tests/product-photos.test.mjs",
+    "preview:email": "node scripts/preview-emails.mjs"
   },
   "dependencies": {
-    "mongoose": "^8.9.5",
+    "@supabase/ssr": "0.12.5",
+    "@supabase/supabase-js": "2.112.4",
     "next": "^15.1.6",
+    "nodemailer": "9.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.1.6"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.26",
+      "sharp": "0.35.4"
+    }
   }
 }

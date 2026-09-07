@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useCart } from "./CartProvider";
 import { Icon } from "./Icons";
 import { money } from "@/lib/format";
+import { isStyledProductPhoto } from "@/lib/product-photos";
 
 export default function ProductCard({ product }) {
   const { add } = useCart();
@@ -18,6 +20,8 @@ export default function ProductCard({ product }) {
       desc: product.blurb,
       price: product.price,
       qty: 1,
+      bundleEligible: product.bundleEligible,
+      image: product.image,
       icon: product.icon,
       color: product.color,
       tint: product.tint,
@@ -27,16 +31,24 @@ export default function ProductCard({ product }) {
   }
 
   return (
-    <article className="prod">
+    <article className="prod rv-anim" data-motion="card">
       <Link href={`/shop/${product.slug}`} style={{ display: "block" }}>
         <div
-          className="ph"
+          className={`ph${product.image ? " photo" : ""}`}
           style={{ background: `linear-gradient(150deg,rgba(${product.tint},.22),rgba(${product.tint},.04))` }}
         >
+          {product.image ? (
+            <Image
+              src={product.image}
+              alt={`${isStyledProductPhoto(product.image) ? "Styled image of " : ""}${product.name} by Bon Bon's`}
+              fill
+              sizes="(max-width: 560px) 100vw, (max-width: 1080px) 50vw, 25vw"
+            />
+          ) : <div className="flavor-photo-pending"><Image src="/logo-transparent.png" alt="Bon Bon's Sweets & More" width={150} height={150} /><span>Flavor photo coming soon</span></div>}
           {product.badge ? (
             <span className={`badge ${product.badgeClass || ""}`}>{product.badge}</span>
           ) : null}
-          <Icon name={product.icon} style={{ color: product.color }} />
+          {isStyledProductPhoto(product.image) && <span className="styled-photo-label">Styled photo</span>}
         </div>
       </Link>
       <div className="meta">
@@ -47,7 +59,7 @@ export default function ProductCard({ product }) {
           <button
             className={`add${added ? " added" : ""}`}
             onClick={onAdd}
-            aria-label={`Add ${product.name} to cart`}
+            aria-label={`Add ${product.name} to pickup request`}
           >
             <Icon name={added ? "i-check" : "i-plus"} />
           </button>

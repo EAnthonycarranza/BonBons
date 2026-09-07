@@ -1,0 +1,27 @@
+{
+  "name": "Bon Bon's Sweets & More",
+  "description": "Pickup-only cake pop shop with Supabase ordering and Gmail notifications.",
+  "stack": "heroku-24",
+  "buildpacks": [{ "url": "heroku/nodejs" }],
+  "formation": {
+    "web": { "quantity": 0, "size": "basic" }
+  },
+  "addons": [],
+  "env": {
+    "NODE_ENV": { "value": "production" },
+    "NEXT_TELEMETRY_DISABLED": { "value": "1" },
+    "NEXT_PUBLIC_SITE_URL": { "description": "HTTPS origin of the deployed website, without a trailing slash." },
+    "NEXT_PUBLIC_SUPABASE_URL": { "description": "Existing Supabase project URL." },
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": { "description": "Public Supabase publishable key." },
+    "BONBONS_INTERNAL_API_TOKEN": { "description": "Private token matching the existing bonbons-data Edge Function." },
+    "ADMIN_PASSWORD": { "description": "A strong, unique production admin password (at least 16 characters)." },
+    "ADMIN_SECRET": { "generator": "secret" },
+    "GMAIL_USER": { "description": "Google mailbox used for customer emails." },
+    "GMAIL_APP_PASSWORD": { "description": "Server-only Google app password." },
+    "GMAIL_FROM_NAME": { "value": "Bon Bon's Sweets & More" },
+    "NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY": { "description": "Public Enterprise checkbox site key; allow the deployed hostname in Google Cloud." },
+    "GOOGLE_CLOUD_PROJECT_ID": { "description": "Google Cloud project containing reCAPTCHA." },
+    "GOOGLE_RECAPTCHA_API_KEY": { "description": "Server-only key permitted to create reCAPTCHA assessments." },
+    "RECAPTCHA_MIN_SCORE": { "value": "0.5" }
+  }
+}

@@ -1,6 +1,6 @@
 # Bon Bon's Sweets & More
 
-A Next.js + MongoDB site for a handmade dessert business.
+A Next.js + Supabase site for a pickup-only cake-pop business.
 
 ---
 
@@ -9,12 +9,11 @@ A Next.js + MongoDB site for a handmade dessert business.
 | | What it is | Where it runs |
 |---|---|---|
 | **`index.html` / `concepts.html`** | The original single-page design preview | GitHub Pages — **https://eanthonycarranza.github.io/BonBons/** |
-| **`app/`, `components/`, `lib/`** | The real Next.js app | Needs Node locally; deploys to Vercel |
+| **`app/`, `components/`, `lib/`** | The real Next.js app | Node locally or Heroku in production |
 
 **GitHub Pages cannot run the Next.js app.** Pages only serves static files, and this
 app has API routes and a database behind it. The static preview stays where it is so
-your link keeps working; the real app needs a host that can run a server (Vercel is
-free and made by the Next.js team).
+your link keeps working; the real app needs a host that can run a Node.js server.
 
 ---
 
@@ -31,15 +30,17 @@ free and made by the Next.js team).
 | `/occasions/[slug]` | Weddings, birthdays, corporate, baby showers |
 | `/about` | Story and how-we-work |
 | `/faq` | Accordion |
-| `/quote` | Quote request form → saved to MongoDB |
-| `/cart` | Review order and send it → saved to MongoDB |
-| `/admin` | Password-protected dashboard: quotes, orders, seed catalogue |
+| `/quote` | Custom pickup-order request form → saved to Supabase |
+| `/cart` | Review menu selections and send a pickup request → saved to Supabase |
+| `/admin` | Password-protected tracker for requests, payment arrangements, and pickup status |
 | `/sitemap.xml`, `/robots.txt` | Generated automatically |
 
 ### API routes
 
-`GET/POST /api/products` · `POST/GET /api/quotes` · `POST/GET /api/orders` ·
-`POST /api/subscribe` · `POST /api/seed` · `POST /api/admin/login` · `POST /api/admin/logout`
+`GET/POST /api/products` · `POST/GET /api/quotes` · `PATCH /api/quotes/[id]` ·
+`POST/GET /api/orders` · `PATCH /api/orders/[id]` ·
+`POST /api/subscribe` · `POST /api/seed` · `POST /api/admin/login` · `POST /api/admin/logout` ·
+`GET/POST/PATCH/DELETE /api/admin/pickup-locations`
 
 ---
 
@@ -70,25 +71,129 @@ npm run dev
 
 Then open http://localhost:3000
 
-### It works without a database
+### Supabase
 
-If `MONGODB_URI` is empty, the whole site still runs — the catalogue falls back to the
-sample products in `lib/sample-data.js`, and the forms accept input but tell you plainly
-that nothing was stored. So you can look at every page before setting up MongoDB.
+The linked Supabase project stores the product catalogue, pickup orders, custom
+requests, newsletter subscribers, and reusable pickup locations. The public key can only read active
+products. Row-level security blocks direct public access to every customer-data
+table.
 
-### Adding MongoDB
+Server-side writes and admin reads go through the `bonbons-data` Edge Function
+using `BONBONS_INTERNAL_API_TOKEN`. Keep that token server-only. The database
+definition is mirrored in `supabase/schema.sql`, and the function source lives
+in `supabase/functions/bonbons-data/index.ts`.
 
-1. Make a free cluster at https://mongodb.com/atlas
-2. **Connect → Drivers** → copy the connection string
-3. Paste it into `.env.local` as `MONGODB_URI`, replacing `<password>` with your real one
-4. Restart `npm run dev`
-5. Set `ADMIN_PASSWORD` in `.env.local`, visit `/admin`, log in, and click **Seed sample products**
+If Supabase is unavailable, catalogue pages fall back to `lib/sample-data.js`;
+customer forms show an unavailable message instead of pretending the request
+was saved. To resync the starter menu, log in at `/admin` and choose
+**Sync menu**.
 
-### Deploying to Vercel
+### Saved pickup locations
+
+The staff CRM uses saved addresses rather than Google Places autocomplete, so
+choosing an address does not make a billable Maps API request. The seeded
+locations are **West Ave** and **Stormy Autumn**. Staff can add, edit, and delete
+locations from the dashboard; the form keeps street, city, state, postal code,
+and country as separate required fields. Confirmed-order emails turn the saved
+address into a standard Google Maps search link, which does not require an API
+key.
+
+Orders store the formatted address as a snapshot. Editing or deleting a saved
+location therefore does not silently change an older confirmed order.
+
+### reCAPTCHA Enterprise
+
+Only the pickup request form on `/cart` loads reCAPTCHA Enterprise, and only
+`POST /api/orders` verifies its token. The script is loaded when the form is
+shown, with a visible dark-theme “I'm not a robot” checkbox above the submit
+button. The widget is removed after navigating away. Custom requests and
+newsletter signups do not use reCAPTCHA. Set these values to enforce it:
+
+- `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY` — a **checkbox** website key created in reCAPTCHA Enterprise (Web → enable challenges → Checkbox challenge), not a Google API key or a score-based key
+- `GOOGLE_CLOUD_PROJECT_ID` — the Google Cloud project ID
+- `GOOGLE_RECAPTCHA_API_KEY` — a server-only API key allowed to create assessments
+- `RECAPTCHA_MIN_SCORE` — optional; defaults to `0.5`
+
+Add `localhost` to the key's allowed domains for development and the shop's real
+domain before deployment; keep domain verification enabled. Restart the dev
+server or rebuild the deployment after changing the public site key.
+
+All three required Google values must be present. Missing configuration, invalid
+or expired tokens, wrong actions, and low scores are rejected before the order
+is written to Supabase. Customers must check the box before submitting. Failed
+submissions reset the checkbox so retries obtain a fresh, single-use token.
+Keep the assessment API key server-only; only the site key belongs in the browser.
+
+### Gmail order emails
+
+Every successful pickup request on `/cart` automatically emails the customer a
+request receipt through Gmail SMTP, **after** the request is saved. It includes
+the selected cake pops, quantities, estimated total, requested date, and a clear
+notice that the order is not confirmed and payment should wait. SMTP failures
+do not undo the order or ask the customer to submit again. The CRM shows receipt
+activity or a failure notice and provides a receipt retry/resend button before
+confirmation. No receipts are retroactively sent to existing requests.
+
+The staff CRM also sends branded order confirmations and status updates through
+the same Gmail connection. All email types use a responsive table-based template,
+plain-text alternative, and the supplied logo as an inline CID image (the existing
+transparent asset at `assets/logo-embed-tp.png`). The logo travels with the email;
+it does not depend on a public website URL. Output-file tracing includes it in
+the deployed email routes. Add `GMAIL_USER`, `GMAIL_APP_PASSWORD`, and `GMAIL_FROM_NAME` to
+`.env.local` using the placeholders in `.env.example`. Use a Google app
+password rather than the account's normal password; keep it server-only.
+
+Saving an order as **Order Confirmed** creates a permanent customer-facing
+order number. Email buttons stay disabled until those saved details are current,
+and confirmation resends require an extra confirmation. Sent-message activity
+is recorded in the protected `email_events` table. A Google API key is not used
+for this SMTP setup.
+
+Run `npm run test:email` for isolated email/workflow checks (no customer messages
+or database writes). Run `npm run preview:email` to generate desktop/mobile
+previews with fictional data under `design-previews/emails/`.
+
+### Deploying to Heroku
+
+The app uses Node.js 24, the `heroku/nodejs` buildpack, and the `Procfile` web
+process. Heroku runs `npm run build` and provides `PORT` to the Next.js server.
+The existing Supabase project remains the database; no Heroku database add-on
+is needed. The `app.json` formation starts at **zero web dynos** so deploying the
+manifest does not silently start paid compute. Choose and approve a dyno plan
+before scaling `web` to 1.
+
+1. Create the app in the US region on `heroku-24`.
+2. Set the config variables listed in `app.json` in Heroku. Use the existing
+   Supabase, Gmail, and reCAPTCHA values, but generate a separate strong
+   production `ADMIN_PASSWORD` and `ADMIN_SECRET`. Never commit credentials.
+3. Set `NEXT_PUBLIC_SITE_URL` to the app's HTTPS origin, without a trailing slash.
+   Public variables must be present **before the build**, since Next.js embeds them.
+4. Add the exact Heroku hostname to the reCAPTCHA key's allowed domains in
+   Google Cloud, keeping domain verification enabled and `localhost` for development.
+5. Deploy the current source, excluding `.env*`, `.git`, `node_modules`, `.next`,
+   and design previews. `.slugignore` provides a second exclusion layer.
+6. Scale the approved web dyno to 1 and check `/api/health`, `/shop`, `/cart`, and
+   `/admin`. Verify the cart checkbox and that unauthenticated `/api/orders`
+   requests cannot read customer data. Do not create real orders just to test deployment.
+
+`npm run start:heroku` fails closed if required settings are missing. The login
+password must have at least 8 characters, and the separate session-signing secret
+must have at least 32. A longer, unique login password is strongly recommended.
+Run `npm run test:config` to verify these startup checks. Changing `ADMIN_PASSWORD`
+also invalidates existing admin session cookies. The email logo stays in
+`assets/logo-embed-tp.png` and is included
+in the deploy. Run `npm run test:email` before shipping changes. A local build
+should run in an isolated copy when the dev server is already using `.next`.
+
+### Alternative: deploying to Vercel
 
 1. Sign in at https://vercel.com with your GitHub account
 2. **Add New → Project → import `EAnthonycarranza/BonBons`**
-3. Add `MONGODB_URI`, `ADMIN_PASSWORD` and `ADMIN_SECRET` as environment variables
+3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
+   `BONBONS_INTERNAL_API_TOKEN`, `ADMIN_PASSWORD`, `ADMIN_SECRET`, `GMAIL_USER`,
+   `GMAIL_APP_PASSWORD`, `GMAIL_FROM_NAME`, `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY`,
+   `GOOGLE_CLOUD_PROJECT_ID`, `GOOGLE_RECAPTCHA_API_KEY`, and `RECAPTCHA_MIN_SCORE`
+   as environment variables
 4. Deploy — every push to `main` redeploys automatically
 
 ---
@@ -106,12 +211,11 @@ If you ever move this project, keep apostrophes out of the path.
 
 ## Still placeholder — replace before launch
 
-1. **`DELIVERY_ZIPS`** in `lib/sample-data.js` — sample ZIP codes. The site will tell
-   customers you deliver to them based on this list, so it matters.
-2. **Prices** in `SAMPLE_PRODUCTS` and `BOX_SIZES`.
-3. **Phone and email** in the `SITE` object.
-4. **Product photos** — currently colored placeholder tiles.
-5. **Payment** — orders are recorded and confirmed by email; no card processing yet.
+1. **Prices** in `SAMPLE_PRODUCTS` and `BOX_SIZES`.
+2. **Phone and email** in the `SITE` object.
+3. **Product photos** — currently generated cake-pop images.
+4. **Admin password** must be changed from the local development value before launch.
+5. **Payment** is intentionally offline: cash at pickup or instructions sent directly by the owner.
 6. **Admin auth** is a single shared password. Fine for one owner; if staff need
    separate logins, swap `lib/auth.js` for NextAuth or Clerk.
 
@@ -168,33 +272,42 @@ These are real Figma frames — you can open, edit, comment on and hand them to 
 
 ---
 
-## Next — Install Node.js
+## The Next.js + Supabase build
 
-Node.js isn't installed on this Mac yet, and it's required for Next.js. Download the **LTS** installer:
+### Managing the live shop
 
-https://nodejs.org
+Open `/admin` to use the dark **Shop Desk** workspace:
 
-Once it's done, this should print version numbers:
+- **Cake-pop menu:** add a flavor, edit its details and photo, choose four-pack eligibility, and publish or hide it. Delete moves a flavor to recoverable Trash; restoring keeps it hidden until you publish it. Past orders retain their original item details.
+- **Pickup orders:** search/filter requests, confirm orders, arrange pickup, record payments, and choose when to email a customer.
+- **Shop settings:** manage saved pickup addresses and review the customer contact and payment links.
 
-```bash
-node -v && npm -v
-```
+Singles remain **$4 each**. Four-packs remain a separately selected **$10** option. Both the shop and four-pack builder read the same live menu; checkout validates current availability and rebuilds prices on the server. A customer must rebuild a stale four-pack if its flavors have been hidden or deleted.
 
----
+Cookie Monster, Strawberry Shortcake, and Biscoff are published. Twelve other flavors verified from the business's Instagram are saved as hidden rotations for the owner to review. The original four placeholder menu items are also retained in Hidden. Recipe details and individual flavor photos were not verified, so these entries use a branded placeholder until the owner adds accurate photos and allergen information.
 
-## Then — the real Next.js + MongoDB build
+Customer contact: **bonbonssweets.sa@gmail.com**, **(210) 721-3983**. Payment links point to the owner's [dot.cards profile](https://dot.cards/bonbonssweetssa?utm_source=nfc&e=ZGV2aWNlLXhQTnBTNUwyUmVoLXcyLXBr) after confirmation. Payments happen outside the website and must be verified by staff; opening the link does not mark an order paid. Confirmation emails include the payment button only for an unpaid, confirmed order with a positive confirmed total. Email replies go to the business inbox; the existing authenticated SMTP sender is unchanged until new mailbox credentials are configured.
 
-Design 3 is chosen, so the build is next. It becomes a Next.js + MongoDB app:
+Menu photos accept JPG, PNG, and WebP up to 5 MB. The server validates uploads and stores them in Supabase's `menu-photos` public bucket; anonymous users cannot upload or change menu records. Public product queries expose only active, non-deleted rows. Admin edits use timestamps to reject conflicting saves from another window.
+
+Database changes are recorded in `supabase/migrations/20260906223140_admin_menu_management.sql` and `supabase/migrations/20260907040220_cake_pop_flavor_catalog.sql`. Deploy the shared validation file together with `supabase/functions/bonbons-data/index.ts` when updating the Edge Function. Do not exclude `supabase/functions/_shared` from the web build.
+
+Checks: `npm run build`, `npm run test:menu`, `npm run test:email`, `npm run test:reveal`, and `npm run test:config`. The opt-in `scripts/verify-menu-http.mjs` integration test creates a hidden QA item and uploads a test logo; it never submits a customer order or sends an email. Clean up its reported fixture afterward.
+
+### Original implementation overview
+
+Design 3 is implemented as a Next.js + Supabase app:
 
 - **Next.js (App Router)** — the pages, routing, and the API routes that replace a separate Express server
-- **MongoDB Atlas + Mongoose** — products, custom-order requests, and customer reviews
+- **Supabase Postgres** — products, pickup orders, custom requests, and subscribers
 - **Product catalog** — driven by the database, not hardcoded
-- **Custom order form** — date, colors, treat selection, headcount; saved to MongoDB
-- **Pickup or delivery scheduling** — no storefront address anywhere on the site; customers choose an arranged pickup time or enter their own delivery address at checkout
-- **Admin dashboard** — password-protected, to add/edit products and work through incoming orders
+- **Custom order form** — date, colors, treat selection, and quantity; saved to Supabase
+- **Pickup-only scheduling** — the owner selects a saved pickup address, date, and time for the customer
+- **Staff CRM** — password-protected request queue, pickup scheduling, order numbers, payment arrangements, private notes, and Gmail updates
 - **Responsive + accessible** — works on phones, which is where most of your customers will be
 
-You'll need a free MongoDB Atlas account for the database (https://mongodb.com/atlas) — I'll walk you through it when we get there.
+The Supabase project is connected locally through the environment variables in
+`.env.local`; use the placeholders in `.env.example` for other environments.
 
 ---
 
