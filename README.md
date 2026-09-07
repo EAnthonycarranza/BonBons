@@ -1,6 +1,6 @@
 # Bon Bon's Sweets & More
 
-A Next.js + Supabase site for a pickup-only cake-pop business.
+A full-stack Next.js + Supabase e-commerce platform for a pickup-based dessert business. Features online ordering, admin dashboard, payment processing, automated email workflows, and social media integration.
 
 ---
 
@@ -37,10 +37,17 @@ your link keeps working; the real app needs a host that can run a Node.js server
 
 ### API routes
 
-`GET/POST /api/products` · `POST/GET /api/quotes` · `PATCH /api/quotes/[id]` ·
-`POST/GET /api/orders` · `PATCH /api/orders/[id]` ·
-`POST /api/subscribe` · `POST /api/seed` · `POST /api/admin/login` · `POST /api/admin/logout` ·
-`GET/POST/PATCH/DELETE /api/admin/pickup-locations`
+**Shop**
+`GET/POST /api/products` · `POST/GET /api/quotes` · `PATCH /api/quotes/[id]` · `GET /api/quotes/[id]` ·
+`POST/GET /api/orders` · `PATCH /api/orders/[id]` · `GET /api/orders/[id]` ·
+`POST /api/subscribe`
+
+**Admin** 
+`POST /api/admin/login` · `POST /api/admin/logout` · `POST /api/admin/email` (send/resend order confirmations & updates) ·
+`GET/POST/PATCH/DELETE /api/admin/pickup-locations` · `GET/POST/PATCH /api/admin/menu/[id]` · `POST /api/admin/menu/photo` (menu photo uploads)
+
+**System**
+`GET /api/health` · `POST /api/seed` (reload sample menu)
 
 ---
 
@@ -123,6 +130,23 @@ or expired tokens, wrong actions, and low scores are rejected before the order
 is written to Supabase. Customers must check the box before submitting. Failed
 submissions reset the checkbox so retries obtain a fresh, single-use token.
 Keep the assessment API key server-only; only the site key belongs in the browser.
+
+### Payment Processing
+
+The `/cart` page and admin dashboard integrate dual-provider payment checkout via **Stripe and Square** with:
+- Embedded payment forms with hosted sessions
+- Automated receipt emails sent immediately after successful payment
+- Multiple payment method support (card, ACH, buy now pay later)
+- PCI compliance via tokenized hosted checkout
+
+Configure these environment variables in `.env.local`:
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` — Stripe test/live publishable key
+- `STRIPE_SECRET_KEY` — Stripe test/live secret key (server-only)
+- `NEXT_PUBLIC_SQUARE_APPLICATION_ID` — Square application ID
+- `SQUARE_ACCESS_TOKEN` — Square access token (server-only)
+- `SQUARE_LOCATION_ID` — Square location ID for transactions
+
+Both providers are optional; the shop can accept offline payments (cash at pickup) or mix online and offline. Admin staff verify payment status before confirming orders; the system does not auto-confirm on payment alone.
 
 ### Gmail order emails
 
@@ -209,15 +233,18 @@ If you ever move this project, keep apostrophes out of the path.
 
 ---
 
-## Still placeholder — replace before launch
+## Before launch — review and customize
 
-1. **Prices** in `SAMPLE_PRODUCTS` and `BOX_SIZES`.
-2. **Phone and email** in the `SITE` object.
-3. **Product photos** — currently generated cake-pop images.
-4. **Admin password** must be changed from the local development value before launch.
-5. **Payment** is intentionally offline: cash at pickup or instructions sent directly by the owner.
-6. **Admin auth** is a single shared password. Fine for one owner; if staff need
-   separate logins, swap `lib/auth.js` for NextAuth or Clerk.
+1. **Prices** in `lib/pricing.js` and `lib/sample-data.js` — update to reflect real menu pricing.
+2. **Phone and email** in the `SITE` object in `lib/sample-data.js` — update business contact info.
+3. **Product photos** — currently generated placeholder cake-pop images. Replace with real product photography.
+4. **Admin password** (`ADMIN_PASSWORD`) — must be changed from the development value. Requires ≥8 characters.
+5. **Admin secret** (`ADMIN_SECRET`) — session signing key. Requires ≥32 characters. Generate a new one for production.
+6. **Payment configuration** — decide whether to accept online payments (Stripe/Square), offline only (cash at pickup), or both. If using online payments, configure API keys and test transaction flow before launch.
+7. **Email configuration** — if using automated receipts/confirmations, verify Gmail SMTP credentials (`GMAIL_USER`, `GMAIL_APP_PASSWORD`, `GMAIL_FROM_NAME`) are set and email templates in `lib/email-template.js` match your branding.
+8. **Admin auth** — currently a single shared password. Sufficient for one owner; if staff need separate logins in the future, replace `lib/admin-menu.js` auth logic with NextAuth or Clerk.
+9. **reCAPTCHA Enterprise** — optional but recommended for production. Configure the four required keys in `.env.local` to enable bot protection on the order form.
+10. **Social media integration** — the TikTok feed on `/` requires `NEXT_PUBLIC_TIKTOK_USERNAME`. Leave empty or remove if not using.
 
 ---
 
@@ -294,17 +321,40 @@ Database changes are recorded in `supabase/migrations/20260906223140_admin_menu_
 
 Checks: `npm run build`, `npm run test:menu`, `npm run test:email`, `npm run test:reveal`, and `npm run test:config`. The opt-in `scripts/verify-menu-http.mjs` integration test creates a hidden QA item and uploads a test logo; it never submits a customer order or sends an email. Clean up its reported fixture afterward.
 
-### Original implementation overview
+### Order tracking & fulfillment
 
-Design 3 is implemented as a Next.js + Supabase app:
+The `/admin` dashboard tracks order lifecycle:
+- **Received** — customer submits a pickup request or places an order
+- **Confirmed** — staff confirms the order with the customer, assigns a pickup time, and generates a permanent order number
+- **Payment arranged** — staff records payment status (paid in full, partial, pending)
+- **Ready for pickup** — staff marks order as prepared and ready
+- **Completed** — customer picks up the order
 
-- **Next.js (App Router)** — the pages, routing, and the API routes that replace a separate Express server
-- **Supabase Postgres** — products, pickup orders, custom requests, and subscribers
-- **Product catalog** — driven by the database, not hardcoded
-- **Custom order form** — date, colors, treat selection, and quantity; saved to Supabase
-- **Pickup-only scheduling** — the owner selects a saved pickup address, date, and time for the customer
-- **Staff CRM** — password-protected request queue, pickup scheduling, order numbers, payment arrangements, private notes, and Gmail updates
-- **Responsive + accessible** — works on phones, which is where most of your customers will be
+Staff can send order confirmations, status updates, and payment reminders via Gmail. All communication is tracked in the `email_events` table. Customers receive automated request receipts (unconfirmed) immediately; confirmations and status updates are sent by staff choice.
+
+### Media & social integration
+
+**Product photo gallery** (`BakeryPhotoGallery.jsx`) — displays high-resolution product photography from `public/products/`, with lazy loading and responsive sizing.
+
+**TikTok creator feed** (`TikTokCreatorFeed.jsx`) — embeds a responsive TikTok video feed on the homepage. Set `NEXT_PUBLIC_TIKTOK_USERNAME` to enable. Videos load via TikTok's embed API; disable the component if social media integration is not desired.
+
+Both are optional and can be removed or reconfigured without affecting core e-commerce functionality.
+
+### Implementation overview
+
+The site is built as a full-stack Next.js + Supabase app with integrated payment processing:
+
+- **Next.js (App Router)** — server-side rendering, API routes, middleware for authentication, static generation where possible
+- **Supabase Postgres** — product catalog, orders, quotes, subscribers, pickup locations, email event logs, admin menu management
+- **Product catalog** — database-driven, live menu management with photo uploads, hidden/published states, flavor tracking
+- **Online ordering** — date/time picker, real-time price calculation, cart review, and checkout with optional online payment
+- **Payment processing** — dual-provider integration (Stripe & Square) with embedded checkout, or offline-only mode
+- **Email workflows** — automated request receipts, staff-triggered confirmations and updates via Gmail SMTP, with CID-embedded logo and responsive templates
+- **Order fulfillment** — staff dashboard tracks order state (received → confirmed → payment arranged → ready → completed), generates order numbers, sends status updates
+- **Pickup management** — saved address library (no Maps API calls for customers), pickup time selection, staff scheduling
+- **Photo gallery** — product images from `public/products/`, responsive lazy-loading display
+- **Social integration** — optional TikTok creator feed embedded on homepage
+- **Responsive + accessible** — designed for mobile-first, works seamlessly on phones where most customers shop
 
 The Supabase project is connected locally through the environment variables in
 `.env.local`; use the placeholders in `.env.example` for other environments.
