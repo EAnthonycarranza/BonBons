@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ConfirmDialog from "./ConfirmDialog";
 import OrderDataTools from "./OrderDataTools";
+import { DatePicker, TimePicker } from "./DateTimePicker";
 import { money } from "@/lib/format";
 import { SITE } from "@/lib/sample-data";
 import { ORDER_STATUSES, PAYMENT_STATUSES, QUOTE_STATUSES, pickupDateState } from "@/lib/order-tracking";
@@ -329,10 +330,10 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
                 <div className="crm-money-input"><span>$</span><input type="number" min="0" step="0.01" value={form.confirmedTotal} onChange={(event) => change("confirmedTotal", event.target.value)} /></div>
               </Field>
               <Field label="Pickup date" compact hint={overdue ? "This date has passed. Set a new one, then send a status update." : undefined}>
-                <input className={overdue ? "is-overdue" : ""} type="date" value={form.pickupDate} onChange={(event) => change("pickupDate", event.target.value)} />
+                <DatePicker value={form.pickupDate} onChange={(next) => change("pickupDate", next)} invalid={overdue} />
               </Field>
               <Field label="Pickup time" compact>
-                <input type="time" value={form.pickupTime} onChange={(event) => change("pickupTime", event.target.value)} />
+                <TimePicker value={form.pickupTime} onChange={(next) => change("pickupTime", next)} />
               </Field>
               <Field label="Pickup location" wide>
                 <PickupLocationPicker

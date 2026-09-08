@@ -393,6 +393,19 @@ read in local time; reading them as UTC would mark same-day pickups overdue for
 anyone west of Greenwich. The flag appears on the queue row, the customer strip
 and the pickup date field, and clears as soon as a future date is chosen.
 
+**Picking a pickup date and time.** The fulfilment form uses a calendar popover
+rather than the browser's native date field: month navigation, today outlined,
+the chosen day filled, past days dimmed, and Today / Tomorrow / Next week
+shortcuts. It is keyboard operable — arrows move by day and week, Enter selects,
+Escape closes — and clicking outside dismisses it without changing anything. A
+clear button removes the date.
+
+Times are chosen from 15-minute shop slots between 7:00 AM and 8:00 PM instead
+of a raw clock field. A time already stored outside that grid (an imported
+2:37 PM, say) is added to the list so it is never silently snapped to the
+nearest slot. Values are still stored as `YYYY-MM-DD` and `HH:MM`, and dates are
+parsed as local days so nothing shifts by a day west of Greenwich.
+
 **Delay updates.** The email card has a *Tell them the pickup date changed*
 option on status updates. With a new pickup date saved, the email leads with
 "Your pickup date has changed", names the new date and time, and invites the

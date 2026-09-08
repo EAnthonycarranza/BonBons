@@ -89,3 +89,56 @@ test("receipts and confirmations cannot carry a delay notice", () => {
   });
   assert.equal(/rescheduled/i.test(receipt.html), false);
 });
+
+// --- Date / time picker value handling -------------------------------------
+
+test("picker date values round-trip in local time, without a UTC day shift", async () => {
+  const { parseDateValue, formatDateValue } = await import("../lib/date-values.js");
+  const parsed = parseDateValue("2026-09-15");
+  assert.equal(parsed.getFullYear(), 2026);
+  assert.equal(parsed.getMonth(), 8);
+  assert.equal(parsed.getDate(), 15);
+  // Formatting must name the same calendar day it was given.
+  assert.match(formatDateValue("2026-09-15"), /Sep 15, 2026/);
+  assert.match(formatDateValue("2026-01-01"), /Jan 1, 2026/);
+  for (const bad of ["", null, undefined, "nonsense", "2026-13-45x"]) {
+    assert.equal(parseDateValue(bad), null);
+    assert.equal(formatDateValue(bad), "");
+  }
+});
+
+test("times display in 12-hour form and survive an unusual stored value", async () => {
+  const { formatTimeValue } = await import("../lib/date-values.js");
+  assert.equal(formatTimeValue("14:30"), "2:30 PM");
+  assert.equal(formatTimeValue("00:05"), "12:05 AM");
+  assert.equal(formatTimeValue("12:00"), "12:00 PM");
+  assert.equal(formatTimeValue("09:15"), "9:15 AM");
+  // Seconds from the database must not break the label.
+  assert.equal(formatTimeValue("16:45:00"), "4:45 PM");
+  for (const bad of ["", null, undefined, "nope"]) assert.equal(formatTimeValue(bad), "");
+});
+
+test("pickup slots cover the shop day and keep an off-grid stored time", async () => {
+  const { pickupSlots } = await import("../lib/date-values.js");
+  const standard = pickupSlots("");
+  assert.equal(standard[0], "07:00");
+  assert.equal(standard[standard.length - 1], "20:00");
+  assert.equal(standard.includes("12:45"), true);
+  assert.equal(standard.includes("06:45"), false);
+
+  // An imported 2:37pm must remain selectable rather than being snapped away.
+  const withOdd = pickupSlots("14:37");
+  assert.equal(withOdd.includes("14:37"), true);
+  assert.equal(withOdd.length, standard.length + 1);
+  // A slot already on the grid is not duplicated.
+  assert.equal(pickupSlots("14:30").length, standard.length);
+});
+
+test("impossible dates are rejected rather than rolling into the next month", async () => {
+  const { parseDateValue } = await import("../lib/date-values.js");
+  assert.equal(parseDateValue("2026-02-31"), null);
+  assert.equal(parseDateValue("2026-13-01"), null);
+  assert.equal(parseDateValue("2026-00-10"), null);
+  // A real leap day still parses.
+  assert.equal(parseDateValue("2028-02-29").getDate(), 29);
+});
