@@ -19,7 +19,8 @@
     "test:mobile": "node --test tests/mobile-experience.test.mjs",
     "test:photos": "node --test tests/product-photos.test.mjs",
     "preview:email": "node scripts/preview-emails.mjs",
-    "test:box": "node --test tests/weekly-box.test.mjs"
+    "test:box": "node --test tests/weekly-box.test.mjs",
+    "test:import": "node --test tests/order-import.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",
@@ -27,7 +28,8 @@
     "next": "^15.1.6",
     "nodemailer": "9.1.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "eslint": "^9.18.0",

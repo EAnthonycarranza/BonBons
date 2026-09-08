@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import AdminIcon from "./AdminIcon";
+import ConfirmDialog from "./ConfirmDialog";
 import { MENU_ALLERGENS, MENU_IMAGE_MAX_BYTES, menuSlug, stockState, validateMenuProduct } from "@/supabase/functions/_shared/menu";
 import { money } from "@/lib/format";
 
@@ -62,9 +63,11 @@ function MenuEditor({ product, nextOrder, onClose, onSaved }) {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   function close() {
     if (busy || uploading) return;
-    if (!dirty || window.confirm("Discard your unsaved menu changes?")) onClose();
+    if (!dirty) { onClose(); return; }
+    setConfirmDiscard(true);
   }
   function change(key, value) {
     setForm(current => ({ ...current, [key]: value, ...(!product && key === "name" ? { slug: menuSlug(value) } : {}) }));
@@ -102,7 +105,18 @@ function MenuEditor({ product, nextOrder, onClose, onSaved }) {
       onSaved(data.product, `${data.product.name} ${product ? "updated" : "added"}${data.product.active ? " and live on the menu" : " to Hidden"}.`);
     } catch (err) { setError(err.message); setBusy(false); }
   }
-  return <Modal label={product ? "Edit menu item" : "New menu item"} title={product ? product.name : "Add a little sweetness."} onClose={close} className="menu-editor">
+  return <>
+    <ConfirmDialog
+      open={confirmDiscard}
+      title="Discard your changes?"
+      message="This flavor has unsaved edits. Closing now will lose them."
+      confirmLabel="Discard changes"
+      cancelLabel="Keep editing"
+      tone="danger"
+      onConfirm={() => { setConfirmDiscard(false); onClose(); }}
+      onCancel={() => setConfirmDiscard(false)}
+    />
+    <Modal label={product ? "Edit menu item" : "New menu item"} title={product ? product.name : "Add a little sweetness."} onClose={close} className="menu-editor">
     <form onSubmit={save}>
       <div className="admin-dialog-body">
         <div className="menu-editor-photo"><div className="menu-photo-preview"><FlavorPhoto image={form.image} name={form.name}/></div><div><h3>Give this flavor a face.</h3><p>A clear photo helps customers pick their favorites.</p><label className={`admin-btn admin-btn-secondary upload-button${uploading ? " is-busy" : ""}`}><AdminIcon name="upload"/>{uploading ? "Uploading…" : "Upload photo"}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={uploading || busy} aria-label="Upload flavor photo"/></label><small>JPG, PNG, or WebP · up to 5 MB</small>{form.image ? <button type="button" className="admin-text-btn" onClick={() => change("image", "")} disabled={uploading || busy}>Remove photo</button> : null}</div></div>
@@ -125,7 +139,8 @@ function MenuEditor({ product, nextOrder, onClose, onSaved }) {
       </div>
       <footer className="admin-dialog-footer"><button className="admin-btn admin-btn-secondary" type="button" onClick={close} disabled={busy || uploading}>Cancel</button><button className="admin-btn admin-btn-primary" type="submit" disabled={busy || uploading || (product && !dirty)}><AdminIcon name="check"/>{busy ? "Saving…" : product ? "Save changes" : "Add menu item"}</button></footer>
     </form>
-  </Modal>;
+  </Modal>
+  </>;
 }
 
 export default function MenuManager() {

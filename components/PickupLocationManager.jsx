@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ConfirmDialog from "./ConfirmDialog";
 
 const EMPTY_LOCATION = {
   label: "",
@@ -45,6 +46,7 @@ export default function PickupLocationManager({ open, locations, onClose, onChan
   const [form, setForm] = useState(EMPTY_LOCATION);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -106,7 +108,13 @@ export default function PickupLocationManager({ open, locations, onClose, onChan
   }
 
   async function remove(location) {
-    if (!window.confirm(`Delete “${location.label}”? Existing orders will keep the address already saved on them.`)) return;
+    setPendingDelete(location);
+    return;
+  }
+
+  async function confirmDelete() {
+    const location = pendingDelete;
+    if (!location) return;
     setBusy(`delete:${location.id}`);
     setMessage("");
     try {
@@ -181,6 +189,18 @@ export default function PickupLocationManager({ open, locations, onClose, onChan
 
         {message ? <p className="crm-location-message" role="status">{message}</p> : null}
       </section>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title={`Delete \u201c${pendingDelete?.label ?? ""}\u201d?`}
+        message="This address will no longer be offered when confirming an order."
+        consequence="Orders already confirmed keep the address saved on them, so past pickups are unaffected."
+        confirmLabel="Delete this location"
+        tone="danger"
+        busy={busy === `delete:${pendingDelete?.id}`}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

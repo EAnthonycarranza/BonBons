@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminIcon from "./AdminIcon";
+import ConfirmDialog from "./ConfirmDialog";
 import { boxPopCount, menuSlug, stockState, validateWeeklyBox } from "@/supabase/functions/_shared/menu";
 import { money } from "@/lib/format";
 
@@ -52,9 +53,11 @@ function BoxEditor({ box, products, onClose, onSaved }) {
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   function close() {
     if (busy) return;
-    if (!dirty || window.confirm("Discard your unsaved box changes?")) onClose();
+    if (!dirty) { onClose(); return; }
+    setConfirmDiscard(true);
   }
   function change(key, value) {
     setForm(current => ({ ...current, [key]: value, ...(!box && key === "title" ? { slug: menuSlug(value) } : {}) }));
@@ -99,7 +102,18 @@ function BoxEditor({ box, products, onClose, onSaved }) {
     } catch (err) { setError(err.message); setBusy(false); }
   }
 
-  return <Modal label={box ? "Edit box" : "New box"} title={box ? box.title : "Build this week's box."} onClose={close}>
+  return <>
+    <ConfirmDialog
+      open={confirmDiscard}
+      title="Discard your changes?"
+      message="This box has unsaved edits. Closing now will lose them."
+      confirmLabel="Discard changes"
+      cancelLabel="Keep editing"
+      tone="danger"
+      onConfirm={() => { setConfirmDiscard(false); onClose(); }}
+      onCancel={() => setConfirmDiscard(false)}
+    />
+    <Modal label={box ? "Edit box" : "New box"} title={box ? box.title : "Build this week's box."} onClose={close}>
     <form onSubmit={save}>
       <div className="admin-dialog-body">
         <fieldset disabled={busy} className="menu-fields">
@@ -159,7 +173,8 @@ function BoxEditor({ box, products, onClose, onSaved }) {
         <button type="submit" className="admin-btn admin-btn-primary" disabled={busy}>{busy ? "Saving…" : box ? "Save box" : "Create box"}</button>
       </div>
     </form>
-  </Modal>;
+  </Modal>
+  </>;
 }
 
 export default function WeeklyBoxManager() {
@@ -167,6 +182,8 @@ export default function WeeklyBoxManager() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [removing, setRemoving] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -199,8 +216,14 @@ export default function WeeklyBoxManager() {
   useEffect(() => { load(); }, [load]);
 
   async function remove(box) {
-    if (!window.confirm(`Delete “${box.title}”? This cannot be undone.`)) return;
     setError("");
+    setDeleting(box);
+  }
+
+  async function confirmRemove() {
+    const box = deleting;
+    if (!box) return;
+    setRemoving(true); setError("");
     try {
       const response = await fetch(`/api/admin/weekly-box/${box.id}`, { method: "DELETE" });
       if (!response.ok) {
@@ -209,7 +232,9 @@ export default function WeeklyBoxManager() {
       }
       setBoxes(current => current.filter(entry => entry.id !== box.id));
       setNotice(`${box.title} deleted.`);
-    } catch (err) { setError(err.message); }
+      setDeleting(null);
+    } catch (err) { setError(err.message); setDeleting(null); }
+    finally { setRemoving(false); }
   }
 
   function onSaved(saved, message) {
@@ -283,5 +308,17 @@ export default function WeeklyBoxManager() {
     )}
 
     {editing ? <BoxEditor box={editing.id ? editing : null} products={products} onClose={() => setEditing(null)} onSaved={onSaved}/> : null}
+
+    <ConfirmDialog
+      open={Boolean(deleting)}
+      title={`Delete “${deleting?.title ?? ""}”?`}
+      message="This box will be removed from the Shop Desk and from the website."
+      consequence="This cannot be undone. Orders already placed keep the box details saved on them."
+      confirmLabel="Delete this box"
+      tone="danger"
+      busy={removing}
+      onConfirm={confirmRemove}
+      onCancel={() => setDeleting(null)}
+    />
   </div>;
 }

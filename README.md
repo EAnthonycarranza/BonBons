@@ -385,6 +385,26 @@ Run `npm run test:box` for the pricing, stock, and box-validation checks.
 
 ### Order tracking & fulfillment
 
+**Spreadsheets.** The order desk exports every request as Excel (.xlsx) or CSV,
+and imports past orders from either. Import shows a confirmation first: how many
+rows will be created, how many blank rows were skipped, and exactly which rows
+could not be read and why. Row numbers refer to the line as it appears in the
+file — blank rows are kept during parsing so the numbering never drifts. A
+matching template is downloadable from the same panel.
+
+The file needs **Customer**, **Email** and **Wanted date** columns; everything
+else is optional, and common spellings ("Customer name", "E-mail", "Date
+wanted", "Total") are matched automatically. Excel serial dates, ISO dates and
+US `10/1/2026` all resolve. Unrecognised statuses fall back to `pending` rather
+than reaching the database. The browser parses the file, but the API re-checks
+and re-shapes every field, and the insert runs in one transaction so a bad row
+cannot leave a half-finished import behind. Up to 500 rows per file.
+
+**Deleting a request** permanently removes the customer's name, contact details
+and order history — there is no soft-delete, because the owner may need to
+remove that data on request. The Shop Desk confirms first and says so plainly.
+
+
 The `/admin` dashboard tracks order lifecycle:
 - **Received** — customer submits a pickup request or places an order
 - **Confirmed** — staff confirms the order with the customer, assigns a pickup time, and generates a permanent order number
@@ -454,3 +474,9 @@ Concepts 4–6 are in Figma: **https://www.figma.com/design/pieBhsc3pHgP3706D6ds
 ## Feedback is welcome at any level
 
 "I like 2" is fine. So is "design 3's hero but design 1's colors, and lose the dark background." Mixing is normal at this stage — nothing here is locked in.
+
+All confirmations across the Shop Desk use a styled dialog rather than the
+browser's `window.confirm`. Destructive ones are marked, spell out the
+consequence, and open with focus on Cancel so Enter cannot delete by reflex.
+
+Run `npm run test:import` for the spreadsheet parsing checks.

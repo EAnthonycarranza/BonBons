@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import ConfirmDialog from "./ConfirmDialog";
+import OrderDataTools from "./OrderDataTools";
 import { money } from "@/lib/format";
 import { SITE } from "@/lib/sample-data";
 import { ORDER_STATUSES, PAYMENT_STATUSES, QUOTE_STATUSES } from "@/lib/order-tracking";
@@ -132,7 +134,7 @@ function RequestSummary({ record, kind }) {
   );
 }
 
-function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLocations, onSaved }) {
+function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLocations, onSaved, onDeleted }) {
   const statusOptions = kind === "orders" ? ORDER_STATUSES : QUOTE_STATUSES;
   const fallbackStatus = kind === "orders" ? "pending" : "new";
   const customer = customerFor(record, kind);
@@ -149,6 +151,9 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
   const [saveState, setSaveState] = useState("idle");
   const [notice, setNotice] = useState("");
   const [emailBusy, setEmailBusy] = useState("");
+  const [pendingResend, setPendingResend] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [personalMessage, setPersonalMessage] = useState("");
 
   useEffect(() => {
@@ -177,6 +182,23 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
     if (saveState !== "idle") setSaveState("idle");
   }
 
+  async function removeRecord() {
+    setDeleting(true);
+    setNotice("");
+    try {
+      const response = await fetch(`/api/${kind}/${record._id}`, { method: "DELETE" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Could not delete this request.");
+      setPendingDelete(false);
+      onDeleted?.(record._id);
+    } catch (error) {
+      setNotice(error.message);
+      setPendingDelete(false);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function save() {
     setSaveState("saving");
     setNotice("");
@@ -200,10 +222,11 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
     }
   }
 
-  async function sendEmail(emailType) {
+  async function sendEmail(emailType, confirmedResend = false) {
     const isResend = (emailType === "confirmation" && Boolean(record.confirmationSentAt)) ||
       (emailType === "request_received" && Boolean(record.receiptSentAt));
-    if (isResend && !window.confirm("This email has already been sent. Send it again?")) return;
+    // Sending a second copy to a customer deserves a deliberate confirmation.
+    if (isResend && !confirmedResend) { setPendingResend(emailType); return; }
 
     setEmailBusy(emailType);
     setNotice("");
@@ -307,11 +330,35 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
             </div>
             {willConfirm ? <div className="crm-confirm-hint">Saving this stage will create the customer&apos;s permanent order number.</div> : null}
             <div className="crm-save-bar">
+              <button className="crm-delete-btn" type="button" onClick={() => setPendingDelete(true)} disabled={deleting}>
+                Delete this request
+              </button>
               <span className={dirty ? "crm-unsaved" : "crm-saved-state"}>{dirty ? "Unsaved changes" : "Up to date"}</span>
               <button className="btn btn-pink btn-sm" type="button" onClick={save} disabled={saveState === "saving" || !dirty}>
                 {saveState === "saving" ? "Saving…" : willConfirm ? "Confirm order & save" : "Save changes"}
               </button>
             </div>
+
+            <ConfirmDialog
+              open={pendingDelete}
+              title="Delete this request?"
+              message={`${customer.name || "This customer"}'s request${record.orderNumber ? ` (${record.orderNumber})` : ""} will be removed from the Shop Desk.`}
+              consequence="This permanently deletes the customer's name, contact details and order history. It cannot be undone, and no email is sent to them."
+              confirmLabel="Delete permanently"
+              tone="danger"
+              busy={deleting}
+              onConfirm={removeRecord}
+              onCancel={() => setPendingDelete(false)}
+            />
+            <ConfirmDialog
+              open={Boolean(pendingResend)}
+              title="Send this email again?"
+              message="This customer has already received this email. Sending again delivers a second copy."
+              confirmLabel="Send it again"
+              busy={Boolean(emailBusy)}
+              onConfirm={() => { const type = pendingResend; setPendingResend(null); sendEmail(type, true); }}
+              onCancel={() => setPendingResend(null)}
+            />
           </section>
         </div>
 
@@ -449,6 +496,13 @@ export default function AdminOrders({ dbReady }) {
     setter((current) => current.map((item) => item._id === saved._id ? saved : item));
   }
 
+  function removeRecordFromList(id, kind) {
+    const setter = kind === "orders" ? setOrders : setQuotes;
+    setter((current) => current.filter((item) => item._id !== id));
+    // The deleted record was the open one, so clear the workspace.
+    setSelectedKey("");
+  }
+
   return (
     <div className="crm-shell">
       <header className="crm-header">
@@ -465,6 +519,8 @@ export default function AdminOrders({ dbReady }) {
           <button className="btn btn-ghost btn-sm" type="button" onClick={() => setLocationsOpen(true)}>Pickup locations</button>
         </div>
       </header>
+
+      <OrderDataTools orders={orders} onImported={load} />
 
       {!dbReady ? (
         <div className="admin-setup-warning">
@@ -532,6 +588,7 @@ export default function AdminOrders({ dbReady }) {
             pickupLocations={pickupLocations}
             onManageLocations={() => setLocationsOpen(true)}
             onSaved={(saved) => updateRecord(saved, selected.kind)}
+            onDeleted={(id) => removeRecordFromList(id, selected.kind)}
           />
         ) : (
           <section className="crm-no-selection">

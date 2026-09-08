@@ -24,6 +24,30 @@
 .admin-settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.admin-setting-card{padding:26px;border:1px solid var(--desk-border);border-radius:10px;background:var(--desk-panel);min-width:0}.admin-setting-card>header{display:flex;gap:16px;align-items:center;margin-bottom:22px}.admin-setting-card h2{font-size:19px;margin:0 0 5px}.admin-setting-card p{color:var(--desk-muted);font-size:12px;line-height:1.8;margin:12px 0}.admin-setting-card>header p{font-size:11px;margin:0}.admin-setting-card>.admin-btn{margin-top:8px}.admin-setting-facts>div{padding:16px 0;border-top:1px solid var(--desk-border)}.admin-setting-facts dt{font-size:10px;color:#b5a1bf;margin-bottom:5px}.admin-setting-facts dd{font-size:14px;color:#f6c3e0;overflow-wrap:anywhere;margin:0}.admin-addresses>div{padding:16px 0;border-top:1px solid var(--desk-border)}.admin-addresses b{font-size:13px;font-weight:500}.admin-addresses p{margin:5px 0;font-size:11px}.admin-addresses a{margin-top:4px}.admin-payment-methods{display:flex;gap:8px;flex-wrap:wrap}.admin-payment-methods>span{padding:6px 12px;border:1px solid #604354;background:#2e1f2a;border-radius:5px;color:#ebc8de;font-size:11px}
 /* Retain the working CRM flow inside the quieter, denser new workspace. */
 .admin-root .crm-shell{max-width:none;color:#f5eef4;animation:desk-enter .22s ease}.admin-root .crm-header{border:0;padding:0;margin-bottom:26px}.admin-root .crm-brand-block>span{color:#ec77b0}.admin-root .crm-brand-block h1{font-size:35px;letter-spacing:-.04em}.admin-root .crm-header-actions .btn{border-radius:6px;box-shadow:none}.admin-root .crm-header-actions{gap:8px}.admin-root .crm-metrics{border-radius:9px;background:#19151e;overflow:hidden;margin:20px 0}.admin-root .crm-board{grid-template-columns:280px minmax(0,1fr);border-color:#3a2d43;border-radius:10px;overflow:hidden;box-shadow:none;min-height:660px}.admin-root .crm-queue{background:#16111b}.admin-root .crm-workspace{background:#110d16}.admin-root .crm-record-row.active{background:#31202e;box-shadow:inset 3px 0 #ed8abc}.admin-root .crm-workspace-header{padding:25px 24px 20px}.admin-root .crm-customer-title h2{font-size:26px}.admin-root .crm-customer-strip{margin:0 24px;background:#211727;grid-template-columns:1fr 1fr}.admin-root .crm-detail-grid{grid-template-columns:1fr;padding:22px 24px;gap:18px}.admin-root .crm-side-column{grid-template-columns:1fr}.admin-root .crm-card{border-color:#3f2e46;border-radius:8px;background:#1b1421;overflow:hidden}.admin-root .crm-card h3{font-size:17px}.admin-root .crm-card :is(small,.crm-email-help,.crm-email-history),.admin-root .crm-field small{color:#b8a4c3}.admin-root .crm-card .btn{border-radius:6px;box-shadow:none}.admin-root .crm-row-meta{color:#b39bbc}.admin-root .crm-queue-tools{grid-template-columns:1fr}.admin-root .crm-kind-tabs{background:#211829}.admin-root .crm-stage-filter select,.admin-root .crm-search input{height:42px;font-size:12px}.admin-root .crm-contact-actions{border-top:1px solid #3f2e46}.admin-root .crm-card-heading span,.admin-root .crm-email-heading span{color:#c69ebd}.admin-root .crm-saved-state,.admin-root .crm-timeline small{color:#bca7c7}.admin-root .crm-connection.is-connected{color:#a4dfc5}.admin-root .crm-no-selection{padding:42px}.admin-root .crm-no-selection h2{font-size:24px}.admin-root .crm-no-selection p{max-width:330px}.admin-root .crm-customer-strip>div:nth-child(3){border-left:0;border-top:1px solid #3f2e46}.admin-root .crm-customer-strip span{color:#b7a2c0}
+/* Spreadsheet import/export on the order desk */
+.order-tools{margin:0 0 20px;padding:18px 20px;border:1px solid var(--desk-border);border-radius:10px;background:var(--desk-panel)}
+.order-tools-head{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
+.order-tools-head p{margin:6px 0 0;font-size:12px;color:var(--desk-muted)}
+.order-tools-actions{display:flex;flex-wrap:wrap;gap:8px}
+.order-tools-note{margin:14px 0 0;padding-top:13px;border-top:1px solid var(--desk-border);font-size:11px;line-height:1.8;color:#b3a5bc}
+.order-tools-note b{color:#e3d2e8;font-weight:600}
+.order-tools .admin-alert{margin:14px 0 0}
+/* Destructive action sits opposite Save so it is never the reflex target. */
+.crm-delete-btn{margin-right:auto;border:1px solid transparent;border-radius:6px;background:none;color:#e78ca5;font:600 11px/1.4 var(--font-body),sans-serif;padding:9px 11px}
+.crm-delete-btn:hover:not(:disabled){background:#3b1e2b;border-color:#bf5b79;color:#ffc4d7}
+@media(max-width:700px){.order-tools{padding:15px}.order-tools-actions{width:100%}.order-tools-actions .admin-btn{flex:1 1 calc(50% - 4px)}.crm-delete-btn{margin:0 0 4px;width:100%}}
+
+/* Styled confirmations, replacing window.confirm across the desk */
+.confirm-dialog{width:min(470px,calc(100vw - 32px))}
+.confirm-body{display:flex;gap:16px;padding:26px 26px 22px}
+.confirm-icon{display:grid;place-items:center;flex-shrink:0;width:42px;height:42px;border-radius:10px;border:1px solid #59384c;background:#33212d;color:#f7a5ca}
+.confirm-icon svg{width:19px;height:19px}
+.confirm-dialog.is-danger .confirm-icon{background:#3b1e2b;border-color:#bf5b79;color:#ffb4c7}
+.confirm-body h2{font-size:20px;margin:0 0 8px;letter-spacing:-.025em}
+.confirm-body p{margin:0;font-size:13px;line-height:1.75;color:#c9b8d0}
+.confirm-consequence{margin-top:10px!important;padding:10px 12px;border-radius:7px;border:1px solid #6d3b4e;background:#2c1720;color:#ffc7d7;font-size:12px!important}
+.confirm-dialog .admin-dialog-footer{position:static}
+
 /* Prices panel in Shop settings */
 .pricing-card{grid-column:1/-1}
 .pricing-shop{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:16px;align-items:end;padding:18px;border:1px solid var(--desk-border);border-radius:9px;background:#1d1624}
