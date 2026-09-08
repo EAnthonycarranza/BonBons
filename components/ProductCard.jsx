@@ -6,14 +6,19 @@ import { useCart } from "./CartProvider";
 import { Icon } from "./Icons";
 import { money } from "@/lib/format";
 import { isStyledProductPhoto } from "@/lib/product-photos";
+import { stockLabel } from "@/lib/weekly-box";
+import { stockState } from "@/supabase/functions/_shared/menu";
 
 export default function ProductCard({ product }) {
   const { add } = useCart();
   const [added, setAdded] = useState(false);
+  const availability = stockState(product.stockQuantity, product.lowStockThreshold);
+  const soldOut = availability.state === "sold_out";
 
   function onAdd(e) {
     e.preventDefault();
     e.stopPropagation();
+    if (soldOut) return;
     add({
       key: product.slug,
       name: product.name,
@@ -31,7 +36,7 @@ export default function ProductCard({ product }) {
   }
 
   return (
-    <article className="prod rv-anim" data-motion="card">
+    <article className={`prod rv-anim${soldOut ? " is-sold-out" : ""}`} data-motion="card">
       <Link href={`/shop/${product.slug}`} style={{ display: "block" }}>
         <div
           className={`ph${product.image ? " photo" : ""}`}
@@ -49,17 +54,22 @@ export default function ProductCard({ product }) {
             <span className={`badge ${product.badgeClass || ""}`}>{product.badge}</span>
           ) : null}
           {isStyledProductPhoto(product.image) && <span className="styled-photo-label">Styled photo</span>}
+          {soldOut ? <span className="stock-flag is-out">Sold out</span> : null}
         </div>
       </Link>
       <div className="meta">
         <h3><Link href={`/shop/${product.slug}`}>{product.name}</Link></h3>
         <div className="d">{product.blurb}</div>
+        {availability.state === "low" ? (
+          <p className="stock-line is-low">{stockLabel(availability)}</p>
+        ) : null}
         <div className="bot">
           <span className="p">{money(product.price)} <small>{product.unit}</small></span>
           <button
             className={`add${added ? " added" : ""}`}
             onClick={onAdd}
-            aria-label={`Add ${product.name} to pickup request`}
+            disabled={soldOut}
+            aria-label={soldOut ? `${product.name} is sold out` : `Add ${product.name} to pickup request`}
           >
             <Icon name={added ? "i-check" : "i-plus"} />
           </button>

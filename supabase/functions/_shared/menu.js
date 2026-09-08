@@ -2,10 +2,55 @@
 // validation: the same rules apply at the database boundary.
 export class MenuValidationError extends Error {}
 
+// Kept as the default for new flavors; the owner can now price each item.
 export const MENU_PRICE = 4;
+export const MAX_ITEM_PRICE = 500;
+export const MAX_STOCK = 100000;
+export const DEFAULT_LOW_STOCK_THRESHOLD = 3;
 export const MENU_IMAGE_BUCKET = "menu-photos";
 export const MENU_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 export const MENU_ALLERGENS = ["milk", "eggs", "wheat", "soy", "peanuts", "tree nuts", "sesame", "dairy"];
+
+// A money amount the owner typed: a positive number of whole cents.
+export function assertPrice(value, label = "Price") {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0 || value > MAX_ITEM_PRICE) {
+    throw new MenuValidationError(`${label} must be between $0.01 and $${MAX_ITEM_PRICE}.00.`);
+  }
+  if (Math.abs(value * 100 - Math.round(value * 100)) > 1e-6) {
+    throw new MenuValidationError(`${label} can only go to the cent.`);
+  }
+  return Math.round(value * 100) / 100;
+}
+
+// null/undefined means "not tracked" — made to order, always available.
+export function assertStock(value, label = "Quantity") {
+  if (value === null || value === undefined || value === "") return null;
+  if (!Number.isInteger(value) || value < 0 || value > MAX_STOCK) {
+    throw new MenuValidationError(`${label} must be a whole number from 0 to ${MAX_STOCK}, or blank for made to order.`);
+  }
+  return value;
+}
+
+export function assertThreshold(value) {
+  const threshold = value ?? DEFAULT_LOW_STOCK_THRESHOLD;
+  if (!Number.isInteger(threshold) || threshold < 0 || threshold > 1000) {
+    throw new MenuValidationError("The low-stock warning must be a whole number from 0 to 1000.");
+  }
+  return threshold;
+}
+
+/**
+ * How a shopper should see an item's availability.
+ * `tracked: false` keeps every made-to-order flavor behaving exactly as before.
+ */
+export function stockState(quantity, threshold = DEFAULT_LOW_STOCK_THRESHOLD) {
+  if (quantity === null || quantity === undefined) return { tracked: false, state: "available", remaining: null };
+  const remaining = Number(quantity);
+  if (!Number.isFinite(remaining) || remaining <= 0) return { tracked: true, state: "sold_out", remaining: 0 };
+  const limit = Number(threshold);
+  if (Number.isFinite(limit) && limit > 0 && remaining <= limit) return { tracked: true, state: "low", remaining };
+  return { tracked: true, state: "available", remaining };
+}
 
 export function menuSlug(name) {
   return String(name || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
@@ -35,7 +80,7 @@ export function validateMenuProduct(input) {
   const name = text("name", 80, true);
   const slug = text("slug", 100, true);
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new MenuValidationError("Use only lowercase letters, numbers, and single hyphens in the menu link.");
-  if (typeof input.price !== "number" || input.price !== MENU_PRICE) throw new MenuValidationError("Single cake pops are $4 each. Four-packs are selected separately for $10.");
+  const price = assertPrice(input.price, "The cake-pop price");
   if (typeof input.active !== "boolean" || typeof input.bundle_eligible !== "boolean") throw new MenuValidationError("Choose the menu visibility and four-pack availability.");
   const image = text("image", 1000);
   if (!isMenuImageUrl(image)) throw new MenuValidationError("Upload a JPG, PNG, or WebP photo using the photo picker.");
@@ -50,9 +95,60 @@ export function validateMenuProduct(input) {
     if (!valid) throw new MenuValidationError("The source must be an Instagram post link.");
   }
   return {
-    name, slug, price: MENU_PRICE, unit: "each", blurb: text("blurb", 160), description: text("description", 2000),
+    name, slug, price, unit: "each", blurb: text("blurb", 160), description: text("description", 2000),
     image, active: input.active, bundle_eligible: input.bundle_eligible, sort_order: sortOrder,
     allergens: [...new Set(allergens)], badge: text("badge", 32), source_url: source,
+    stock_quantity: assertStock(input.stock_quantity), low_stock_threshold: assertThreshold(input.low_stock_threshold),
     category: "everyday", icon: "i-cakepop", color: "#F285B5", tint: "242,133,181", badge_class: "", lead_time_hours: 72,
+  };
+}
+
+export const MAX_BOX_ITEMS = 40;
+
+export function validateWeeklyBox(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new MenuValidationError("Enter the box details.");
+  function text(key, limit, required = false, label = key) {
+    const value = input[key] ?? "";
+    if (typeof value !== "string" || value.trim().length > limit || (required && !value.trim())) {
+      throw new MenuValidationError(`${label} must be ${required ? "1–" : "no more than "}${limit} characters.`);
+    }
+    return value.trim();
+  }
+  const title = text("title", 90, true, "The box name");
+  const slug = text("slug", 100, true, "The box link");
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new MenuValidationError("Use only lowercase letters, numbers, and single hyphens in the box link.");
+  if (typeof input.active !== "boolean" || typeof input.featured !== "boolean") throw new MenuValidationError("Choose whether the box is published and whether it is this week's box.");
+  const image = text("image", 1000);
+  if (!isMenuImageUrl(image)) throw new MenuValidationError("Upload a JPG, PNG, or WebP photo using the photo picker.");
+
+  const items = input.items ?? [];
+  if (!Array.isArray(items) || items.length > MAX_BOX_ITEMS) throw new MenuValidationError(`List up to ${MAX_BOX_ITEMS} things in the box.`);
+  const cleanItems = items.map((entry) => {
+    const value = entry && typeof entry === "object" && !Array.isArray(entry) ? entry : {};
+    const name = String(value.name ?? "").trim();
+    const note = String(value.note ?? "").trim();
+    if (!name || name.length > 80) throw new MenuValidationError("Each item in the box needs a name of 1–80 characters.");
+    if (note.length > 160) throw new MenuValidationError("Item notes must be no more than 160 characters.");
+    return { name, note };
+  });
+
+  // A limited run must have a real count, so this one is required, not nullable.
+  const stock = input.stock_quantity;
+  if (!Number.isInteger(stock) || stock < 0 || stock > MAX_STOCK) {
+    throw new MenuValidationError(`Boxes remaining must be a whole number from 0 to ${MAX_STOCK}.`);
+  }
+  return {
+    slug, title, tagline: text("tagline", 160), description: text("description", 2000),
+    price: assertPrice(input.price, "The box price"), stock_quantity: stock,
+    low_stock_threshold: assertThreshold(input.low_stock_threshold),
+    items: cleanItems, image, featured: input.featured, active: input.active,
+  };
+}
+
+export function validateShopSettings(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new MenuValidationError("Enter the shop prices.");
+  return {
+    single_pop_price: assertPrice(input.single_pop_price, "The single cake-pop price"),
+    four_pack_price: assertPrice(input.four_pack_price, "The four-pack price"),
   };
 }

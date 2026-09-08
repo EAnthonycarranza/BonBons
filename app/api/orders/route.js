@@ -3,6 +3,7 @@ import { isAdmin } from "@/lib/auth";
 import { isEmail, isPhone } from "@/lib/format";
 import { getProducts } from "@/lib/products";
 import { normalizeOrderItems } from "@/lib/order-menu";
+import { getFeaturedWeeklyBox, getShopSettings } from "@/lib/weekly-box-data";
 import { getCartPricing } from "@/lib/pricing";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha-actions";
 import { verifyRecaptcha } from "@/lib/recaptcha";
@@ -53,11 +54,19 @@ export async function POST(request) {
     );
   }
 
-  // Rebuild every line from the current menu so the browser cannot alter prices.
-  const products = await getProducts();
+  // Rebuild every line from the current menu so the browser cannot alter
+  // prices, and re-check availability so a sold-out item cannot slip through.
+  const [products, settings, weeklyBox] = await Promise.all([
+    getProducts(),
+    getShopSettings(),
+    getFeaturedWeeklyBox(),
+  ]);
   let normalizedItems;
   try {
-    normalizedItems = normalizeOrderItems(items, products);
+    normalizedItems = normalizeOrderItems(items, products, {
+      fourPackPrice: settings.fourPackPrice,
+      weeklyBox,
+    });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }

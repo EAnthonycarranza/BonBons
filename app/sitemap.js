@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function sitemap() {
   const now = new Date();
   const staticRoutes = [
-    "", "/shop", "/build-a-box",
+    "", "/shop", "/build-a-box", "/box-of-the-week",
     "/occasions", "/about", "/faq", "/quote",
   ].map((p) => ({ url: `${BASE}${p}`, lastModified: now }));
 

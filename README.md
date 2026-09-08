@@ -32,6 +32,7 @@ your link keeps working; the real app needs a host that can run a Node.js server
 | `/faq` | Accordion |
 | `/quote` | Custom pickup-order request form → saved to Supabase |
 | `/cart` | Review menu selections and send a pickup request → saved to Supabase |
+| `/box-of-the-week` | This week's limited Celebration Box — contents, price, and how many are left |
 | `/admin` | Password-protected tracker for requests, payment arrangements, and pickup status |
 | `/sitemap.xml`, `/robots.txt` | Generated automatically |
 
@@ -320,6 +321,50 @@ Menu photos accept JPG, PNG, and WebP up to 5 MB. The server validates uploads a
 Database changes are recorded in `supabase/migrations/20260906223140_admin_menu_management.sql` and `supabase/migrations/20260907040220_cake_pop_flavor_catalog.sql`. Deploy the shared validation file together with `supabase/functions/bonbons-data/index.ts` when updating the Edge Function. Do not exclude `supabase/functions/_shared` from the web build.
 
 Checks: `npm run build`, `npm run test:menu`, `npm run test:email`, `npm run test:reveal`, and `npm run test:config`. The opt-in `scripts/verify-menu-http.mjs` integration test creates a hidden QA item and uploads a test logo; it never submits a customer order or sends an email. Clean up its reported fixture afterward.
+
+### Box of the Week, pricing, and stock
+
+**⚠️ Two setup steps are required before pricing and stock actually save.** The
+website code is deployed, but the database and the Edge Function are not
+changed by a Heroku deploy:
+
+1. **Apply the migration.** In the Supabase dashboard → SQL Editor, paste and run
+   `supabase/migrations/20260908010000_weekly_box_and_inventory.sql`. It adds
+   `products.stock_quantity` / `low_stock_threshold`, the `shop_settings` row,
+   and the `weekly_boxes` table, all with public-read RLS.
+2. **Redeploy the Edge Function.** `supabase/functions/bonbons-data/index.ts`
+   and `supabase/functions/_shared/menu.js` both changed. Until it is redeployed
+   the old copy still rejects any price other than $4 and silently drops the
+   stock fields.
+
+Until both are done the site degrades on purpose rather than breaking: the
+Box of the Week page shows its empty state, the home page teaser is hidden,
+every flavor reads as made-to-order, and four-packs stay at $10.
+
+**What the owner controls** from **Shop Desk → Box of the week**:
+
+- The live box: name, tagline, description, price, and the list of what's inside
+- How many boxes are left, and the number at which shoppers see an urgency
+  message. The run size is remembered separately so the meter can read
+  "Only 4 left of 25 made" instead of a bar that is always full
+- Shop-wide prices: the single cake pop price and the four-pack price
+- Per-flavor price and quantity, from **Cake-pop menu → edit a flavor**
+
+Stock is **owner-managed, not auto-decremented**. Orders here are requests that
+staff confirm and that are paid offline, so subtracting at submit time would let
+unpaid requests exhaust a limited run. Update the remaining count as boxes
+actually sell.
+
+Leaving a flavor's quantity blank means made-to-order and always available,
+which is how every existing flavor behaves. Setting it to 0 shows "Sold out"
+on the card and disables its add button. `POST /api/orders` re-checks price and
+availability from the database, so a sold-out or over-ordered item is refused
+even if the browser asks for it.
+
+Only one box can be featured at a time; publishing a new one stands the previous
+box down automatically (enforced by a partial unique index, not just the UI).
+
+Run `npm run test:box` for the pricing, stock, and box-validation checks.
 
 ### Order tracking & fulfillment
 

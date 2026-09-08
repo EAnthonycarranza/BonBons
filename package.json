@@ -2,7 +2,7 @@
   "name": "bonbons",
   "version": "1.0.0",
   "private": true,
-  "description": "Bon Bon's Sweets & More — handmade treats and dessert tables",
+  "description": "Bon Bon's Sweets & More \u2014 handmade treats and dessert tables",
   "engines": {
     "node": "24.x"
   },
@@ -18,7 +18,8 @@
     "test:menu": "node --test tests/menu.test.mjs",
     "test:mobile": "node --test tests/mobile-experience.test.mjs",
     "test:photos": "node --test tests/product-photos.test.mjs",
-    "preview:email": "node scripts/preview-emails.mjs"
+    "preview:email": "node scripts/preview-emails.mjs",
+    "test:box": "node --test tests/weekly-box.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",

@@ -1,6 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.112.4";
-import { validateMenuProduct, MENU_IMAGE_BUCKET, MENU_IMAGE_MAX_BYTES } from "../_shared/menu.js";
+import {
+  validateMenuProduct,
+  validateWeeklyBox,
+  validateShopSettings,
+  MENU_IMAGE_BUCKET,
+  MENU_IMAGE_MAX_BYTES,
+} from "../_shared/menu.js";
 
 const EXPECTED_TOKEN_HASH = "ccc8ac8138efd27c19994d11d13b4e41efcc6b1273bfdfb87d39060e35ff0df5";
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
@@ -363,6 +369,66 @@ Deno.serve(async (request: Request) => {
         .eq("id", id).eq("updated_at", expected).select().maybeSingle();
       if (error) throw error;
       return data ? json({ data }) : json({ error: "This item changed in another window. Refresh the menu, then try again." }, 409);
+    }
+
+    if (action === "list_weekly_boxes") {
+      const { data, error } = await supabase.from("weekly_boxes").select("*")
+        .order("featured", { ascending: false }).order("created_at", { ascending: false });
+      if (error) throw error;
+      return json({ data: data || [] });
+    }
+
+    if (action === "get_shop_settings") {
+      const { data, error } = await supabase.from("shop_settings").select("*").maybeSingle();
+      if (error) throw error;
+      return json({ data });
+    }
+
+    if (action === "update_shop_settings") {
+      const settings = validateShopSettings(payload.settings);
+      const { data, error } = await supabase.from("shop_settings")
+        .upsert({ id: true, ...settings, updated_at: new Date().toISOString() })
+        .select().single();
+      if (error) throw error;
+      return json({ data });
+    }
+
+    if (action === "create_weekly_box" || action === "update_weekly_box") {
+      const box = validateWeeklyBox(payload.box);
+      // Only one box can be this week's box; stand the others down first so the
+      // partial unique index never rejects the write.
+      if (box.featured) {
+        const { error: clearError } = await supabase.from("weekly_boxes")
+          .update({ featured: false, updated_at: new Date().toISOString() }).eq("featured", true);
+        if (clearError) throw clearError;
+      }
+      if (action === "create_weekly_box") {
+        const { data, error } = await supabase.from("weekly_boxes")
+          .insert({ ...box, initial_stock: box.stock_quantity }).select().single();
+        if (error) throw error;
+        return json({ data }, 201);
+      }
+      const id = String(payload.id || "");
+      if (!/^[1-9]\d*$/.test(id)) return json({ error: "Refresh the boxes before making changes." }, 400);
+      // The run size only ever grows, so selling down leaves the meter honest
+      // while a restock re-baselines it.
+      const { data: currentBox, error: readBoxError } = await supabase
+        .from("weekly_boxes").select("initial_stock").eq("id", id).maybeSingle();
+      if (readBoxError) throw readBoxError;
+      const initialStock = Math.max(Number(currentBox?.initial_stock ?? 0), box.stock_quantity);
+      const { data, error } = await supabase.from("weekly_boxes")
+        .update({ ...box, initial_stock: initialStock, updated_at: new Date().toISOString() })
+        .eq("id", id).select().maybeSingle();
+      if (error) throw error;
+      return data ? json({ data }) : json({ error: "That box was not found. Refresh and try again." }, 404);
+    }
+
+    if (action === "delete_weekly_box") {
+      const id = String(payload.id || "");
+      if (!/^[1-9]\d*$/.test(id)) return json({ error: "Refresh the boxes before making changes." }, 400);
+      const { error } = await supabase.from("weekly_boxes").delete().eq("id", id);
+      if (error) throw error;
+      return json({ data: { id } });
     }
 
     if (action === "upload_menu_photo") {

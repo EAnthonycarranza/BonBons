@@ -135,6 +135,10 @@ async function orderRoute({ mailFails = false, saveFails = false, trackingFails 
     "@/lib/format": { money, isEmail, isPhone },
     "@/lib/products": { getProducts: async () => [{ slug: "chocolate-drizzle-cake-pops", name: "Chocolate Drizzle Pop", price: 4, bundleEligible: true }] },
     "@/lib/order-menu": { normalizeOrderItems },
+    "@/lib/weekly-box-data": {
+      getShopSettings: async () => ({ singlePopPrice: 4, fourPackPrice: 10 }),
+      getFeaturedWeeklyBox: async () => null,
+    },
     "@/lib/pricing": { getCartPricing: (items) => ({ subtotal: items.reduce((sum, item) => sum + item.qty * item.price, 0) }) },
     "@/lib/recaptcha-actions": { RECAPTCHA_ACTIONS: { order: "submit_pickup_order" } },
     "@/lib/recaptcha": { verifyRecaptcha: async () => ({ ok: captchaValid }) },

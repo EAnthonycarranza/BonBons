@@ -5,11 +5,13 @@ import ProductCard from "@/components/ProductCard";
 import NewsletterForm from "@/components/NewsletterForm";
 import SocialFeedAccordion from "@/components/SocialFeedAccordion";
 import BakeryPhotoGallery from "@/components/BakeryPhotoGallery";
+import WeeklyBoxTeaser from "@/components/WeeklyBoxTeaser";
+import { getFeaturedWeeklyBox } from "@/lib/weekly-box-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const products = await getProducts();
+  const [products, weeklyBox] = await Promise.all([getProducts(), getFeaturedWeeklyBox()]);
   const favorites = products
     .filter((p) => p.category === "everyday")
     .slice(0, 3);
@@ -99,6 +101,7 @@ export default async function HomePage() {
           </p>
         </div>
       </section>
+      <WeeklyBoxTeaser box={weeklyBox} />
       <section className="wrap flavor-banner rv-anim">
         <Link href="/shop">
           <Image

@@ -4,12 +4,14 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import MenuManager from "./MenuManager";
+import WeeklyBoxManager from "./WeeklyBoxManager";
 import AdminOrders from "./AdminOrders";
 import AdminSettings from "./AdminSettings";
 import AdminIcon from "./AdminIcon";
 
 const SECTIONS = [
   { id: "menu", label: "Cake-pop menu", icon: "menu", note: "Flavors & availability" },
+  { id: "weeklyBox", label: "Box of the week", icon: "photo", note: "Limited box & prices" },
   { id: "orders", label: "Pickup orders", icon: "orders", note: "Requests & confirmations" },
   { id: "settings", label: "Shop settings", icon: "settings", note: "Pickup, contact & payment" },
 ];
@@ -42,6 +44,7 @@ export default function AdminDashboard({ dbReady }) {
         {!dbReady?<p className="admin-alert is-error" role="alert">The database is not connected. Changes and customer requests cannot be saved yet.</p>:null}
         {error?<p className="admin-alert is-error" role="alert">{error}</p>:null}
         <div hidden={section!=="menu"}><MenuManager/></div>
+        {visited.weeklyBox?<div hidden={section!=="weeklyBox"}><WeeklyBoxManager/></div>:null}
         {visited.orders?<div hidden={section!=="orders"}><AdminOrders dbReady={dbReady}/></div>:null}
         {visited.settings?<div hidden={section!=="settings"}><AdminSettings/></div>:null}
       </div>
