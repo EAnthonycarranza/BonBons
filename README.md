@@ -404,6 +404,12 @@ cannot leave a half-finished import behind. Up to 500 rows per file.
 and order history — there is no soft-delete, because the owner may need to
 remove that data on request. The Shop Desk confirms first and says so plainly.
 
+Deletion works at **any stage**, including a confirmed order that already has an
+order number, and for both menu orders and custom requests. The control sits in
+the workspace header so it is reachable without scrolling the fulfilment card.
+Nothing references `orders` or `quotes` by foreign key, so a delete never
+cascades into other records; confirmed order numbers are simply retired.
+
 
 The `/admin` dashboard tracks order lifecycle:
 - **Received** — customer submits a pickup request or places an order

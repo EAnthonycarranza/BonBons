@@ -264,6 +264,17 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
             <span>Received {dateLabel(record.createdAt, { year: true })}</span>
           </p>
         </div>
+        <div className="crm-workspace-tools">
+          <button
+            className="crm-delete-btn"
+            type="button"
+            onClick={() => setPendingDelete(true)}
+            disabled={deleting}
+            title="Delete this request at any stage"
+          >
+            Delete request
+          </button>
+        </div>
         <div className="crm-workspace-total">
           <span>{record.confirmedTotal === null || record.confirmedTotal === undefined ? "Current estimate" : "Confirmed total"}</span>
           <b>{amountLabel(record, kind)}</b>
@@ -330,9 +341,6 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
             </div>
             {willConfirm ? <div className="crm-confirm-hint">Saving this stage will create the customer&apos;s permanent order number.</div> : null}
             <div className="crm-save-bar">
-              <button className="crm-delete-btn" type="button" onClick={() => setPendingDelete(true)} disabled={deleting}>
-                Delete this request
-              </button>
               <span className={dirty ? "crm-unsaved" : "crm-saved-state"}>{dirty ? "Unsaved changes" : "Up to date"}</span>
               <button className="btn btn-pink btn-sm" type="button" onClick={save} disabled={saveState === "saving" || !dirty}>
                 {saveState === "saving" ? "Saving…" : willConfirm ? "Confirm order & save" : "Save changes"}
@@ -342,8 +350,8 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
             <ConfirmDialog
               open={pendingDelete}
               title="Delete this request?"
-              message={`${customer.name || "This customer"}'s request${record.orderNumber ? ` (${record.orderNumber})` : ""} will be removed from the Shop Desk.`}
-              consequence="This permanently deletes the customer's name, contact details and order history. It cannot be undone, and no email is sent to them."
+              message={`${customer.name || "This customer"}'s ${kind === "orders" ? "order" : "custom request"}${record.orderNumber ? ` (${record.orderNumber})` : ""} will be removed from the Shop Desk, including any confirmed pickup details.`}
+              consequence="This permanently deletes the customer's name, contact details and order history, whatever stage it has reached. It cannot be undone, and no email is sent to them."
               confirmLabel="Delete permanently"
               tone="danger"
               busy={deleting}

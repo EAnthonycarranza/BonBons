@@ -32,10 +32,12 @@
 .order-tools-note{margin:14px 0 0;padding-top:13px;border-top:1px solid var(--desk-border);font-size:11px;line-height:1.8;color:#b3a5bc}
 .order-tools-note b{color:#e3d2e8;font-weight:600}
 .order-tools .admin-alert{margin:14px 0 0}
-/* Destructive action sits opposite Save so it is never the reflex target. */
-.crm-delete-btn{margin-right:auto;border:1px solid transparent;border-radius:6px;background:none;color:#e78ca5;font:600 11px/1.4 var(--font-body),sans-serif;padding:9px 11px}
+/* Delete lives in the workspace header so it is reachable at any stage without
+   scrolling the fulfilment card, but stays visually quiet next to the total. */
+.crm-workspace-tools{display:flex;align-items:center;margin-left:auto;align-self:center}
+.crm-delete-btn{border:1px solid #4a3b53;border-radius:6px;background:none;color:#e78ca5;font:600 11px/1.4 var(--font-body),sans-serif;padding:9px 12px;white-space:nowrap}
 .crm-delete-btn:hover:not(:disabled){background:#3b1e2b;border-color:#bf5b79;color:#ffc4d7}
-@media(max-width:700px){.order-tools{padding:15px}.order-tools-actions{width:100%}.order-tools-actions .admin-btn{flex:1 1 calc(50% - 4px)}.crm-delete-btn{margin:0 0 4px;width:100%}}
+@media(max-width:700px){.order-tools{padding:15px}.order-tools-actions{width:100%}.order-tools-actions .admin-btn{flex:1 1 calc(50% - 4px)}.crm-workspace-tools{width:100%}.crm-delete-btn{width:100%}}
 
 /* Styled confirmations, replacing window.confirm across the desk */
 .confirm-dialog{width:min(470px,calc(100vw - 32px))}
