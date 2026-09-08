@@ -86,6 +86,8 @@ export async function POST(request) {
       kind,
       emailType,
       personalMessage: String(body.personalMessage || "").trim().slice(0, 2000),
+      // Only an update can carry a delay notice; the template enforces this too.
+      delayNotice: emailType === "status_update" && body.delayNotice === true,
     });
 
     let savedRecord = record;

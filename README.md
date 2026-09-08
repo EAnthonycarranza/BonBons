@@ -385,6 +385,23 @@ Run `npm run test:box` for the pricing, stock, and box-validation checks.
 
 ### Order tracking & fulfillment
 
+**Overdue pickups.** A pickup date shows amber once the day has passed and the
+customer still has not collected, and mint on the day itself. Only stages that
+still owe a pickup are flagged — confirmed, booked, preparing and ready — so a
+picked-up, closed or cancelled order is never marked late. Date-only values are
+read in local time; reading them as UTC would mark same-day pickups overdue for
+anyone west of Greenwich. The flag appears on the queue row, the customer strip
+and the pickup date field, and clears as soon as a future date is chosen.
+
+**Delay updates.** The email card has a *Tell them the pickup date changed*
+option on status updates. With a new pickup date saved, the email leads with
+"Your pickup date has changed", names the new date and time, and invites the
+customer to call or text if it does not suit them. With no date set, it asks
+them to call so a date can be agreed. Either way the phone number is a tappable
+link. The send button stays disabled until the record is saved, so the email can
+never promise a date the desk has not stored. The flag is ignored on receipts
+and confirmations.
+
 **Spreadsheets.** The order desk exports every request as Excel (.xlsx) or CSV,
 and imports past orders from either. Import shows a confirmation first: how many
 rows will be created, how many blank rows were skipped, and exactly which rows
@@ -486,3 +503,5 @@ browser's `window.confirm`. Destructive ones are marked, spell out the
 consequence, and open with focus on Cancel so Enter cannot delete by reflex.
 
 Run `npm run test:import` for the spreadsheet parsing checks.
+
+Run `npm run test:pickup` for the overdue-date and delay-email checks.

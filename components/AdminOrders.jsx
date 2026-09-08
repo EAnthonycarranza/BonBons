@@ -5,7 +5,7 @@ import ConfirmDialog from "./ConfirmDialog";
 import OrderDataTools from "./OrderDataTools";
 import { money } from "@/lib/format";
 import { SITE } from "@/lib/sample-data";
-import { ORDER_STATUSES, PAYMENT_STATUSES, QUOTE_STATUSES } from "@/lib/order-tracking";
+import { ORDER_STATUSES, PAYMENT_STATUSES, QUOTE_STATUSES, pickupDateState } from "@/lib/order-tracking";
 import PickupLocationManager, { PickupLocationPicker } from "@/components/PickupLocationManager";
 
 const STAGE_FILTERS = [
@@ -155,6 +155,7 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
   const [pendingDelete, setPendingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [personalMessage, setPersonalMessage] = useState("");
+  const [delayNotice, setDelayNotice] = useState(false);
 
   useEffect(() => {
     if (record.pickupLocation || form.pickupLocation || !pickupLocations.length) return;
@@ -234,12 +235,13 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
       const response = await fetch("/api/admin/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, id: record._id, emailType, personalMessage, force: isResend }),
+        body: JSON.stringify({ kind, id: record._id, emailType, personalMessage, force: isResend, delayNotice: emailType === "status_update" && delayNotice }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not send the email.");
       if (data.record) onSaved(data.record);
       setPersonalMessage("");
+      setDelayNotice(false);
       setNotice(data.trackingWarning ? `${data.message} ${data.trackingWarning}` : data.message);
     } catch (error) {
       setNotice(error.message);
@@ -248,6 +250,9 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
     }
   }
 
+  // Judged on what is currently in the form, so picking a new date clears the
+  // warning immediately rather than waiting for a save.
+  const overdue = pickupDateState({ status: form.status, pickupDate: form.pickupDate || requestedDate(record) }) === "overdue";
   const emailDisabled = !record.orderNumber || dirty || !emailState.connected || Boolean(emailBusy);
 
   return (
@@ -284,7 +289,12 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
       <div className="crm-customer-strip">
         <div><span>Email</span><b>{customer.email || "Not supplied"}</b></div>
         <div><span>Phone</span><b>{customer.phone || "Not supplied"}</b></div>
-        <div><span>Requested pickup</span><b>{dateLabel(requestedDate(record), { year: true })}</b></div>
+        <div className={`crm-pickup-cell is-${pickupDateState(record)}`}>
+          <span>Requested pickup</span>
+          <b>{dateLabel(requestedDate(record), { year: true })}</b>
+          {pickupDateState(record) === "overdue" ? <em>Pickup date has passed</em> : null}
+          {pickupDateState(record) === "today" ? <em>Pickup is today</em> : null}
+        </div>
         <ContactLinks customer={customer} />
       </div>
 
@@ -318,8 +328,8 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
               <Field label="Confirmed total">
                 <div className="crm-money-input"><span>$</span><input type="number" min="0" step="0.01" value={form.confirmedTotal} onChange={(event) => change("confirmedTotal", event.target.value)} /></div>
               </Field>
-              <Field label="Pickup date" compact>
-                <input type="date" value={form.pickupDate} onChange={(event) => change("pickupDate", event.target.value)} />
+              <Field label="Pickup date" compact hint={overdue ? "This date has passed. Set a new one, then send a status update." : undefined}>
+                <input className={overdue ? "is-overdue" : ""} type="date" value={form.pickupDate} onChange={(event) => change("pickupDate", event.target.value)} />
               </Field>
               <Field label="Pickup time" compact>
                 <input type="time" value={form.pickupTime} onChange={(event) => change("pickupTime", event.target.value)} />
@@ -393,8 +403,23 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
             <button className="btn btn-pink btn-block" type="button" disabled={emailDisabled} onClick={() => sendEmail("confirmation")}>
               {emailBusy === "confirmation" ? "Sending…" : record.confirmationSentAt ? "Resend confirmation" : "Send order confirmation"}
             </button>
+            <label className="crm-delay-toggle">
+              <input
+                type="checkbox"
+                checked={delayNotice}
+                onChange={(event) => setDelayNotice(event.target.checked)}
+              />
+              <span>
+                <b>Tell them the pickup date changed</b>
+                <small>
+                  {form.pickupDate
+                    ? `The update will say pickup has moved to ${dateLabel(form.pickupDate, { year: true })}, and to call or text ${SITE.phone} if that date doesn't work.`
+                    : `No pickup date is set, so the update will ask them to call or text ${SITE.phone} to arrange one.`}
+                </small>
+              </span>
+            </label>
             <button className="btn btn-ghost btn-block" type="button" disabled={emailDisabled} onClick={() => sendEmail("status_update")}>
-              {emailBusy === "status_update" ? "Sending…" : "Send status update"}
+              {emailBusy === "status_update" ? "Sending…" : delayNotice ? "Send delay update" : "Send status update"}
             </button>
 
             {kind === "orders" && !record.orderNumber && ["pending", "contacted"].includes(record.status) ? (
@@ -578,7 +603,7 @@ export default function AdminOrders({ dbReady }) {
                   <span className={`crm-row-marker crm-row-marker-${statusTone(record.status)}`} />
                   <span className="crm-row-copy">
                     <span className="crm-row-topline"><b>{customer.name || "Unnamed customer"}</b><strong>{amountLabel(record, kind)}</strong></span>
-                    <span className="crm-row-meta"><span>{record.orderNumber || shortId(record._id)}</span><span>{kind === "orders" ? "Menu" : "Custom"}</span><span>{dateLabel(requestedDate(record))}</span></span>
+                    <span className="crm-row-meta"><span>{record.orderNumber || shortId(record._id)}</span><span>{kind === "orders" ? "Menu" : "Custom"}</span><span className={`crm-row-date is-${pickupDateState(record)}`}>{dateLabel(requestedDate(record))}</span></span>
                     <span className="crm-row-stage">{stageLabel(record.status, kind)}</span>
                   </span>
                 </button>

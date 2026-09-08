@@ -20,7 +20,8 @@
     "test:photos": "node --test tests/product-photos.test.mjs",
     "preview:email": "node scripts/preview-emails.mjs",
     "test:box": "node --test tests/weekly-box.test.mjs",
-    "test:import": "node --test tests/order-import.test.mjs"
+    "test:import": "node --test tests/order-import.test.mjs",
+    "test:pickup": "node --experimental-vm-modules --test tests/pickup-delay.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",
