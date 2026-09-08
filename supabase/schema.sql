@@ -322,12 +322,24 @@ create trigger assign_order_confirmation_on_quotes
 
 -- Box of the Week, owner-controlled pricing, and stock tracking.
 -- Mirrors supabase/migrations/20260908010000_weekly_box_and_inventory.sql.
+--
+-- Everything the feature needs is in this one file, including the privileged
+-- write path, so applying it is the only step required. Admin writes go through
+-- public.bonbons_admin(), a security-definer function guarded by the same
+-- BONBONS_INTERNAL_API_TOKEN the Edge Function already uses. That keeps the
+-- trust model identical while removing the need to redeploy the function.
+
+-- stock_quantity is nullable on products on purpose: NULL means "not tracked"
+-- (make to order, always available), which is how every existing flavor
+-- behaves. 0 means sold out. Existing rows therefore keep working untouched.
 alter table public.products
   add column if not exists stock_quantity integer
     check (stock_quantity is null or stock_quantity >= 0),
   add column if not exists low_stock_threshold integer not null default 3
     check (low_stock_threshold >= 0);
 
+-- Shop-wide prices the owner can change without a deploy. Single row, keyed by
+-- a constant true so a second row cannot be inserted.
 create table if not exists public.shop_settings (
   id boolean primary key default true check (id),
   single_pop_price numeric(10, 2) not null default 4 check (single_pop_price >= 0),
@@ -344,14 +356,17 @@ create table if not exists public.weekly_boxes (
   tagline text not null default '',
   description text not null default '',
   price numeric(10, 2) not null default 25 check (price >= 0),
+  -- Remaining boxes. Limited runs are the whole point, so this is not nullable.
   stock_quantity integer not null default 0 check (stock_quantity >= 0),
   -- The size of the run, so the meter can show "4 of 25 left" rather than a
   -- bar that is always full. Raised automatically whenever stock is restocked.
   initial_stock integer not null default 0 check (initial_stock >= 0),
   low_stock_threshold integer not null default 5 check (low_stock_threshold >= 0),
+  -- [{ slug, name, qty, note }] — the cake pops inside, with quantities.
   items jsonb not null default '[]'::jsonb
     check (jsonb_typeof(items) = 'array' and jsonb_array_length(items) <= 40),
   image text not null default '',
+  -- Exactly one box is the live "this week" box; enforced by a partial index.
   featured boolean not null default false,
   active boolean not null default true,
   created_at timestamptz not null default now(),
@@ -376,6 +391,8 @@ grant select on table public.shop_settings to anon, authenticated;
 grant all on table public.weekly_boxes, public.shop_settings to service_role;
 grant usage, select on all sequences in schema public to service_role;
 
+-- Shoppers may read the live box and the current prices; nothing else. Writes
+-- are impossible through the table itself and must go through bonbons_admin().
 drop policy if exists weekly_boxes_public_read on public.weekly_boxes;
 create policy weekly_boxes_public_read
   on public.weekly_boxes
@@ -389,3 +406,177 @@ create policy shop_settings_public_read
   for select
   to anon, authenticated
   using (true);
+
+-- Stock is owner-managed rather than decremented at request time. Orders here
+-- are requests that staff confirm and are paid offline, so decrementing on
+-- submit would let unpaid requests exhaust a limited run. The Shop Desk edits
+-- the remaining count as boxes are actually sold.
+
+create extension if not exists pgcrypto with schema extensions;
+
+-- The privileged write path. Callable by anon, but every call must present the
+-- server-only internal token; only its SHA-256 is stored here, so reading this
+-- definition reveals nothing usable.
+create or replace function public.bonbons_admin(
+  auth_token text,
+  action text,
+  payload jsonb default '{}'::jsonb
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $fn$
+declare
+  expected_hash constant text :=
+    'ccc8ac8138efd27c19994d11d13b4e41efcc6b1273bfdfb87d39060e35ff0df5';
+  target_id bigint;
+  wants_featured boolean;
+  next_stock integer;
+  result jsonb;
+begin
+  if auth_token is null
+     or encode(digest(auth_token, 'sha256'), 'hex') <> expected_hash then
+    raise exception 'Unauthorized.' using errcode = '28000';
+  end if;
+
+  if action = 'list_weekly_boxes' then
+    select coalesce(jsonb_agg(to_jsonb(w) order by w.featured desc, w.created_at desc), '[]'::jsonb)
+      into result from public.weekly_boxes w;
+    return result;
+  end if;
+
+  if action = 'get_shop_settings' then
+    select to_jsonb(s) into result from public.shop_settings s limit 1;
+    return coalesce(result, 'null'::jsonb);
+  end if;
+
+  if action = 'update_shop_settings' then
+    insert into public.shop_settings (id, single_pop_price, four_pack_price, updated_at)
+    values (true, (payload ->> 'single_pop_price')::numeric,
+            (payload ->> 'four_pack_price')::numeric, now())
+    on conflict (id) do update
+      set single_pop_price = excluded.single_pop_price,
+          four_pack_price = excluded.four_pack_price,
+          updated_at = now();
+    select to_jsonb(s) into result from public.shop_settings s limit 1;
+    return result;
+  end if;
+
+  if action in ('create_weekly_box', 'update_weekly_box') then
+    wants_featured := coalesce((payload ->> 'featured')::boolean, false);
+    next_stock := coalesce((payload ->> 'stock_quantity')::integer, 0);
+
+    -- Only one box can be live, so stand the others down before writing.
+    if wants_featured then
+      update public.weekly_boxes set featured = false, updated_at = now() where featured;
+    end if;
+
+    if action = 'create_weekly_box' then
+      insert into public.weekly_boxes
+        (slug, title, tagline, description, price, stock_quantity, initial_stock,
+         low_stock_threshold, items, image, featured, active)
+      values (
+        payload ->> 'slug',
+        payload ->> 'title',
+        coalesce(payload ->> 'tagline', ''),
+        coalesce(payload ->> 'description', ''),
+        (payload ->> 'price')::numeric,
+        next_stock,
+        next_stock,
+        coalesce((payload ->> 'low_stock_threshold')::integer, 5),
+        coalesce(payload -> 'items', '[]'::jsonb),
+        coalesce(payload ->> 'image', ''),
+        wants_featured,
+        coalesce((payload ->> 'active')::boolean, true)
+      )
+      returning to_jsonb(weekly_boxes) into result;
+      return result;
+    end if;
+
+    target_id := (payload ->> 'id')::bigint;
+    update public.weekly_boxes as w set
+      slug = payload ->> 'slug',
+      title = payload ->> 'title',
+      tagline = coalesce(payload ->> 'tagline', ''),
+      description = coalesce(payload ->> 'description', ''),
+      price = (payload ->> 'price')::numeric,
+      stock_quantity = next_stock,
+      -- The run size only grows, so selling down keeps the meter honest while
+      -- a restock re-baselines it.
+      initial_stock = greatest(w.initial_stock, next_stock),
+      low_stock_threshold = coalesce((payload ->> 'low_stock_threshold')::integer, 5),
+      items = coalesce(payload -> 'items', '[]'::jsonb),
+      image = coalesce(payload ->> 'image', ''),
+      featured = wants_featured,
+      active = coalesce((payload ->> 'active')::boolean, true),
+      updated_at = now()
+    where w.id = target_id
+    returning to_jsonb(w) into result;
+
+    if result is null then
+      raise exception 'That box was not found.' using errcode = 'P0002';
+    end if;
+    return result;
+  end if;
+
+  if action = 'delete_weekly_box' then
+    delete from public.weekly_boxes where id = (payload ->> 'id')::bigint;
+    return jsonb_build_object('ok', true);
+  end if;
+
+  -- Price and stock only; the rest of a flavor is still edited through the
+  -- existing menu path.
+  if action = 'update_product_pricing' then
+    update public.products set
+      price = (payload ->> 'price')::numeric,
+      stock_quantity = case
+        when payload ->> 'stock_quantity' is null then null
+        else (payload ->> 'stock_quantity')::integer
+      end,
+      low_stock_threshold = coalesce((payload ->> 'low_stock_threshold')::integer, 3),
+      updated_at = now()
+    where id = (payload ->> 'id')::bigint
+    returning to_jsonb(products) into result;
+    if result is null then
+      raise exception 'That flavor was not found.' using errcode = 'P0002';
+    end if;
+    return result;
+  end if;
+
+  raise exception 'Unknown admin action: %', action using errcode = '22023';
+end;
+$fn$;
+
+revoke all on function public.bonbons_admin(text, text, jsonb) from public;
+grant execute on function public.bonbons_admin(text, text, jsonb) to anon, authenticated, service_role;
+
+-- Seed a ready-made Celebration Box so the page has something to show the
+-- moment this runs: 10 cake pops for $25, built from flavors actually on the
+-- menu so every slug points at a real product. Skipped if a box already exists.
+with picks as (
+  select p.slug, p.name, row_number() over (order by p.sort_order, p.name) as rn
+  from public.products p
+  where p.active and p.deleted_at is null
+  limit 3
+)
+insert into public.weekly_boxes
+  (slug, title, tagline, description, price, stock_quantity, initial_stock,
+   low_stock_threshold, items, image, featured, active)
+select
+  'celebration-box',
+  'Celebration Box',
+  '10 delicious cake pops. Big variety. Big flavor. Big smiles!',
+  'A rotating mix of this week''s flavors, hand-rolled and hand-dipped, then wrapped one at a time. Limited run — once this week''s boxes are claimed, that''s it.',
+  25, 20, 20, 5,
+  coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'slug', picks.slug,
+      'name', picks.name,
+      'qty', case picks.rn when 1 then 4 else 3 end,
+      'note', case picks.rn when 1 then 'Top seller' else '' end
+    ) order by picks.rn)
+    from picks
+  ), '[]'::jsonb),
+  '/products/bonbons-four-pack-styled.png',
+  true, true
+where not exists (select 1 from public.weekly_boxes);

@@ -324,25 +324,18 @@ Checks: `npm run build`, `npm run test:menu`, `npm run test:email`, `npm run tes
 
 ### Box of the Week, pricing, and stock
 
-**⚠️ Two setup steps are required before pricing and stock actually save.** The
-website code is deployed, but the database and the Edge Function are not
-changed by a Heroku deploy:
+**One setup step.** Open the Supabase dashboard → SQL Editor, paste
+`supabase/migrations/20260908010000_weekly_box_and_inventory.sql`, and run it.
+That is the whole install: it creates the `weekly_boxes` and `shop_settings`
+tables, adds `stock_quantity` / `low_stock_threshold` to `products`, creates the
+privileged write function, and seeds a ready-made Celebration Box built from the
+flavors already on the menu.
 
-1. **Apply the migration.** In the Supabase dashboard → SQL Editor, paste and run
-   `supabase/migrations/20260908010000_weekly_box_and_inventory.sql`. It adds
-   `products.stock_quantity` / `low_stock_threshold`, the `shop_settings` row,
-   and the `weekly_boxes` table, all with public-read RLS. It also seeds a
-   ready-made Celebration Box built from the flavors already on your menu, so
-   the page has something to show immediately.
-2. **Redeploy the Edge Function** — `npx supabase login`, then
-   `npx supabase functions deploy bonbons-data --project-ref slerrjoiowaskmvgykxt`. `supabase/functions/bonbons-data/index.ts`
-   and `supabase/functions/_shared/menu.js` both changed. Until it is redeployed
-   the old copy still rejects any price other than $4 and silently drops the
-   stock fields.
-
-Until both are done the site degrades on purpose rather than breaking: the
-Box of the Week page shows its empty state, the home page teaser is hidden,
-every flavor reads as made-to-order, and four-packs stay at $10.
+No Edge Function deploy is needed. Admin writes for boxes, shop prices, and
+per-flavor price/stock go through `public.bonbons_admin()`, a security-definer
+function guarded by the same `BONBONS_INTERNAL_API_TOKEN` the Edge Function
+already uses — identical trust model, nothing new exposed. Before the migration
+runs, the Shop Desk says so in plain language rather than failing obscurely.
 
 **What the owner controls** from **Shop Desk → Box of the week**:
 
@@ -356,6 +349,10 @@ every flavor reads as made-to-order, and four-packs stay at $10.
   "Only 4 left of 25 made" instead of a bar that is always full
 - Shop-wide prices: the single cake pop price and the four-pack price
 - Per-flavor price and quantity, from **Cake-pop menu → edit a flavor**
+
+The box is advertised in the announcement bar, as the first item in the main
+nav, as a feature card on the home page, and on its own page at
+`/box-of-the-week`.
 
 Stock is **owner-managed, not auto-decremented**. Orders here are requests that
 staff confirm and that are paid offline, so subtracting at submit time would let

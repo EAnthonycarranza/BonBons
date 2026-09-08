@@ -9,6 +9,11 @@ import { trapFocus } from "@/lib/focus-trap";
 
 const LINKS = [
   {
+    href: "/box-of-the-week",
+    label: "Box of the Week",
+    note: "10 cake pops for $25 · while supplies last",
+  },
+  {
     href: "/shop",
     label: "Shop Cake Pops",
     note: "$4 each · everyday favorites",
@@ -87,7 +92,7 @@ export default function SiteHeader() {
             <span className="dot hide-sm" aria-hidden="true">
               ·
             </span>
-            <Link href="/build-a-box">Build a four-pack</Link>
+            <Link href="/box-of-the-week">Box of the Week · 10 for $25</Link>
           </div>
           <button
             className="announce-x"
