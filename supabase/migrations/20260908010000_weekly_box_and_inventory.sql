@@ -225,7 +225,10 @@ end;
 $fn$;
 
 revoke all on function public.bonbons_admin(text, text, jsonb) from public;
-grant execute on function public.bonbons_admin(text, text, jsonb) to anon, authenticated, service_role;
+-- Only `anon` and the service role: the Next.js server connects with the
+-- publishable key, and signed-in end users never call this. Every call is
+-- still gated on the server-only internal token.
+grant execute on function public.bonbons_admin(text, text, jsonb) to anon, service_role;
 
 -- Seed a ready-made Celebration Box so the page has something to show the
 -- moment this runs: 10 cake pops for $25, built from flavors actually on the
