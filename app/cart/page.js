@@ -136,8 +136,8 @@ export default function CartPage() {
           <div className="tile" style={{ textAlign: "center", padding: 60 }}>
             <Image
               className="drawer-empty-photo"
-              src="/products/bonbons-real-assortment.jpg"
-              alt="Bon Bon’s wrapped cake-pop assortment"
+              src="/products/bonbons-colorful-pops-styled.webp"
+              alt="Styled image of Bon Bon’s wrapped cake-pop assortment"
               width={150}
               height={150}
             />

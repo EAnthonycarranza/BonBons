@@ -33,7 +33,7 @@ export default async function OccasionPage({ params }) {
 
           <div className="occasion-detail-hero rv-anim">
             <Image
-              src="/products/bonbons-real-colorful-pops.jpg"
+              src="/products/bonbons-colorful-pops-styled.webp"
               alt=""
               fill
               priority

@@ -438,6 +438,21 @@ body:not(:has(.mbar)) {
   font-size: 11px;
   color: var(--muted);
 }
+.flavor-banner {
+  max-width: 1264px;
+  margin-bottom: 28px;
+}
+.flavor-banner a {
+  display: block;
+  border: 1px solid var(--stroke);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.flavor-banner img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
 .bundle-editorial {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -285,8 +285,8 @@ export function QuoteAside() {
   return (
     <aside className="form-side">
       <Image
-        src="/products/bonbons-real-colorful-pops.jpg"
-        alt="Bon Bon’s individually wrapped cake pops in colorful finishes"
+        src="/products/bonbons-colorful-pops-styled.webp"
+        alt="Styled image of Bon Bon’s individually wrapped cake pops in colorful finishes"
         width={600}
         height={360}
         className="quote-aside-photo"

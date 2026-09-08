@@ -42,8 +42,8 @@ export default async function ShopPage() {
           </div>
           <div className="page-masthead-photo">
             <Image
-              src="/products/bonbons-real-pickup.jpg"
-              alt="Bon Bon’s wrapped cake pops with colorful sprinkles and cookie-crumb toppings"
+              src="/products/bonbons-assortment-styled.webp"
+              alt="Styled image of a marble plate of Bon Bon’s wrapped cake pops in sprinkle, cookie-crumb, strawberry, and cookies-and-cream finishes"
               fill
               priority
               sizes="280px"

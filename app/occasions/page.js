@@ -37,10 +37,10 @@ export default function OccasionsPage() {
               <Image
                 src={
                   [
-                    "/products/bonbons-real-assortment.jpg",
+                    "/products/bonbons-assortment-styled.webp",
                     "/products/bonbons-real-party-box.jpg",
                     "/products/bonbons-real-gift-box.jpg",
-                    "/products/bonbons-real-colorful-pops.jpg",
+                    "/products/bonbons-colorful-pops-styled.webp",
                   ][index % 4]
                 }
                 alt=""

@@ -99,6 +99,17 @@ export default async function HomePage() {
           </p>
         </div>
       </section>
+      <section className="wrap flavor-banner rv-anim">
+        <Link href="/shop">
+          <Image
+            src="/products/bonbons-flavors-banner.webp"
+            alt="Styled image of two Bon Bon’s flavors side by side: Cookie Monster and Strawberry Shortcake"
+            width={2172}
+            height={724}
+            sizes="(max-width: 760px) 100vw, 1264px"
+          />
+        </Link>
+      </section>
       <section className="wrap bundle-editorial rv-anim">
         <div className="bundle-photo">
           <Image

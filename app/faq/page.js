@@ -29,8 +29,8 @@ export default function FaqPage() {
           </Link>
           <Image
             className="faq-photo"
-            src="/products/bonbons-real-pickup.jpg"
-            alt="Bon Bon’s individually wrapped sprinkle, cookie-crumb, and chocolate cake pops"
+            src="/products/bonbons-assortment-styled.webp"
+            alt="Styled image of Bon Bon’s individually wrapped sprinkle, cookie-crumb, and chocolate cake pops"
             width={400}
             height={280}
           />
