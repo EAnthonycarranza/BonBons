@@ -48,8 +48,8 @@ export default async function HomePage() {
         <figure className="editorial-hero-photo rv-anim">
           <div className="hero-photo-arch">
             <Image
-              src="/products/bonbons-real-assortment.jpg"
-              alt="Bon Bon’s individually wrapped cake pops with pink sprinkles, cookie crumbs, strawberry crunch, and chocolate toppings"
+              src="/products/bonbons-assortment-styled.webp"
+              alt="Styled image of Bon Bon’s individually wrapped cake pops with pink sprinkles, cookie crumbs, strawberry crunch, and chocolate toppings on a marble platter"
               fill
               priority
               sizes="(max-width: 760px) 100vw, 52vw"
@@ -57,7 +57,7 @@ export default async function HomePage() {
           </div>
           <figcaption>
             <span>From Bonnie’s kitchen.</span>
-            <span>01 / Our real cake pops</span>
+            <span>01 / Styled photo of our cake pops</span>
           </figcaption>
           <Link
             href="/build-a-box"
