@@ -57,7 +57,7 @@ export default async function HomePage() {
           </div>
           <figcaption>
             <span>From Bonnie’s kitchen.</span>
-            <span>01 / Styled photo of our cake pops</span>
+            <span>01 / Our cake pops</span>
           </figcaption>
           <Link
             href="/build-a-box"

@@ -17,8 +17,6 @@
 .bakery-photo { min-width: 0; margin: 0; }
 .bakery-photo > a { display: block; position: relative; overflow: hidden; border-radius: 8px; background: var(--bg-2); }
 .bakery-photo img { display: block; width: 100%; height: auto; aspect-ratio: 1.2; object-fit: cover; transition: transform 650ms var(--ease-out); }
-/* The shared label sits bottom-right, where the gallery already puts its enlarge control. */
-.bakery-styled-label { bottom: auto; right: auto; top: 12px; left: 12px; }
 .photo-enlarge { position: absolute; right: 12px; bottom: 12px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #100b13d9; color: var(--cream); font-size: 20px; }
 .bakery-photo figcaption { padding: 18px 0 0; }
 .bakery-photo figcaption b { display: block; font: 500 25px/1.2 var(--display); }
@@ -33,7 +31,6 @@
   .bakery-photo figcaption { padding-top: 14px; }
   .bakery-gallery .sec-top h2 { font-size: 42px; }
   .styled-photo-label { bottom: 9px; right: 9px; font-size: 8px; }
-  .bakery-styled-label { bottom: auto; right: auto; top: 9px; left: 9px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bakery-photo img { transition: none; }
