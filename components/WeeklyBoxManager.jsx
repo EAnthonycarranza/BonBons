@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminIcon from "./AdminIcon";
-import { menuSlug, stockState, validateWeeklyBox } from "@/supabase/functions/_shared/menu";
+import { boxPopCount, menuSlug, stockState, validateWeeklyBox } from "@/supabase/functions/_shared/menu";
 import { money } from "@/lib/format";
-
-const BLANK_ITEM = { name: "", note: "" };
 
 function draftFor(box) {
   return {
@@ -16,7 +14,9 @@ function draftFor(box) {
     price: box?.price ?? 25,
     stock_quantity: box?.stockQuantity ?? 0,
     low_stock_threshold: box?.lowStockThreshold ?? 5,
-    items: box?.items?.length ? box.items.map(item => ({ name: item.name || "", note: item.note || "" })) : [{ ...BLANK_ITEM }],
+    items: box?.items?.length
+      ? box.items.map(item => ({ slug: item.slug || "", name: item.name || "", qty: Number(item.qty) || 1, note: item.note || "" }))
+      : [],
     image: box?.image || "",
     featured: box?.featured ?? true,
     active: box?.active ?? true,
@@ -38,7 +38,7 @@ function Modal({ title, label, children, onClose }) {
   </dialog>;
 }
 
-function BoxEditor({ box, onClose, onSaved }) {
+function BoxEditor({ box, products, onClose, onSaved }) {
   const initial = useMemo(() => draftFor(box), [box]);
   const [form, setForm] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -64,8 +64,18 @@ function BoxEditor({ box, onClose, onSaved }) {
     setForm(current => ({ ...current, items: current.items.map((item, i) => i === index ? { ...item, [key]: value } : item) }));
     setError("");
   }
-  function addItem() {
-    setForm(current => ({ ...current, items: [...current.items, { ...BLANK_ITEM }] }));
+  // Adding the same flavor twice bumps its quantity instead of duplicating it.
+  function addFlavor(slug) {
+    const product = products.find(entry => entry.slug === slug);
+    if (!product) return;
+    setForm(current => {
+      const existing = current.items.findIndex(item => item.slug === slug);
+      if (existing >= 0) {
+        return { ...current, items: current.items.map((item, i) => i === existing ? { ...item, qty: Math.min(99, item.qty + 1) } : item) };
+      }
+      return { ...current, items: [...current.items, { slug, name: product.name, qty: 1, note: "" }] };
+    });
+    setError("");
   }
   function removeItem(index) {
     setForm(current => ({ ...current, items: current.items.filter((_, i) => i !== index) }));
@@ -74,8 +84,7 @@ function BoxEditor({ box, onClose, onSaved }) {
   async function save(event) {
     event.preventDefault();
     setError("");
-    // Blank rows are a convenience in the form, not something to store.
-    const payload = { ...form, items: form.items.filter(item => item.name.trim()) };
+    const payload = { ...form, items: form.items.filter(item => item.slug && item.name) };
     try { validateWeeklyBox(payload); } catch (err) { setError(err.message); return; }
     setBusy(true);
     try {
@@ -107,17 +116,37 @@ function BoxEditor({ box, onClose, onSaved }) {
 
           <fieldset className="menu-allergens">
             <legend>What&apos;s in the box</legend>
-            <p>Listed in this order on the Box of the Week page.</p>
-            <div className="wbm-items">
-              {form.items.map((item, index) => (
-                <div className="wbm-item-row" key={index}>
-                  <input aria-label={`Item ${index + 1} name`} maxLength={80} value={item.name} onChange={e => changeItem(index, "name", e.target.value)} placeholder="Flavor or treat"/>
-                  <input aria-label={`Item ${index + 1} note`} maxLength={160} value={item.note} onChange={e => changeItem(index, "note", e.target.value)} placeholder="Optional note"/>
-                  <button type="button" className="admin-icon-btn is-danger" onClick={() => removeItem(index)} aria-label={`Remove item ${index + 1}`} disabled={form.items.length === 1}><AdminIcon name="close"/></button>
-                </div>
-              ))}
-            </div>
-            <button type="button" className="admin-text-btn" onClick={addItem}>+ Add another item</button>
+            <p>Pick flavors from your cake-pop menu. Add the same flavor twice to increase its quantity.</p>
+
+            <label className="admin-field wbm-add-flavor">
+              Add a cake pop
+              <select value="" onChange={e => { addFlavor(e.target.value); e.target.value = ""; }} disabled={!products.length}>
+                <option value="">{products.length ? "Choose a flavor…" : "No flavors on the menu yet"}</option>
+                {products.map(product => (
+                  <option key={product.slug} value={product.slug}>
+                    {product.name}{product.active ? "" : " (hidden)"}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {form.items.length ? (
+              <div className="wbm-items">
+                {form.items.map((item, index) => (
+                  <div className="wbm-item-row" key={item.slug}>
+                    <b className="wbm-item-name">{item.name}</b>
+                    <div className="wbm-qty" aria-label={`${item.name} quantity`}>
+                      <button type="button" onClick={() => changeItem(index, "qty", Math.max(1, item.qty - 1))} aria-label={`One fewer ${item.name}`}>−</button>
+                      <output>{item.qty}</output>
+                      <button type="button" onClick={() => changeItem(index, "qty", Math.min(99, item.qty + 1))} aria-label={`One more ${item.name}`}>+</button>
+                    </div>
+                    <input aria-label={`${item.name} note`} maxLength={160} value={item.note} onChange={e => changeItem(index, "note", e.target.value)} placeholder="Optional note"/>
+                    <button type="button" className="admin-icon-btn is-danger" onClick={() => removeItem(index)} aria-label={`Remove ${item.name}`}><AdminIcon name="close"/></button>
+                  </div>
+                ))}
+                <p className="wbm-total">{boxPopCount(form.items)} cake {boxPopCount(form.items) === 1 ? "pop" : "pops"} in this box</p>
+              </div>
+            ) : <p className="wbm-total">No cake pops added yet.</p>}
           </fieldset>
 
           <label className="admin-toggle-row menu-publish"><span><b>This week&apos;s box</b><small>Only one box can be the live one. Turning this on stands the others down.</small></span><input type="checkbox" role="switch" checked={form.featured} onChange={e => change("featured", e.target.checked)}/></label>
@@ -135,6 +164,7 @@ function BoxEditor({ box, onClose, onSaved }) {
 
 export default function WeeklyBoxManager() {
   const [boxes, setBoxes] = useState([]);
+  const [products, setProducts] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
@@ -143,26 +173,42 @@ export default function WeeklyBoxManager() {
   const [savingPrices, setSavingPrices] = useState(false);
   const [prices, setPrices] = useState({ singlePopPrice: "", fourPackPrice: "" });
 
+  // Each resource loads on its own. The boxes call is the one that fails when
+  // the database or Edge Function is not up to date yet, and it must not take
+  // the flavor list down with it — that list is what you build a box from.
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    try {
-      const [boxRes, settingsRes] = await Promise.all([
-        fetch("/api/admin/weekly-box"),
-        fetch("/api/admin/shop-settings"),
-      ]);
-      const boxData = await boxRes.json();
-      if (!boxRes.ok) throw new Error(boxData.error || "Could not load the boxes.");
-      setBoxes(boxData.boxes || []);
-      if (settingsRes.ok) {
-        const settingsData = await settingsRes.json();
+    const [boxRes, settingsRes, menuRes] = await Promise.allSettled([
+      fetch("/api/admin/weekly-box"),
+      fetch("/api/admin/shop-settings"),
+      fetch("/api/admin/menu"),
+    ]);
+
+    if (menuRes.status === "fulfilled" && menuRes.value.ok) {
+      const menuData = await menuRes.value.json().catch(() => ({}));
+      // Deleted flavors cannot go in a new box; hidden ones still can.
+      setProducts((menuData.products || []).filter(product => !product.deletedAt));
+    }
+
+    if (settingsRes.status === "fulfilled" && settingsRes.value.ok) {
+      const settingsData = await settingsRes.value.json().catch(() => ({}));
+      if (settingsData.settings) {
         setSettings(settingsData.settings);
         setPrices({
           singlePopPrice: settingsData.settings.singlePopPrice,
           fourPackPrice: settingsData.settings.fourPackPrice,
         });
       }
-    } catch (err) { setError(err.message); }
-    finally { setLoading(false); }
+    }
+
+    if (boxRes.status === "fulfilled") {
+      const boxData = await boxRes.value.json().catch(() => ({}));
+      if (boxRes.value.ok) setBoxes(boxData.boxes || []);
+      else setError(boxData.error || "Could not load the boxes.");
+    } else {
+      setError("Could not reach the shop database.");
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -265,7 +311,7 @@ export default function WeeklyBoxManager() {
                   </span>
                   {!box.active ? <span className="menu-status">Hidden</span> : null}
                 </div>
-                <p className="wbm-card-items">{box.items.length ? box.items.map(item => item.name).join(" · ") : "No items listed yet."}</p>
+                <p className="wbm-card-items">{box.items.length ? box.items.map(item => `${item.name}${Number(item.qty) > 1 ? ` \u00d7${item.qty}` : ""}`).join(" · ") : "No cake pops added yet."}</p>
                 <div className="menu-card-actions">
                   <button type="button" className="menu-edit-btn" onClick={() => setEditing(box)}><AdminIcon name="edit"/>Edit box</button>
                   <button type="button" className="admin-icon-btn is-danger" onClick={() => remove(box)} aria-label={`Delete ${box.title}`}><AdminIcon name="trash"/></button>
@@ -277,6 +323,6 @@ export default function WeeklyBoxManager() {
       </>
     )}
 
-    {editing ? <BoxEditor box={editing.id ? editing : null} onClose={() => setEditing(null)} onSaved={onSaved}/> : null}
+    {editing ? <BoxEditor box={editing.id ? editing : null} products={products} onClose={() => setEditing(null)} onSaved={onSaved}/> : null}
   </div>;
 }

@@ -20,7 +20,7 @@ export default function WeeklyBoxAddToCart({ box, cartKey, remaining }) {
           add({
             key: cartKey,
             name: box.title,
-            desc: box.items.map((item) => item.name).join(", "),
+            desc: box.items.map((item) => `${item.name}${Number(item.qty) > 1 ? ` \u00d7${item.qty}` : ""}`).join(", "),
             price: box.price,
             qty,
             icon: "i-favor",

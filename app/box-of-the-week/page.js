@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getFeaturedWeeklyBox } from "@/lib/weekly-box-data";
 import { weeklyBoxCartKey, weeklyBoxStock } from "@/lib/weekly-box";
+import { boxPopCount } from "@/supabase/functions/_shared/menu";
 import { money } from "@/lib/format";
 import WeeklyBoxStock from "@/components/WeeklyBoxStock";
 import WeeklyBoxAddToCart from "@/components/WeeklyBoxAddToCart";
@@ -37,6 +38,7 @@ export default async function BoxOfTheWeekPage() {
 
   const availability = weeklyBoxStock(box);
   const soldOut = availability.state === "sold_out";
+  const popCount = boxPopCount(box.items);
 
   return (
     <main className="wb-page">
@@ -102,6 +104,7 @@ export default async function BoxOfTheWeekPage() {
               <li key={`${item.name}-${index}`} className={index % 2 ? "is-pink" : "is-blue"}>
                 <span className="wb-item-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
                 <b>{item.name}</b>
+                {Number(item.qty) > 1 ? <span className="wb-item-qty">&times;{item.qty}</span> : null}
                 {item.note ? <span className="wb-item-note">{item.note}</span> : null}
               </li>
             ))}
@@ -119,7 +122,7 @@ export default async function BoxOfTheWeekPage() {
         ) : null}
 
         <p className="wb-footnote">
-          {box.items.length ? `${box.items.length} ${box.items.length === 1 ? "treat" : "treats"} in every box. ` : ""}
+          {popCount ? `${popCount} ${popCount === 1 ? "cake pop" : "cake pops"} in every box. ` : ""}
           Big variety. Big flavor. Big smiles! These boxes are made in a limited run and are
           available <b>while supplies last</b>. San Antonio pickup only; a member of the shop
           confirms your pickup time after you send a request.

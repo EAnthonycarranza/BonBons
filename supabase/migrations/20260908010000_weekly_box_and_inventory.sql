@@ -82,3 +82,34 @@ create policy shop_settings_public_read
 -- are requests that staff confirm and are paid offline, so decrementing on
 -- submit would let unpaid requests exhaust a limited run. The Shop Desk edits
 -- the remaining count as boxes are actually sold.
+
+-- Seed a ready-made Celebration Box so the page has something to show the
+-- moment this runs. Items are built from the flavors actually on the menu, so
+-- every slug points at a real product. Skipped if any box already exists.
+with picks as (
+  select p.slug, p.name, row_number() over (order by p.sort_order, p.name) as rn
+  from public.products p
+  where p.active and p.deleted_at is null
+  limit 3
+)
+insert into public.weekly_boxes
+  (slug, title, tagline, description, price, stock_quantity, initial_stock,
+   low_stock_threshold, items, image, featured, active)
+select
+  'celebration-box',
+  'Celebration Box',
+  '10 delicious cake pops. Big variety. Big flavor. Big smiles!',
+  'A rotating mix of this week''s flavors, hand-rolled and hand-dipped, then wrapped one at a time. Limited run — once this week''s boxes are claimed, that''s it.',
+  25, 20, 20, 5,
+  coalesce((
+    select jsonb_agg(jsonb_build_object(
+      'slug', picks.slug,
+      'name', picks.name,
+      'qty', case picks.rn when 1 then 4 else 3 end,
+      'note', case picks.rn when 1 then 'Top seller' else '' end
+    ) order by picks.rn)
+    from picks
+  ), '[]'::jsonb),
+  '/products/bonbons-four-pack-styled.png',
+  true, true
+where not exists (select 1 from public.weekly_boxes);

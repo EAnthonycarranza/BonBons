@@ -36,7 +36,7 @@ export default function WeeklyBoxTeaser({ box }) {
 
         {preview.length ? (
           <ul className="wbt-flavors">
-            {preview.map((item, index) => <li key={`${item.name}-${index}`}>{item.name}</li>)}
+            {preview.map((item, index) => <li key={`${item.slug || item.name}-${index}`}>{item.name}{Number(item.qty) > 1 ? ` \u00d7${item.qty}` : ""}</li>)}
             {box.items.length > preview.length ? (
               <li className="is-more">+{box.items.length - preview.length} more</li>
             ) : null}

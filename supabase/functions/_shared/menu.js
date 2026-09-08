@@ -104,6 +104,13 @@ export function validateMenuProduct(input) {
 }
 
 export const MAX_BOX_ITEMS = 40;
+export const MAX_BOX_ITEM_QTY = 99;
+
+/** Total cake pops in a box, counting multiples. */
+export function boxPopCount(items) {
+  if (!Array.isArray(items)) return 0;
+  return items.reduce((total, item) => total + (Number(item?.qty) || 0), 0);
+}
 
 export function validateWeeklyBox(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new MenuValidationError("Enter the box details.");
@@ -121,15 +128,30 @@ export function validateWeeklyBox(input) {
   const image = text("image", 1000);
   if (!isMenuImageUrl(image)) throw new MenuValidationError("Upload a JPG, PNG, or WebP photo using the photo picker.");
 
+  // Each line points at a menu flavor and carries its own quantity, so a box
+  // can hold several of the same pop. The name is snapshotted alongside the
+  // slug so an old box still reads correctly if a flavor is later renamed.
   const items = input.items ?? [];
-  if (!Array.isArray(items) || items.length > MAX_BOX_ITEMS) throw new MenuValidationError(`List up to ${MAX_BOX_ITEMS} things in the box.`);
+  if (!Array.isArray(items) || !items.length) throw new MenuValidationError("Add at least one cake pop to the box.");
+  if (items.length > MAX_BOX_ITEMS) throw new MenuValidationError(`A box can list up to ${MAX_BOX_ITEMS} different flavors.`);
+  const seen = new Set();
   const cleanItems = items.map((entry) => {
     const value = entry && typeof entry === "object" && !Array.isArray(entry) ? entry : {};
+    const slug = String(value.slug ?? "").trim();
     const name = String(value.name ?? "").trim();
     const note = String(value.note ?? "").trim();
+    const qty = value.qty;
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 100) {
+      throw new MenuValidationError("Choose each item from the cake-pop menu.");
+    }
+    if (seen.has(slug)) throw new MenuValidationError("Each flavor can only be listed once — use its quantity for multiples.");
+    seen.add(slug);
     if (!name || name.length > 80) throw new MenuValidationError("Each item in the box needs a name of 1–80 characters.");
+    if (!Number.isInteger(qty) || qty < 1 || qty > MAX_BOX_ITEM_QTY) {
+      throw new MenuValidationError(`Each flavor's quantity must be a whole number from 1 to ${MAX_BOX_ITEM_QTY}.`);
+    }
     if (note.length > 160) throw new MenuValidationError("Item notes must be no more than 160 characters.");
-    return { name, note };
+    return { slug, name, qty, note };
   });
 
   // A limited run must have a real count, so this one is required, not nullable.

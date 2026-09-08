@@ -331,8 +331,11 @@ changed by a Heroku deploy:
 1. **Apply the migration.** In the Supabase dashboard → SQL Editor, paste and run
    `supabase/migrations/20260908010000_weekly_box_and_inventory.sql`. It adds
    `products.stock_quantity` / `low_stock_threshold`, the `shop_settings` row,
-   and the `weekly_boxes` table, all with public-read RLS.
-2. **Redeploy the Edge Function.** `supabase/functions/bonbons-data/index.ts`
+   and the `weekly_boxes` table, all with public-read RLS. It also seeds a
+   ready-made Celebration Box built from the flavors already on your menu, so
+   the page has something to show immediately.
+2. **Redeploy the Edge Function** — `npx supabase login`, then
+   `npx supabase functions deploy bonbons-data --project-ref slerrjoiowaskmvgykxt`. `supabase/functions/bonbons-data/index.ts`
    and `supabase/functions/_shared/menu.js` both changed. Until it is redeployed
    the old copy still rejects any price other than $4 and silently drops the
    stock fields.
@@ -343,7 +346,11 @@ every flavor reads as made-to-order, and four-packs stay at $10.
 
 **What the owner controls** from **Shop Desk → Box of the week**:
 
-- The live box: name, tagline, description, price, and the list of what's inside
+- The live box: name, tagline, description, price, and its contents. Contents
+  are chosen from the cake-pop menu rather than typed, and each flavor carries
+  its own quantity, so a box can hold several of the same pop. Picking the same
+  flavor again bumps its quantity instead of adding a duplicate row
+- Boxes can be added, edited, and deleted from the same screen
 - How many boxes are left, and the number at which shoppers see an urgency
   message. The run size is remembered separately so the meter can read
   "Only 4 left of 25 made" instead of a bar that is always full

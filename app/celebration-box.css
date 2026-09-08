@@ -263,6 +263,17 @@
   letter-spacing: -.03em;
   text-transform: uppercase;
 }
+.wb-item-qty {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #fff;
+  font: 800 11px/1.4 var(--sans);
+  letter-spacing: .02em;
+}
+.wb-item-grid > li.is-blue .wb-item-qty { color: var(--wb-blue); }
+.wb-item-grid > li.is-pink .wb-item-qty { color: var(--wb-pink); }
 .wb-item-note { display: block; margin-top: 8px; font-size: 12.5px; line-height: 1.65; color: var(--wb-ink-soft); }
 .wb-items-empty { color: var(--wb-ink-soft); font-size: 14px; }
 

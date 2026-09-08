@@ -6,13 +6,14 @@ import {
   validateWeeklyBox,
   validateShopSettings,
   MenuValidationError,
+  boxPopCount,
 } from "../supabase/functions/_shared/menu.js";
 import { normalizeOrderItems } from "../lib/order-menu.js";
 import { stockLabel, weeklyBoxCartKey, isWeeklyBoxKey } from "../lib/weekly-box.js";
 
 const boxDraft = {
   title: "Celebration Box", slug: "celebration-box", price: 25, stock_quantity: 12,
-  low_stock_threshold: 5, items: [{ name: "Cookie Monster", note: "Top seller" }],
+  low_stock_threshold: 5, items: [{ slug: "cookie-monster", name: "Cookie Monster", qty: 2, note: "Top seller" }],
   image: "", featured: true, active: true,
 };
 
@@ -24,7 +25,7 @@ const menu = [
 
 const liveBox = {
   slug: "celebration-box", title: "Celebration Box", price: 25, active: true,
-  stockQuantity: 4, lowStockThreshold: 5, items: [{ name: "Cookie Monster", note: "" }],
+  stockQuantity: 4, lowStockThreshold: 5, items: [{ slug: "cookie-monster", name: "Cookie Monster", qty: 3, note: "" }],
 };
 
 test("untracked stock keeps made-to-order flavors always available", () => {
@@ -71,11 +72,12 @@ test("a box needs a real count, a real price, and named items", () => {
   const clean = validateWeeklyBox(boxDraft);
   assert.equal(clean.price, 25);
   assert.equal(clean.stock_quantity, 12);
-  assert.deepEqual(clean.items, [{ name: "Cookie Monster", note: "Top seller" }]);
+  assert.deepEqual(clean.items, [{ slug: "cookie-monster", name: "Cookie Monster", qty: 2, note: "Top seller" }]);
   // A limited run must state its count, so stock is required here.
   for (const change of [{ stock_quantity: undefined }, { stock_quantity: null }, { stock_quantity: -1 }, { stock_quantity: 1.5 },
                         { price: 0 }, { title: "" }, { slug: "../escape" }, { featured: "yes" }, { active: 1 },
-                        { items: [{ name: "" }] }, { items: Array.from({ length: 41 }, () => ({ name: "x" })) }]) {
+                        { items: [] }, { items: [{ slug: "cookie-monster", name: "", qty: 1 }] },
+                        { items: Array.from({ length: 41 }, (_, i) => ({ slug: `f-${i}`, name: "x", qty: 1 })) }]) {
     assert.throws(() => validateWeeklyBox({ ...boxDraft, ...change }), MenuValidationError, `accepted ${JSON.stringify(change)}`);
   }
 });
@@ -128,4 +130,33 @@ test("the weekly box is priced from the server and only while it is live", () =>
   assert.throws(() => normalizeOrderItems([{ key, qty: 1 }], menu, { weeklyBox: { ...liveBox, active: false } }), /no longer available/i);
   assert.throws(() => normalizeOrderItems([{ key, qty: 5 }], menu, { weeklyBox: liveBox }), /Only 4 .* left/i);
   assert.throws(() => normalizeOrderItems([{ key, qty: 1 }], menu, { weeklyBox: { ...liveBox, stockQuantity: 0 } }), /sold out/i);
+});
+
+test("a box holds several of the same pop, chosen from the menu", () => {
+  const items = [
+    { slug: "cookie-monster", name: "Cookie Monster", qty: 4, note: "" },
+    { slug: "biscoff", name: "Biscoff", qty: 6, note: "Buttery" },
+  ];
+  const clean = validateWeeklyBox({ ...boxDraft, items });
+  assert.equal(clean.items[1].qty, 6);
+  assert.equal(boxPopCount(clean.items), 10);
+
+  // Every line must point at a real menu slug, be listed once, and have a
+  // sensible whole quantity.
+  for (const bad of [
+    [{ slug: "", name: "X", qty: 1 }],
+    [{ slug: "Not A Slug", name: "X", qty: 1 }],
+    [{ slug: "a", name: "X", qty: 0 }],
+    [{ slug: "a", name: "X", qty: 1.5 }],
+    [{ slug: "a", name: "X", qty: 100 }],
+    [{ slug: "a", name: "X", qty: 1 }, { slug: "a", name: "X", qty: 2 }],
+  ]) {
+    assert.throws(() => validateWeeklyBox({ ...boxDraft, items: bad }), MenuValidationError, JSON.stringify(bad));
+  }
+});
+
+test("box cart lines describe their multiples", () => {
+  const key = weeklyBoxCartKey(liveBox);
+  const [line] = normalizeOrderItems([{ key, qty: 1 }], menu, { weeklyBox: liveBox });
+  assert.equal(line.description, "Cookie Monster x3");
 });
