@@ -1,9 +1,15 @@
 import Link from "next/link";
+import { getShopSettings } from "@/lib/weekly-box-data";
+import { money } from "@/lib/format";
 import Image from "next/image";
 import { Icon } from "./Icons";
 import { SITE } from "@/lib/sample-data";
 
-export default function SiteFooter() {
+export default async function SiteFooter() {
+  const { singlePopPrice, fourPackPrice } = await getShopSettings();
+  const singleLabel = money(singlePopPrice);
+  const packLabel = money(fourPackPrice);
+
   return (
     <footer className="foot">
       <div className="wrap">
@@ -76,10 +82,10 @@ export default function SiteFooter() {
                 <Link href="/shop">Shop all cake pops</Link>
               </li>
               <li>
-                <Link href="/shop">Singles · $4 each</Link>
+                <Link href="/shop">Singles · {singleLabel} each</Link>
               </li>
               <li>
-                <Link href="/build-a-box">Build a four-pack · $10</Link>
+                <Link href="/build-a-box">Build a four-pack · {packLabel}</Link>
               </li>
               <li>
                 <Link href="/shop">

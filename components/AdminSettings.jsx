@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import AdminIcon from "./AdminIcon";
 import PickupLocationManager from "./PickupLocationManager";
+import PricingManager from "./PricingManager";
 import { SITE } from "@/lib/sample-data";
 
 export default function AdminSettings() {
@@ -19,6 +20,7 @@ export default function AdminSettings() {
   return <div className="admin-view">
     <header className="admin-page-head"><div><span className="admin-kicker">Shop settings</span><h1>The everyday details.</h1><p>Where customers find you, collect their pops, and pay.</p></div></header>
     <div className="admin-settings-grid">
+      <PricingManager/>
       <section className="admin-setting-card"><header><span className="summary-icon"><AdminIcon name="pin"/></span><div><h2>Pickup locations</h2><p>Choose a saved address for each confirmed order.</p></div></header>
         {loading?<p className="admin-footnote">Loading locations…</p>:error?<p className="admin-alert is-error" role="alert">{error}</p>:<div className="admin-addresses">{locations.map(location=><div key={location.id}><b>{location.label}</b><p>{location.formattedAddress}</p><a className="admin-text-btn" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.formattedAddress)}`} target="_blank" rel="noopener noreferrer">Open Google Maps <AdminIcon name="external"/></a></div>)}</div>}
         <button className="admin-btn admin-btn-secondary" onClick={()=>setOpen(true)} disabled={loading||Boolean(error)}><AdminIcon name="edit"/>Manage pickup locations</button>

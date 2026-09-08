@@ -7,11 +7,21 @@ import SocialFeedAccordion from "@/components/SocialFeedAccordion";
 import BakeryPhotoGallery from "@/components/BakeryPhotoGallery";
 import WeeklyBoxTeaser from "@/components/WeeklyBoxTeaser";
 import { getFeaturedWeeklyBox } from "@/lib/weekly-box-data";
+import { getShopSettings } from "@/lib/weekly-box-data";
+import { money } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [products, weeklyBox] = await Promise.all([getProducts(), getFeaturedWeeklyBox()]);
+  const [products, weeklyBox, settings] = await Promise.all([
+    getProducts(),
+    getFeaturedWeeklyBox(),
+    getShopSettings(),
+  ]);
+  const singleLabel = money(settings.singlePopPrice);
+  const packLabel = money(settings.fourPackPrice);
+  // What a four-pack saves against four singles, so the claim can never be stale.
+  const packSaving = money(Math.max(0, settings.singlePopPrice * 4 - settings.fourPackPrice));
   const favorites = products
     .filter((p) => p.category === "everyday")
     .slice(0, 3);
@@ -40,10 +50,10 @@ export default async function HomePage() {
           </div>
           <div className="hero-price-note">
             <span>
-              <b>$4</b> for one
+              <b>{singleLabel}</b> for one
             </span>
             <span>
-              <b>$10</b> for a four-pack
+              <b>{packLabel}</b> for a four-pack
             </span>
           </div>
         </div>
@@ -64,10 +74,10 @@ export default async function HomePage() {
           <Link
             href="/build-a-box"
             className="photo-stamp"
-            aria-label="Build your own four-pack for $10"
+            aria-label={`Build your own four-pack for ${packLabel}`}
           >
             <small>Mix your favorites</small>
-            <b>4 for $10</b>
+            <b>4 for {packLabel}</b>
             <span aria-hidden="true">↗</span>
           </Link>
         </figure>
@@ -97,7 +107,7 @@ export default async function HomePage() {
           </div>
           <p className="collection-note">
             A single sweet treat, no occasion needed. Choose a four-pack
-            separately to enjoy four for $10.
+            separately to enjoy four for {packLabel}.
           </p>
         </div>
       </section>
@@ -134,18 +144,18 @@ export default async function HomePage() {
             a box that is completely yours.
           </p>
           <div className="bundle-price">
-            <b>$10</b>
+            <b>{packLabel}</b>
             <span>
               four cake pops
               <br />
-              save $6 compared with singles
+              save {packSaving} compared with singles
             </span>
           </div>
           <Link className="btn btn-pink" href="/build-a-box">
             Make it your own <span aria-hidden="true">↗</span>
           </Link>
           <small>
-            Singles stay $4 each. We never change your choice automatically.
+            Singles stay {singleLabel} each. We never change your choice automatically.
           </small>
           <small className="photo-disclosure">AI-styled image based on our real cake-pop photos. Choose your own mix.</small>
         </div>
@@ -203,7 +213,7 @@ export default async function HomePage() {
               [
                 "01",
                 "Pick your pops",
-                "Choose $4 singles or build a four-pack for $10. Mix and match the way you like.",
+                `Choose ${singleLabel} singles or build a four-pack for ${packLabel}. Mix and match the way you like.`,
               ],
               [
                 "02",

@@ -4,8 +4,11 @@ import { useCart } from "./CartProvider";
 import Image from "next/image";
 import { money } from "@/lib/format";
 import { BOX_SIZES } from "@/lib/sample-data";
+import { usePrices } from "./PricesProvider";
 
 export default function BoxBuilder({ products = [] }) {
+  const { singlePopPrice, fourPackPrice, packLabel } = usePrices();
+  const packSaving = money(Math.max(0, singlePopPrice * 4 - fourPackPrice));
   const treats = products.map((p) => ({ id: p.slug, name: p.name, note: p.blurb, image: p.image || "/logo-transparent.png" }));
   const emptyCounts = () => Object.fromEntries(treats.map((t) => [t.id, 0]));
   const { add, setOpen } = useCart();
@@ -90,7 +93,7 @@ export default function BoxBuilder({ products = [] }) {
         <div className="b-card rv-anim" style={{ marginBottom: 18 }}>
           <h3>1. Your four-pack</h3>
           <p className="hint">
-            Four cake pops for $10—a $6 savings compared with buying singles.
+            Four cake pops for {packLabel}—a {packSaving} savings compared with buying singles.
           </p>
           <div
             className={`sizes${BOX_SIZES.length === 1 ? " sizes-single" : ""}`}
@@ -213,7 +216,7 @@ export default function BoxBuilder({ products = [] }) {
             disabled={!full}
             onClick={addBox}
           >
-            Add $10 four-pack to request
+            Add {packLabel} four-pack to request
           </button>
         </div>
         <p className="sum-note">

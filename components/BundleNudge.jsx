@@ -1,6 +1,7 @@
 "use client";
 
 import { money } from "@/lib/format";
+import { usePrices } from "./PricesProvider";
 
 export default function BundleNudge({
   singlePopCount,
@@ -9,6 +10,7 @@ export default function BundleNudge({
   onConvert,
   compact = false,
 }) {
+  const { singleLabel } = usePrices();
   if (!suggestedFourPacks) return null;
 
   const popsToSwitch = suggestedFourPacks * 4;
@@ -20,7 +22,7 @@ export default function BundleNudge({
         <span className="bundle-nudge-kicker">A better-value option</span>
         <b>You have {singlePopCount} single cake pops.</b>
         <p>
-          Keep them as $4 singles, or switch {popsToSwitch} of them to {packLabel}
+          Keep them as {singleLabel} singles, or switch {popsToSwitch} of them to {packLabel}
           {singlePopCount > popsToSwitch ? ` and keep ${singlePopCount - popsToSwitch} as singles` : ""}.
         </p>
       </div>

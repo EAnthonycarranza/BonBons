@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 import ProductCard from "@/components/ProductCard";
 import { money } from "@/lib/format";
 import { isStyledProductPhoto } from "@/lib/product-photos";
+import { getShopSettings } from "@/lib/weekly-box-data";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
@@ -21,6 +22,10 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function ProductPage({ params }) {
+  const { singlePopPrice, fourPackPrice } = await getShopSettings();
+  const singleLabel = money(singlePopPrice);
+  const packLabel = money(fourPackPrice);
+
   const { slug } = await params;
   const product = await getProduct(slug);
   if (!product) notFound();
@@ -101,16 +106,16 @@ export default async function ProductPage({ params }) {
                   fontWeight: 700,
                 }}
               >
-                Singles stay $4 each. For four at $10, choose the four-pack or
+                Singles stay {singleLabel} each. For four at {packLabel}, choose the four-pack or
                 accept the cart suggestion.
               </p>
 
               <ul className="checks" style={{ marginTop: 28 }}>
                 <li>
-                  <Icon name="i-check" /> Singles are always $4 each
+                  <Icon name="i-check" /> Singles are always {singleLabel} each
                 </li>
                 <li>
-                  <Icon name="i-check" /> Four-packs are $10 when selected
+                  <Icon name="i-check" /> Four-packs are {packLabel} when selected
                 </li>
                 <li>
                   <Icon name="i-check" /> No event or large order required

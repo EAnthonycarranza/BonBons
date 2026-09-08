@@ -165,22 +165,18 @@ function BoxEditor({ box, products, onClose, onSaved }) {
 export default function WeeklyBoxManager() {
   const [boxes, setBoxes] = useState([]);
   const [products, setProducts] = useState([]);
-  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
-  const [savingPrices, setSavingPrices] = useState(false);
-  const [prices, setPrices] = useState({ singlePopPrice: "", fourPackPrice: "" });
 
   // Each resource loads on its own. The boxes call is the one that fails when
   // the database or Edge Function is not up to date yet, and it must not take
   // the flavor list down with it — that list is what you build a box from.
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    const [boxRes, settingsRes, menuRes] = await Promise.allSettled([
+    const [boxRes, menuRes] = await Promise.allSettled([
       fetch("/api/admin/weekly-box"),
-      fetch("/api/admin/shop-settings"),
       fetch("/api/admin/menu"),
     ]);
 
@@ -188,17 +184,6 @@ export default function WeeklyBoxManager() {
       const menuData = await menuRes.value.json().catch(() => ({}));
       // Deleted flavors cannot go in a new box; hidden ones still can.
       setProducts((menuData.products || []).filter(product => !product.deletedAt));
-    }
-
-    if (settingsRes.status === "fulfilled" && settingsRes.value.ok) {
-      const settingsData = await settingsRes.value.json().catch(() => ({}));
-      if (settingsData.settings) {
-        setSettings(settingsData.settings);
-        setPrices({
-          singlePopPrice: settingsData.settings.singlePopPrice,
-          fourPackPrice: settingsData.settings.fourPackPrice,
-        });
-      }
     }
 
     if (boxRes.status === "fulfilled") {
@@ -212,25 +197,6 @@ export default function WeeklyBoxManager() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  async function savePrices(event) {
-    event.preventDefault();
-    setSavingPrices(true); setError(""); setNotice("");
-    try {
-      const response = await fetch("/api/admin/shop-settings", {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          singlePopPrice: Number(prices.singlePopPrice),
-          fourPackPrice: Number(prices.fourPackPrice),
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not save the prices.");
-      setSettings(data.settings);
-      setNotice("Shop prices updated.");
-    } catch (err) { setError(err.message); }
-    finally { setSavingPrices(false); }
-  }
 
   async function remove(box) {
     if (!window.confirm(`Delete “${box.title}”? This cannot be undone.`)) return;
@@ -272,15 +238,8 @@ export default function WeeklyBoxManager() {
     {notice ? <p className="admin-alert" role="status">{notice}<button type="button" onClick={() => setNotice("")} aria-label="Dismiss"><AdminIcon name="close"/></button></p> : null}
     {error ? <p className="admin-alert is-error" role="alert">{error}</p> : null}
 
-    <form className="wbm-prices" onSubmit={savePrices}>
-      <div>
-        <span className="admin-kicker">Shop prices</span>
-        <p>Used across the storefront and when a request is priced.</p>
-      </div>
-      <label className="admin-field">Single cake pop<input type="number" min="0.01" max="500" step="0.01" value={prices.singlePopPrice} onChange={e => setPrices(current => ({ ...current, singlePopPrice: e.target.value }))}/></label>
-      <label className="admin-field">Four-pack<input type="number" min="0.01" max="500" step="0.01" value={prices.fourPackPrice} onChange={e => setPrices(current => ({ ...current, fourPackPrice: e.target.value }))}/></label>
-      <button type="submit" className="admin-btn admin-btn-secondary" disabled={savingPrices || !settings}>{savingPrices ? "Saving…" : "Save prices"}</button>
-    </form>
+    <p className="admin-footnote wbm-prices-note">Cake-pop and four-pack prices live in <b>Shop settings → Prices</b>.</p>
+
 
     {loading ? <div className="menu-loading"><span className="admin-spinner" aria-hidden="true"/>Loading boxes…</div> : boxes.length === 0 ? (
       <div className="menu-empty">

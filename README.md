@@ -347,8 +347,10 @@ runs, the Shop Desk says so in plain language rather than failing obscurely.
 - How many boxes are left, and the number at which shoppers see an urgency
   message. The run size is remembered separately so the meter can read
   "Only 4 left of 25 made" instead of a bar that is always full
-- Shop-wide prices: the single cake pop price and the four-pack price
-- Per-flavor price and quantity, from **Cake-pop menu → edit a flavor**
+- Prices live in **Shop settings → Prices**: the headline single cake-pop
+  price, the four-pack price, and an editable row for every flavor. Flavor
+  rows save one at a time so a typo in one price cannot block the rest
+- Quantity per flavor stays in **Cake-pop menu → edit a flavor**
 
 The box is advertised in the announcement bar, as the first item in the main
 nav, as a feature card on the home page, and on its own page at
@@ -367,6 +369,17 @@ even if the browser asks for it.
 
 Only one box can be featured at a time; publishing a new one stands the previous
 box down automatically (enforced by a partial unique index, not just the UI).
+
+Nothing quotes a price from hardcoded copy. The headline prices are read once in
+the root layout, handed to client components through `PricesProvider`, and used
+by the page metadata, so the title, nav, announcement bar, footer, shop, cart,
+four-pack builder, and product pages all follow whatever the owner sets. The
+"save $X" claim is derived from the two prices rather than written down, so it
+cannot drift. That read is cached under the `shop-settings` tag and revalidated
+whenever prices are saved, which keeps statically rendered pages accurate
+without forcing them dynamic.
+
+Singles are currently **$3** and four-packs **$10**.
 
 Run `npm run test:box` for the pricing, stock, and box-validation checks.
 

@@ -71,7 +71,7 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const { subtotal } = getCartPricing(normalizedItems);
+  const { subtotal } = getCartPricing(normalizedItems, settings);
 
   const doc = {
     items: normalizedItems,

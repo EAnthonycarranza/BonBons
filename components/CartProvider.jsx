@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { buildFourPacksFromSingles, getCartPricing } from "@/lib/pricing";
+import { usePrices } from "./PricesProvider";
 
 const CartContext = createContext(null);
 // A new key keeps outdated dozen-priced items from older visits out of the
@@ -14,6 +15,8 @@ export function useCart() {
 }
 
 export function CartProvider({ children }) {
+  // PricesProvider wraps this in the root layout, so live prices are available.
+  const prices = usePrices();
   const [items, setItems] = useState([]);
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
@@ -65,15 +68,15 @@ export function CartProvider({ children }) {
   const clear = useCallback(() => setItems([]), []);
 
   const convertSinglesToFourPacks = useCallback(() => {
-    const { packCount, convertedPops } = buildFourPacksFromSingles(items);
+    const { packCount, convertedPops } = buildFourPacksFromSingles(items, prices);
     if (!packCount) return;
 
-    setItems((current) => buildFourPacksFromSingles(current).items);
+    setItems((current) => buildFourPacksFromSingles(current, prices).items);
     say(`Switched ${convertedPops} singles to ${packCount} four-pack${packCount === 1 ? "" : "s"}`);
   }, [items, say]);
 
   const count = useMemo(() => items.reduce((n, i) => n + i.qty, 0), [items]);
-  const pricing = useMemo(() => getCartPricing(items), [items]);
+  const pricing = useMemo(() => getCartPricing(items, prices), [items, prices]);
   const subtotal = pricing.subtotal;
 
   const value = useMemo(

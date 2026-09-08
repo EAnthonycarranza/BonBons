@@ -7,12 +7,14 @@ import { useCart } from "@/components/CartProvider";
 import { Icon } from "@/components/Icons";
 import BundleNudge from "@/components/BundleNudge";
 import { money, isEmail, isPhone } from "@/lib/format";
+import { usePrices } from "@/components/PricesProvider";
 import { hasRecaptchaClientConfig } from "@/lib/recaptcha-client";
 import RecaptchaDisclosure from "@/components/RecaptchaDisclosure";
 import RecaptchaCheckbox from "@/components/RecaptchaCheckbox";
 import { SITE } from "@/lib/sample-data";
 
 export default function CartPage() {
+  const { singleLabel, packLabel } = usePrices();
   const {
     items,
     remove,
@@ -145,14 +147,14 @@ export default function CartPage() {
               Your request list is empty
             </h3>
             <p style={{ color: "var(--muted)", marginTop: 8 }}>
-              Add one cake pop for $4, or build your own four-pack for $10.
+              Add one cake pop for {singleLabel}, or build your own four-pack for {packLabel}.
             </p>
             <div className="hero-cta" style={{ justifyContent: "center" }}>
               <Link className="btn btn-pink" href="/shop">
                 Shop cake pops
               </Link>
               <Link className="btn btn-ghost" href="/build-a-box">
-                Build 4 for $10
+                Build 4 for {packLabel}
               </Link>
             </div>
           </div>

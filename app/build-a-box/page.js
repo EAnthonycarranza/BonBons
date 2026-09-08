@@ -1,23 +1,29 @@
 import BoxBuilder from "@/components/BoxBuilder";
 import Image from "next/image";
 import { getProducts } from "@/lib/products";
+import { getShopSettings } from "@/lib/weekly-box-data";
+import { money } from "@/lib/format";
 
 export const metadata = {
   title: "Build a four-pack",
   description:
-    "Choose a $10 four-pack and mix four cake pop flavors for arranged pickup.",
+    "Choose a four-pack and mix four cake pop flavors for arranged pickup.",
 };
 
 export const dynamic = "force-dynamic";
 
 export default async function BuildABoxPage() {
+  const { singlePopPrice, fourPackPrice } = await getShopSettings();
+  const singleLabel = money(singlePopPrice);
+  const packLabel = money(fourPackPrice);
+
   const products = (await getProducts()).filter((product) => product.bundleEligible);
   return (
     <section className="light flat sec">
       <div className="wrap">
         <div className="page-masthead rv-anim">
           <div>
-            <div className="eyebrow">Any 4 for $10</div>
+            <div className="eyebrow">Any 4 for {packLabel}</div>
             <h1>
               Four little pops.
               <br />

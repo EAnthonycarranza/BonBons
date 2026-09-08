@@ -9,6 +9,7 @@ import {
   boxPopCount,
 } from "../supabase/functions/_shared/menu.js";
 import { normalizeOrderItems } from "../lib/order-menu.js";
+import { getCartPricing, buildFourPacksFromSingles } from "../lib/pricing.js";
 import { stockLabel, weeklyBoxCartKey, isWeeklyBoxKey } from "../lib/weekly-box.js";
 
 const boxDraft = {
@@ -159,4 +160,20 @@ test("box cart lines describe their multiples", () => {
   const key = weeklyBoxCartKey(liveBox);
   const [line] = normalizeOrderItems([{ key, qty: 1 }], menu, { weeklyBox: liveBox });
   assert.equal(line.description, "Cookie Monster x3");
+});
+
+test("savings follow the owner's prices instead of a baked-in number", () => {
+  const singles = [{ key: "cookie-monster", name: "Cookie Monster", qty: 4, price: 3, bundleEligible: true }];
+  // Four $3 singles against a $10 pack saves $2, not the launch-price $6.
+  assert.equal(getCartPricing(singles, { singlePopPrice: 3, fourPackPrice: 10 }).potentialSavings, 2);
+  assert.equal(getCartPricing(singles, { singlePopPrice: 4, fourPackPrice: 10 }).potentialSavings, 6);
+  // A pack that costs more than four singles must never advertise a negative saving.
+  assert.equal(getCartPricing(singles, { singlePopPrice: 2, fourPackPrice: 10 }).potentialSavings, 0);
+});
+
+test("converted four-packs carry the configured pack price", () => {
+  const singles = [{ key: "cookie-monster", name: "Cookie Monster", qty: 4, price: 3, bundleEligible: true }];
+  const { items } = buildFourPacksFromSingles(singles, { singlePopPrice: 3, fourPackPrice: 12 });
+  const pack = items.find((item) => item.key.startsWith("box-4-"));
+  assert.equal(pack.price, 12);
 });

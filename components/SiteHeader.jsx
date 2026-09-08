@@ -6,17 +6,18 @@ import { usePathname } from "next/navigation";
 import { useCart } from "./CartProvider";
 import { Icon } from "./Icons";
 import { trapFocus } from "@/lib/focus-trap";
+import { usePrices } from "./PricesProvider";
 
 const LINKS = [
   {
     href: "/box-of-the-week",
     label: "Box of the Week",
-    note: "10 cake pops for $25 · while supplies last",
+    note: "A limited box, while supplies last",
   },
   {
     href: "/shop",
     label: "Shop Cake Pops",
-    note: "$4 each · everyday favorites",
+    note: "Everyday favorites",
   },
   {
     href: "/build-a-box",
@@ -29,6 +30,7 @@ const LINKS = [
 
 export default function SiteHeader() {
   const { count, setOpen } = useCart();
+  const { singleLabel, packLabel } = usePrices();
   const [menu, setMenu] = useState(false);
   const [stuck, setStuck] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -84,11 +86,11 @@ export default function SiteHeader() {
       {announceReady && !dismissed && (
         <div className="announce">
           <div className="announce-in">
-            <span>Cake pops $4 each</span>
+            <span>Cake pops {singleLabel} each</span>
             <span className="dot" aria-hidden="true">
               ·
             </span>
-            <span className="hide-sm">Four-pack $10</span>
+            <span className="hide-sm">Four-pack {packLabel}</span>
             <span className="dot hide-sm" aria-hidden="true">
               ·
             </span>
@@ -165,7 +167,7 @@ export default function SiteHeader() {
               </span>
             </button>
             <Link className="btn btn-pink btn-sm" href="/build-a-box">
-              4 for $10
+              4 for {packLabel}
             </Link>
             <button
               ref={menuButtonRef}
@@ -193,7 +195,7 @@ export default function SiteHeader() {
           <div className="wrap mobile-menu-inner">
             <div className="mobile-menu-heading">
               <span>Menu</span>
-              <small>$4 singles · $10 four-packs</small>
+              <small>{singleLabel} singles · {packLabel} four-packs</small>
             </div>
             <div className="mobile-menu-links">
               {LINKS.map((link, index) => (
