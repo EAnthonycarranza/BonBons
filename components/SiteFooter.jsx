@@ -139,6 +139,37 @@ export default async function SiteFooter() {
             <Link href="/admin">Staff login</Link>
           </span>
         </div>
+
+        <div className="foot-credit">
+          <a
+            className="credit-btn"
+            href="https://codingcarranza.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="credit-btn-mark" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="8 6 3 12 8 18" />
+                <polyline points="16 6 21 12 16 18" />
+              </svg>
+            </span>
+            <span className="credit-btn-text">
+              Website created by <strong>Coding Carranza</strong>
+            </span>
+            <span className="credit-btn-arrow" aria-hidden="true">
+              &#8599;
+            </span>
+          </a>
+        </div>
       </div>
     </footer>
   );
