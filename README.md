@@ -1,553 +1,389 @@
 # Bon Bon's Sweets & More
 
-A full-stack Next.js + Supabase e-commerce platform for a pickup-based dessert business. Features online ordering, admin dashboard, payment processing, automated email workflows, and social media integration.
+The website and back office for a handmade cake-pop business in San Antonio, Texas.
+
+Customers browse the menu, build a four-pack, or claim a limited Box of the
+Week, then send a pickup request. The owner runs everything else — menu,
+prices, stock, orders, emails and invoices — from a password-protected
+dashboard called **the Shop Desk**. There is no online checkout: pickup is
+arranged and payment is settled directly with the owner.
+
+**Live:** https://bonbonsweets-c194aa523849.herokuapp.com
+
+**Stack:** Next.js 15 (App Router) · React 19 · Supabase Postgres · Gmail SMTP · Heroku
 
 ---
 
-## Two things live in this repo
-
-| | What it is | Where it runs |
-|---|---|---|
-| **`index.html` / `concepts.html`** | The original single-page design preview | GitHub Pages — **https://eanthonycarranza.github.io/BonBons/** |
-| **`app/`, `components/`, `lib/`** | The real Next.js app | Node locally or Heroku in production |
-
-**GitHub Pages cannot run the Next.js app.** Pages only serves static files, and this
-app has API routes and a database behind it. The static preview stays where it is so
-your link keeps working; the real app needs a host that can run a Node.js server.
-
----
-
-## Pages
-
-| Route | What it does |
-|---|---|
-| `/` | Home — hero, featured treats, occasions, dessert tables, reviews, newsletter |
-| `/shop` | Full catalogue, grouped by category, from the database |
-| `/shop/[slug]` | Product detail with quantity picker, allergens, related items |
-| `/build-a-box` | Box configurator — size, treats, live total |
-| `/dessert-tables` | Service page with the four-step process |
-| `/occasions` | Index of occasion types |
-| `/occasions/[slug]` | Weddings, birthdays, corporate, baby showers |
-| `/about` | Story and how-we-work |
-| `/faq` | Accordion |
-| `/quote` | Custom pickup-order request form → saved to Supabase |
-| `/cart` | Review menu selections and send a pickup request → saved to Supabase |
-| `/box-of-the-week` | This week's limited Celebration Box — contents, price, and how many are left |
-| `/admin` | Password-protected tracker for requests, payment arrangements, and pickup status |
-| `/sitemap.xml`, `/robots.txt` | Generated automatically |
-
-### API routes
-
-**Shop**
-`GET/POST /api/products` · `POST/GET /api/quotes` · `PATCH /api/quotes/[id]` · `GET /api/quotes/[id]` ·
-`POST/GET /api/orders` · `PATCH /api/orders/[id]` · `GET /api/orders/[id]` ·
-`POST /api/subscribe`
-
-**Admin** 
-`POST /api/admin/login` · `POST /api/admin/logout` · `POST /api/admin/email` (send/resend order confirmations & updates) ·
-`GET/POST/PATCH/DELETE /api/admin/pickup-locations` · `GET/POST/PATCH /api/admin/menu/[id]` · `POST /api/admin/menu/photo` (menu photo uploads)
-
-**System**
-`GET /api/health` · `POST /api/seed` (reload sample menu)
-
----
-
-## Running it
-
-**Node.js v24.19.0 is installed** at `~/.local/node` and on your PATH via `~/.zshrc`.
-To remove it later: `rm -rf ~/.local/node` and delete that line from `~/.zshrc`.
-
-**1. Install dependencies**
+## Quick start
 
 ```bash
-cd "/Users/acarranza/Documents/Claude Project/BonBons" && npm install
-```
-
-**2. Create your env file**
-
-```bash
-cp .env.example .env.local
-```
-
-(This already exists — it was created during setup.)
-
-**3. Start it**
-
-```bash
+npm install
+cp .env.example .env.local   # then fill in the values — see Environment below
 npm run dev
 ```
 
-Then open http://localhost:3000
-
-### Supabase
-
-The linked Supabase project stores the product catalogue, pickup orders, custom
-requests, newsletter subscribers, and reusable pickup locations. The public key can only read active
-products. Row-level security blocks direct public access to every customer-data
-table.
-
-Server-side writes and admin reads go through the `bonbons-data` Edge Function
-using `BONBONS_INTERNAL_API_TOKEN`. Keep that token server-only. The database
-definition is mirrored in `supabase/schema.sql`, and the function source lives
-in `supabase/functions/bonbons-data/index.ts`.
-
-If Supabase is unavailable, catalogue pages fall back to `lib/sample-data.js`;
-customer forms show an unavailable message instead of pretending the request
-was saved. To resync the starter menu, log in at `/admin` and choose
-**Sync menu**.
-
-### Saved pickup locations
-
-The staff CRM uses saved addresses rather than Google Places autocomplete, so
-choosing an address does not make a billable Maps API request. The seeded
-locations are **West Ave** and **Stormy Autumn**. Staff can add, edit, and delete
-locations from the dashboard; the form keeps street, city, state, postal code,
-and country as separate required fields. Confirmed-order emails turn the saved
-address into a standard Google Maps search link, which does not require an API
-key.
-
-Orders store the formatted address as a snapshot. Editing or deleting a saved
-location therefore does not silently change an older confirmed order.
-
-### reCAPTCHA Enterprise
-
-Only the pickup request form on `/cart` loads reCAPTCHA Enterprise, and only
-`POST /api/orders` verifies its token. The script is loaded when the form is
-shown, with a visible dark-theme “I'm not a robot” checkbox above the submit
-button. The widget is removed after navigating away. Custom requests and
-newsletter signups do not use reCAPTCHA. Set these values to enforce it:
-
-- `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY` — a **checkbox** website key created in reCAPTCHA Enterprise (Web → enable challenges → Checkbox challenge), not a Google API key or a score-based key
-- `GOOGLE_CLOUD_PROJECT_ID` — the Google Cloud project ID
-- `GOOGLE_RECAPTCHA_API_KEY` — a server-only API key allowed to create assessments
-- `RECAPTCHA_MIN_SCORE` — optional; defaults to `0.5`
-
-Add `localhost` to the key's allowed domains for development and the shop's real
-domain before deployment; keep domain verification enabled. Restart the dev
-server or rebuild the deployment after changing the public site key.
-
-All three required Google values must be present. Missing configuration, invalid
-or expired tokens, wrong actions, and low scores are rejected before the order
-is written to Supabase. Customers must check the box before submitting. Failed
-submissions reset the checkbox so retries obtain a fresh, single-use token.
-Keep the assessment API key server-only; only the site key belongs in the browser.
-
-### Payment Processing
-
-The `/cart` page and admin dashboard integrate dual-provider payment checkout via **Stripe and Square** with:
-- Embedded payment forms with hosted sessions
-- Automated receipt emails sent immediately after successful payment
-- Multiple payment method support (card, ACH, buy now pay later)
-- PCI compliance via tokenized hosted checkout
-
-Configure these environment variables in `.env.local`:
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` — Stripe test/live publishable key
-- `STRIPE_SECRET_KEY` — Stripe test/live secret key (server-only)
-- `NEXT_PUBLIC_SQUARE_APPLICATION_ID` — Square application ID
-- `SQUARE_ACCESS_TOKEN` — Square access token (server-only)
-- `SQUARE_LOCATION_ID` — Square location ID for transactions
-
-Both providers are optional; the shop can accept offline payments (cash at pickup) or mix online and offline. Admin staff verify payment status before confirming orders; the system does not auto-confirm on payment alone.
-
-### Gmail order emails
-
-Every successful pickup request on `/cart` automatically emails the customer a
-request receipt through Gmail SMTP, **after** the request is saved. It includes
-the selected cake pops, quantities, estimated total, requested date, and a clear
-notice that the order is not confirmed and payment should wait. SMTP failures
-do not undo the order or ask the customer to submit again. The CRM shows receipt
-activity or a failure notice and provides a receipt retry/resend button before
-confirmation. No receipts are retroactively sent to existing requests.
-
-The staff CRM also sends branded order confirmations and status updates through
-the same Gmail connection. All email types use a responsive table-based template,
-plain-text alternative, and the supplied logo as an inline CID image (the existing
-transparent asset at `assets/logo-embed-tp.png`). The logo travels with the email;
-it does not depend on a public website URL. Output-file tracing includes it in
-the deployed email routes. Add `GMAIL_USER`, `GMAIL_APP_PASSWORD`, and `GMAIL_FROM_NAME` to
-`.env.local` using the placeholders in `.env.example`. Use a Google app
-password rather than the account's normal password; keep it server-only.
-
-Saving an order as **Order Confirmed** creates a permanent customer-facing
-order number. Email buttons stay disabled until those saved details are current,
-and confirmation resends require an extra confirmation. Sent-message activity
-is recorded in the protected `email_events` table. A Google API key is not used
-for this SMTP setup.
-
-Run `npm run test:email` for isolated email/workflow checks (no customer messages
-or database writes). Run `npm run preview:email` to generate desktop/mobile
-previews with fictional data under `design-previews/emails/`.
-
-### Deploying to Heroku
-
-The app uses Node.js 24, the `heroku/nodejs` buildpack, and the `Procfile` web
-process. Heroku runs `npm run build` and provides `PORT` to the Next.js server.
-The existing Supabase project remains the database; no Heroku database add-on
-is needed. The `app.json` formation starts at **zero web dynos** so deploying the
-manifest does not silently start paid compute. Choose and approve a dyno plan
-before scaling `web` to 1.
-
-1. Create the app in the US region on `heroku-24`.
-2. Set the config variables listed in `app.json` in Heroku. Use the existing
-   Supabase, Gmail, and reCAPTCHA values, but generate a separate strong
-   production `ADMIN_PASSWORD` and `ADMIN_SECRET`. Never commit credentials.
-3. Set `NEXT_PUBLIC_SITE_URL` to the app's HTTPS origin, without a trailing slash.
-   Public variables must be present **before the build**, since Next.js embeds them.
-4. Add the exact Heroku hostname to the reCAPTCHA key's allowed domains in
-   Google Cloud, keeping domain verification enabled and `localhost` for development.
-5. Deploy the current source, excluding `.env*`, `.git`, `node_modules`, `.next`,
-   and design previews. `.slugignore` provides a second exclusion layer.
-6. Scale the approved web dyno to 1 and check `/api/health`, `/shop`, `/cart`, and
-   `/admin`. Verify the cart checkbox and that unauthenticated `/api/orders`
-   requests cannot read customer data. Do not create real orders just to test deployment.
-
-`npm run start:heroku` fails closed if required settings are missing. The login
-password must have at least 8 characters, and the separate session-signing secret
-must have at least 32. A longer, unique login password is strongly recommended.
-Run `npm run test:config` to verify these startup checks. Changing `ADMIN_PASSWORD`
-also invalidates existing admin session cookies. The email logo stays in
-`assets/logo-embed-tp.png` and is included
-in the deploy. Run `npm run test:email` before shipping changes. A local build
-should run in an isolated copy when the dev server is already using `.next`.
-
-### Alternative: deploying to Vercel
-
-1. Sign in at https://vercel.com with your GitHub account
-2. **Add New → Project → import `EAnthonycarranza/BonBons`**
-3. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
-   `BONBONS_INTERNAL_API_TOKEN`, `ADMIN_PASSWORD`, `ADMIN_SECRET`, `GMAIL_USER`,
-   `GMAIL_APP_PASSWORD`, `GMAIL_FROM_NAME`, `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY`,
-   `GOOGLE_CLOUD_PROJECT_ID`, `GOOGLE_RECAPTCHA_API_KEY`, and `RECAPTCHA_MIN_SCORE`
-   as environment variables
-4. Deploy — every push to `main` redeploys automatically
-
----
-
-## Why the folder is named `BonBons`
-
-The project folder used to be `Bon Bon's`. **Next.js cannot build from a path containing
-an apostrophe.** Its metadata-route loader generates JavaScript with the file path inside
-a single-quoted string, so the `'` closes the string early and `sitemap.js` / `robots.js`
-fail with a parse error. Renaming the folder to `BonBons` fixed it.
-
-If you ever move this project, keep apostrophes out of the path.
-
----
-
-## Before launch — review and customize
-
-1. **Prices** in `lib/pricing.js` and `lib/sample-data.js` — update to reflect real menu pricing.
-2. **Phone and email** in the `SITE` object in `lib/sample-data.js` — update business contact info.
-3. **Product photos** — currently generated placeholder cake-pop images. Replace with real product photography.
-4. **Admin password** (`ADMIN_PASSWORD`) — must be changed from the development value. Requires ≥8 characters.
-5. **Admin secret** (`ADMIN_SECRET`) — session signing key. Requires ≥32 characters. Generate a new one for production.
-6. **Payment configuration** — decide whether to accept online payments (Stripe/Square), offline only (cash at pickup), or both. If using online payments, configure API keys and test transaction flow before launch.
-7. **Email configuration** — if using automated receipts/confirmations, verify Gmail SMTP credentials (`GMAIL_USER`, `GMAIL_APP_PASSWORD`, `GMAIL_FROM_NAME`) are set and email templates in `lib/email-template.js` match your branding.
-8. **Admin auth** — currently a single shared password. Sufficient for one owner; if staff need separate logins in the future, replace `lib/admin-menu.js` auth logic with NextAuth or Clerk.
-9. **reCAPTCHA Enterprise** — optional but recommended for production. Configure the four required keys in `.env.local` to enable bot protection on the order form.
-10. **Social media integration** — the TikTok feed on `/` requires `NEXT_PUBLIC_TIKTOK_USERNAME`. Leave empty or remove if not using.
-
----
-
-## The original six concepts (for reference)
-
-Design 3 won and has been built out above. The earlier concepts are kept for
-reference — useful if you later want to borrow a section from another direction.
-
-Concepts 1–3 are HTML, viewable at
-[`concepts.html`](https://eanthonycarranza.github.io/BonBons/concepts.html)
-or locally in `design-previews/`.
-
-| # | Name | Personality | Best if you want to… |
-|---|------|-------------|----------------------|
-| 1 | **Candy Carnival** | Loud, playful, sticker-sheet. Thick black outlines, hard shadows, confetti, chunky rounded type. Cream + hot pink + blue + gold. | Look exactly like the logo feels. Strongest for birthdays, kids' parties, quinceañeras. |
-| 2 | **Sweet Boutique** | Elegant, editorial, calm. Ivory, serif headlines, thin gold rules, lots of whitespace. Pink used as an accent only. | Read as premium and charge premium. Strongest for weddings, showers, corporate gifting. |
-| 3 | **Party Pop** | Modern dark-mode storefront. Bento-grid hero, neon glow, product cards with prices and add-to-cart. | Sell online as the main channel. Easiest to grow into full e-commerce. |
-
-All three use the same content and the same brand colors pulled from the logo, so you're judging **personality and layout**, not copy.
-
-### The logo now has a transparent background
-
-Your original logo was a square image on a **white background**, which showed as a visible box on colored sections. That's fixed — `public/logo-transparent.png` is the original with the outer white flood-filled to transparency (the cream inside the oval is preserved). All six designs now use it, and the old `mix-blend-mode` workaround is gone.
-
-Still worth doing before launch: a **vector (SVG)** version from whoever made the logo. The transparent PNG is sharp at every size we use it, but an SVG would stay sharp at any size and shrink the page weight a lot.
-
-### Favicons (browser-tab icons)
-
-All four preview pages now have a tab icon. The default is your **actual logo**, cropped to the artwork so it fills as much of the square as possible.
-
-Be aware of the tradeoff: your logo has a lot of fine detail — three words of layered text, confetti, balloons, a ribbon — and a browser tab renders it at **16×16 pixels**. At that size it reads as a colorful oval rather than as readable words. That's normal for detailed logos and not something a different export can fix.
-
-So there's also `public/favicon-monogram.svg` — a pink rounded square with a cream **B** and a gold border, drawn as vector paths so it stays crisp at any size. To switch a page over, open it and swap the `rel="icon"` line for the commented-out one just below it (both are already in the `<head>`).
-
-My recommendation: **monogram in the tab, full logo everywhere else.** But it's a brand call, so the logo is the default until you say otherwise.
-
----
-
-## Three more concepts, built in Figma
-
-Concepts **4, 5 and 6** live in a Figma design file rather than HTML:
-
-**https://www.figma.com/design/pieBhsc3pHgP3706D6dsp4**
-
-| # | Name | Personality |
-|---|------|-------------|
-| 4 | **Sugar Rush** | Retro soda-fountain. Warm cream, gold arch, thick outlines, rounded Baloo type. Nostalgic and warm. |
-| 5 | **Confetti Editorial** | Magazine layout. Oversized Bricolage headline, hairline-ruled price list, big pink feature block. Confident and modern. |
-| 6 | **Storybook Pastel** | Soft and airy. Pastel tints, rounded everything, floating accents, gentle Fredoka type. Aimed at baby showers and first birthdays. |
-
-These are real Figma frames — you can open, edit, comment on and hand them to any designer. Brand colors are set up as Figma **variables** (`Bon Bon's / Color`), so changing a token updates everywhere it's used.
-
----
-
-## The Next.js + Supabase build
-
-### Managing the live shop
-
-Open `/admin` to use the dark **Shop Desk** workspace:
-
-- **Cake-pop menu:** add a flavor, edit its details and photo, choose four-pack eligibility, and publish or hide it. Delete moves a flavor to recoverable Trash; restoring keeps it hidden until you publish it. Past orders retain their original item details.
-- **Pickup orders:** search/filter requests, confirm orders, arrange pickup, record payments, and choose when to email a customer.
-- **Shop settings:** manage saved pickup addresses and review the customer contact and payment links.
-
-Singles remain **$4 each**. Four-packs remain a separately selected **$10** option. Both the shop and four-pack builder read the same live menu; checkout validates current availability and rebuilds prices on the server. A customer must rebuild a stale four-pack if its flavors have been hidden or deleted.
-
-Cookie Monster, Strawberry Shortcake, and Biscoff are published. Twelve other flavors verified from the business's Instagram are saved as hidden rotations for the owner to review. The original four placeholder menu items are also retained in Hidden. Recipe details and individual flavor photos were not verified, so these entries use a branded placeholder until the owner adds accurate photos and allergen information.
-
-Customer contact: **bonbonssweets.sa@gmail.com**, **(210) 721-3983**. Payment links point to the owner's [dot.cards profile](https://dot.cards/bonbonssweetssa?utm_source=nfc&e=ZGV2aWNlLXhQTnBTNUwyUmVoLXcyLXBr) after confirmation. Payments happen outside the website and must be verified by staff; opening the link does not mark an order paid. Confirmation emails include the payment button only for an unpaid, confirmed order with a positive confirmed total. Email replies go to the business inbox; the existing authenticated SMTP sender is unchanged until new mailbox credentials are configured.
-
-Menu photos accept JPG, PNG, and WebP up to 5 MB. The server validates uploads and stores them in Supabase's `menu-photos` public bucket; anonymous users cannot upload or change menu records. Public product queries expose only active, non-deleted rows. Admin edits use timestamps to reject conflicting saves from another window.
-
-Database changes are recorded in `supabase/migrations/20260906223140_admin_menu_management.sql` and `supabase/migrations/20260907040220_cake_pop_flavor_catalog.sql`. Deploy the shared validation file together with `supabase/functions/bonbons-data/index.ts` when updating the Edge Function. Do not exclude `supabase/functions/_shared` from the web build.
-
-Checks: `npm run build`, `npm run test:menu`, `npm run test:email`, `npm run test:reveal`, and `npm run test:config`. The opt-in `scripts/verify-menu-http.mjs` integration test creates a hidden QA item and uploads a test logo; it never submits a customer order or sends an email. Clean up its reported fixture afterward.
-
-### Box of the Week, pricing, and stock
-
-**One setup step.** Open the Supabase dashboard → SQL Editor, paste
-`supabase/migrations/20260908010000_weekly_box_and_inventory.sql`, and run it.
-That is the whole install: it creates the `weekly_boxes` and `shop_settings`
-tables, adds `stock_quantity` / `low_stock_threshold` to `products`, creates the
-privileged write function, and seeds a ready-made Celebration Box built from the
-flavors already on the menu.
-
-No Edge Function deploy is needed. Admin writes for boxes, shop prices, and
-per-flavor price/stock go through `public.bonbons_admin()`, a security-definer
-function guarded by the same `BONBONS_INTERNAL_API_TOKEN` the Edge Function
-already uses — identical trust model, nothing new exposed. Before the migration
-runs, the Shop Desk says so in plain language rather than failing obscurely.
-
-**What the owner controls** from **Shop Desk → Box of the week**:
-
-- The live box: name, tagline, description, price, and its contents. Contents
-  are chosen from the cake-pop menu rather than typed, and each flavor carries
-  its own quantity, so a box can hold several of the same pop. Picking the same
-  flavor again bumps its quantity instead of adding a duplicate row
-- Boxes can be added, edited, and deleted from the same screen
-- How many boxes are left, and the number at which shoppers see an urgency
-  message. The run size is remembered separately so the meter can read
-  "Only 4 left of 25 made" instead of a bar that is always full
-- Prices live in **Shop settings → Prices**: the headline single cake-pop
-  price, the four-pack price, and an editable row for every flavor. Flavor
-  rows save one at a time so a typo in one price cannot block the rest
-- Quantity per flavor stays in **Cake-pop menu → edit a flavor**
-
-The box is advertised in the announcement bar, as the first item in the main
-nav, as a feature card on the home page, and on its own page at
-`/box-of-the-week`.
-
-Stock is **owner-managed, not auto-decremented**. Orders here are requests that
-staff confirm and that are paid offline, so subtracting at submit time would let
-unpaid requests exhaust a limited run. Update the remaining count as boxes
-actually sell.
-
-Leaving a flavor's quantity blank means made-to-order and always available,
-which is how every existing flavor behaves. Setting it to 0 shows "Sold out"
-on the card and disables its add button. `POST /api/orders` re-checks price and
-availability from the database, so a sold-out or over-ordered item is refused
-even if the browser asks for it.
-
-Only one box can be featured at a time; publishing a new one stands the previous
-box down automatically (enforced by a partial unique index, not just the UI).
-
-Nothing quotes a price from hardcoded copy. The headline prices are read once in
-the root layout, handed to client components through `PricesProvider`, and used
-by the page metadata, so the title, nav, announcement bar, footer, shop, cart,
-four-pack builder, and product pages all follow whatever the owner sets. The
-"save $X" claim is derived from the two prices rather than written down, so it
-cannot drift. That read is cached under the `shop-settings` tag and revalidated
-whenever prices are saved, which keeps statically rendered pages accurate
-without forcing them dynamic.
-
-Singles are currently **$3** and four-packs **$10**.
-
-Run `npm run test:box` for the pricing, stock, and box-validation checks.
-
-### Invoices and PDF documents
-
-Two customer emails carry a PDF the customer can keep:
-
-- **Order confirmation** — sent from the order desk once the stage is Order
-  Confirmed and saved. A PDF confirmation is attached automatically.
-- **Paid invoice** — a separate *Send paid invoice* action, unlocked only once
-  the payment arrangement is set to a paid option (cash or as arranged) **and
-  saved**. The attached invoice is stamped **PAID IN FULL**.
-
-Both documents share one layout, so a customer's confirmation and invoice can
-never disagree about what was ordered. They carry the shop letterhead, the order
-number, the itemised lines with quantities, the confirmed total, the payment
-position, and the pickup date, time and address.
-
-The unpaid guard is enforced in three places rather than only in the UI: the
-button is disabled, the API returns 409, and the email builder itself refuses —
-so an invoice cannot claim payment that has not been recorded. Resending asks
-for confirmation, and `paid_invoice_sent_at` is stamped on the record.
-
-If a PDF cannot be built, the email is still sent without it and the admin is
-told the attachment was missing — a customer is better served by the message
-than by silence.
-
-Tracking for this email type goes through `public.bonbons_record_email()` rather
-than the Edge Function, whose deployed copy only whitelists the three original
-types. As with the Box of the Week, applying the migration is the only step.
-
-The PDF uses `assets/logo-pdf.png`, a 192px copy of the email logo. Embedding
-the full 620px asset made every document roughly 600 KB; it is now about 33 KB.
-
-Run `npm run test:documents` for the PDF and invoice-guard checks.
-
-### Order tracking & fulfillment
-
-**Overdue pickups.** A pickup date shows amber once the day has passed and the
-customer still has not collected, and mint on the day itself. Only stages that
-still owe a pickup are flagged — confirmed, booked, preparing and ready — so a
-picked-up, closed or cancelled order is never marked late. Date-only values are
-read in local time; reading them as UTC would mark same-day pickups overdue for
-anyone west of Greenwich. The flag appears on the queue row, the customer strip
-and the pickup date field, and clears as soon as a future date is chosen.
-
-**Picking a pickup date and time.** The fulfilment form uses a calendar popover
-rather than the browser's native date field: month navigation, today outlined,
-the chosen day filled, past days dimmed, and Today / Tomorrow / Next week
-shortcuts. It is keyboard operable — arrows move by day and week, Enter selects,
-Escape closes — and clicking outside dismisses it without changing anything. A
-clear button removes the date.
-
-Times are chosen from 15-minute shop slots between 7:00 AM and 8:00 PM instead
-of a raw clock field. A time already stored outside that grid (an imported
-2:37 PM, say) is added to the list so it is never silently snapped to the
-nearest slot. Values are still stored as `YYYY-MM-DD` and `HH:MM`, and dates are
-parsed as local days so nothing shifts by a day west of Greenwich.
-
-**Delay updates.** The email card has a *Tell them the pickup date changed*
-option on status updates. With a new pickup date saved, the email leads with
-"Your pickup date has changed", names the new date and time, and invites the
-customer to call or text if it does not suit them. With no date set, it asks
-them to call so a date can be agreed. Either way the phone number is a tappable
-link. The send button stays disabled until the record is saved, so the email can
-never promise a date the desk has not stored. The flag is ignored on receipts
-and confirmations.
-
-**Spreadsheets.** The order desk exports every request as Excel (.xlsx) or CSV,
-and imports past orders from either. Import shows a confirmation first: how many
-rows will be created, how many blank rows were skipped, and exactly which rows
-could not be read and why. Row numbers refer to the line as it appears in the
-file — blank rows are kept during parsing so the numbering never drifts. A
-matching template is downloadable from the same panel.
-
-The file needs **Customer**, **Email** and **Wanted date** columns; everything
-else is optional, and common spellings ("Customer name", "E-mail", "Date
-wanted", "Total") are matched automatically. Excel serial dates, ISO dates and
-US `10/1/2026` all resolve. Unrecognised statuses fall back to `pending` rather
-than reaching the database. The browser parses the file, but the API re-checks
-and re-shapes every field, and the insert runs in one transaction so a bad row
-cannot leave a half-finished import behind. Up to 500 rows per file.
-
-**Deleting a request** permanently removes the customer's name, contact details
-and order history — there is no soft-delete, because the owner may need to
-remove that data on request. The Shop Desk confirms first and says so plainly.
-
-Deletion works at **any stage**, including a confirmed order that already has an
-order number, and for both menu orders and custom requests. The control sits in
-the workspace header so it is reachable without scrolling the fulfilment card.
-Nothing references `orders` or `quotes` by foreign key, so a delete never
-cascades into other records; confirmed order numbers are simply retired.
-
-
-The `/admin` dashboard tracks order lifecycle:
-- **Received** — customer submits a pickup request or places an order
-- **Confirmed** — staff confirms the order with the customer, assigns a pickup time, and generates a permanent order number
-- **Payment arranged** — staff records payment status (paid in full, partial, pending)
-- **Ready for pickup** — staff marks order as prepared and ready
-- **Completed** — customer picks up the order
-
-Staff can send order confirmations, status updates, and payment reminders via Gmail. All communication is tracked in the `email_events` table. Customers receive automated request receipts (unconfirmed) immediately; confirmations and status updates are sent by staff choice.
-
-### Media & social integration
-
-**Product photo gallery** (`BakeryPhotoGallery.jsx`) — displays high-resolution product photography from `public/products/`, with lazy loading and responsive sizing.
-
-**TikTok creator feed** (`TikTokCreatorFeed.jsx`) — embeds a responsive TikTok video feed on the homepage. Set `NEXT_PUBLIC_TIKTOK_USERNAME` to enable. Videos load via TikTok's embed API; disable the component if social media integration is not desired.
-
-Both are optional and can be removed or reconfigured without affecting core e-commerce functionality.
-
-### Implementation overview
-
-The site is built as a full-stack Next.js + Supabase app with integrated payment processing:
-
-- **Next.js (App Router)** — server-side rendering, API routes, middleware for authentication, static generation where possible
-- **Supabase Postgres** — product catalog, orders, quotes, subscribers, pickup locations, email event logs, admin menu management
-- **Product catalog** — database-driven, live menu management with photo uploads, hidden/published states, flavor tracking
-- **Online ordering** — date/time picker, real-time price calculation, cart review, and checkout with optional online payment
-- **Payment processing** — dual-provider integration (Stripe & Square) with embedded checkout, or offline-only mode
-- **Email workflows** — automated request receipts, staff-triggered confirmations and updates via Gmail SMTP, with CID-embedded logo and responsive templates
-- **Order fulfillment** — staff dashboard tracks order state (received → confirmed → payment arranged → ready → completed), generates order numbers, sends status updates
-- **Pickup management** — saved address library (no Maps API calls for customers), pickup time selection, staff scheduling
-- **Photo gallery** — product images from `public/products/`, responsive lazy-loading display
-- **Social integration** — optional TikTok creator feed embedded on homepage
-- **Responsive + accessible** — designed for mobile-first, works seamlessly on phones where most customers shop
-
-The Supabase project is connected locally through the environment variables in
-`.env.local`; use the placeholders in `.env.example` for other environments.
-
----
-
-## Folder contents
-
-```
-Bon Bon's/
-├── README.md                 ← you are here
-├── index.html                ← ★ THE SITE — expanded Design 3
-├── concepts.html             ← the original side-by-side chooser
-├── .github/workflows/        ← auto-deploys to GitHub Pages on push
-├── design-previews/
-│   ├── index.html            ← chooser (local copy)
-│   ├── design-1.html         ← Candy Carnival
-│   ├── design-2.html         ← Sweet Boutique
-│   └── design-3.html         ← Party Pop (original, pre-expansion)
-├── public/
-│   ├── logo.png              ← web-sized logo (1000px, white background)
-│   ├── logo-transparent.png  ← ★ transparent version — use this one
-│   ├── favicon.png           ← 64px browser-tab icon (the logo)
-│   ├── favicon-monogram.svg  ← alternative tab icon, legible at 16px
-│   └── apple-touch-icon.png  ← 180px icon for iOS home screens
-└── assets/
-    ├── logo-original.png     ← your full-resolution original
-    └── logo-embed-tp.png     ← compressed transparent copy used in the previews
+Open http://localhost:3000 for the shop, and http://localhost:3000/admin for
+the Shop Desk.
+
+```bash
+npm run test:all     # 101 tests, no network or database needed
+npm run build        # production build
 ```
 
-Concepts 4–6 are in Figma: **https://www.figma.com/design/pieBhsc3pHgP3706D6dsp4**
+> **Keep apostrophes out of the folder path.** The project used to live in a
+> folder called `Bon Bon's`, and Next.js could not build from it: its
+> metadata-route loader writes the file path into a single-quoted JavaScript
+> string, so the apostrophe closed the string early and `sitemap.js` and
+> `robots.js` failed to parse. That is why the directory is `BonBons`.
 
 ---
 
-## Feedback is welcome at any level
+## How it fits together
 
-"I like 2" is fine. So is "design 3's hero but design 1's colors, and lose the dark background." Mixing is normal at this stage — nothing here is locked in.
+```
+Customer                     Next.js (Heroku)                Supabase Postgres
+────────                     ────────────────                ─────────────────
+browse / request  ─────────► Server components ──read──────► products, weekly_boxes,
+                             (anon key, RLS)                 shop_settings   [public read]
 
-All confirmations across the Shop Desk use a styled dialog rather than the
-browser's `window.confirm`. Destructive ones are marked, spell out the
-consequence, and open with focus on Cancel so Enter cannot delete by reflex.
+                             POST /api/orders
+                             ├─ re-prices from the menu
+                             ├─ re-checks availability
+                             ├─ verifies reCAPTCHA
+                             └─ writes ──────────────────────► orders        [no public access]
+                                        │
+                                        └─ Gmail ──► request receipt
 
-Run `npm run test:import` for the spreadsheet parsing checks.
+Owner ──► /admin ──────────► Admin API routes ─────────────► bonbons_admin()
+          (password)         (session + origin checked)      bonbons_record_email()
+                                                             security-definer,
+                                                             internal token
+```
 
-Run `npm run test:pickup` for the overdue-date and delay-email checks.
+Three rules hold the whole thing together:
+
+**Nothing the browser sends is trusted with money or stock.** Every line of an
+order is rebuilt from the current menu server-side, and availability is
+re-checked, so a tampered cart cannot change a price or buy a sold-out flavor.
+
+**Customer data is never publicly readable.** Row-level security grants `anon`
+read access to the catalogue, the live box and the shop prices — and nothing
+else. Orders, quotes, subscribers and email history are unreachable with the
+public key.
+
+**Privileged writes go through one guarded door.** Admin writes call
+security-definer database functions that check a server-only token
+(`BONBONS_INTERNAL_API_TOKEN`) before touching anything. The API routes check
+the admin session and the request origin first.
+
+---
+
+## The shop
+
+| Route | What it does |
+|---|---|
+| `/` | Hero, featured flavors, Box of the Week, four-pack feature, story, bakery photos |
+| `/shop` | The full menu, grouped by category, straight from the database |
+| `/shop/[slug]` | One flavor — photo, allergens, quantity picker |
+| `/build-a-box` | Pick any four flavors for the four-pack price |
+| `/box-of-the-week` | The limited Celebration Box, with a live "only N left" meter |
+| `/cart` | Review the request and send it — reCAPTCHA, then a receipt email |
+| `/quote` | Custom / event order request |
+| `/occasions`, `/occasions/[slug]` | Weddings, birthdays, corporate, baby showers |
+| `/about`, `/faq`, `/dessert-tables` | Story, questions, and the dessert-table service |
+| `/sitemap.xml`, `/robots.txt` | Generated |
+
+**Prices are never hardcoded in copy.** The single-pop and four-pack prices are
+read once in the root layout and shared through `PricesProvider`, so the page
+title, nav, announcement bar, footer, cart and product pages all quote whatever
+the owner set. Savings claims ("save $2") are derived from those two numbers
+rather than written down, so they cannot drift. That read is cached under a
+`shop-settings` tag and revalidated on save, which keeps statically rendered
+pages accurate without forcing them dynamic.
+
+---
+
+## The Shop Desk (`/admin`)
+
+Four sections, one password.
+
+### Cake-pop menu
+Add a flavor, edit its details and photo, set its own price and quantity, and
+publish or hide it. Delete moves a flavor to a recoverable Trash. Past orders
+keep the item details they were placed with.
+
+Quantity is optional: **blank means made to order** and always available —
+which is how every flavor behaves by default — and **0 shows as Sold out**,
+greying the card and disabling its add button.
+
+### Box of the Week
+A limited bundle — typically **10 cake pops for $25** — that the owner builds
+from the existing menu. Pick flavors from a dropdown; adding the same flavor
+twice raises its quantity rather than duplicating the row. Set how many boxes
+remain and the number at which shoppers see an urgency message.
+
+The stock meter reads *"Only 4 left of 25 made"* because the size of the run is
+remembered separately from what remains; it rises on restock and never falls,
+so the bar means something. Only one box can be live at a time, enforced by a
+partial unique index rather than by the UI alone.
+
+Stock here is **owner-managed, not decremented at request time**. Orders are
+requests that staff confirm and that are paid offline, so subtracting on submit
+would let unpaid requests exhaust a limited run.
+
+### Pickup orders
+The request queue and the workspace where an order is confirmed, scheduled and
+communicated.
+
+- **Stages** — received → confirmed → payment arranged → ready → collected.
+  Confirming assigns a permanent customer-facing order number.
+- **Overdue pickups** show amber once the day has passed and the customer still
+  has not collected, and mint on the day itself. Only stages that still owe a
+  pickup are flagged, so a collected or cancelled order is never marked late.
+- **Date and time pickers** — a calendar popover (today outlined, past days
+  dimmed, Today / Tomorrow / Next week shortcuts, arrow-key navigation) and
+  pickup times as 15-minute shop slots. A stored time outside the grid is kept
+  rather than snapped to the nearest slot.
+- **Spreadsheets** — export every order as Excel or CSV, and import past orders
+  from either. Import previews what it will create, what it skipped, and which
+  rows failed and why, with row numbers matching the lines in your file.
+- **Delete** works at any stage, for menu orders and custom requests alike, and
+  is permanent — these rows hold customer contact details the owner may need to
+  remove on request.
+
+### Shop settings
+Pickup addresses, customer contact, the Gmail connection, and **Prices** — the
+headline single-pop price, the four-pack price, and an editable row for every
+flavor. Flavor rows save one at a time, so a typo in one price cannot block the
+rest.
+
+---
+
+## Emails and documents
+
+Five emails, all built from one responsive template with a plain-text
+alternative and the logo embedded inline (so it does not depend on a public
+URL).
+
+| Email | When | Carries |
+|---|---|---|
+| Request receipt | Automatically, after a request is saved | "Not confirmed yet — don't pay" |
+| Order confirmation | Staff, once the stage is Confirmed and saved | **PDF confirmation** |
+| Status update | Staff, any time | Current stage |
+| Delay update | Staff, via *Tell them the pickup date changed* | New date, or a request to call |
+| Paid invoice | Staff, once payment is marked paid and saved | **PDF invoice, stamped PAID IN FULL** |
+
+**The two PDFs share one renderer**, so a customer's confirmation and invoice
+can never disagree about what was ordered — only the title, the payment panel
+and the stamp differ.
+
+**An invoice cannot claim money that has not been recorded.** The guard is
+enforced three times over: the button is disabled, the API answers `409`, and
+the email builder itself refuses. If a PDF fails to build, the email still goes
+out without it and the admin is told — a customer is better served by the
+message than by silence.
+
+Sending never blocks saving. A request is stored first and emailed second; an
+SMTP failure is surfaced in the desk with a retry, and never asks the customer
+to submit again.
+
+```bash
+npm run preview:email   # writes desktop + mobile previews with fictional data
+```
+
+---
+
+## Environment
+
+Copy `.env.example` to `.env.local`. Everything below is read by the app; there
+are no other supported variables.
+
+| Variable | Required | What it is |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | yes | Public key — can only read active products, the live box and prices |
+| `BONBONS_INTERNAL_API_TOKEN` | yes | **Server only.** Authenticates every privileged write |
+| `ADMIN_PASSWORD` | yes | Shop Desk login. Minimum 8 characters |
+| `ADMIN_SECRET` | yes | Signs the admin session cookie. Minimum 32 characters, and must not be a placeholder |
+| `NEXT_PUBLIC_SITE_URL` | production | Public HTTPS origin, no trailing slash. Baked in at build time |
+| `GMAIL_USER` / `GMAIL_APP_PASSWORD` | for email | A Google **app password**, never the account password |
+| `GMAIL_FROM_NAME` | for email | Sender display name |
+| `NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_SITE_KEY` | for the order form | A **checkbox** key, not a score-based key or an API key |
+| `GOOGLE_CLOUD_PROJECT_ID` | for the order form | Project that owns the reCAPTCHA key |
+| `GOOGLE_RECAPTCHA_API_KEY` | for the order form | **Server only.** Creates assessments |
+| `RECAPTCHA_MIN_SCORE` | no | Defaults to `0.5` |
+
+`npm run start:heroku` refuses to boot if any required value is missing, if
+`ADMIN_SECRET` is short or a placeholder, or if `NEXT_PUBLIC_SITE_URL` is not a
+public HTTPS origin. Run `npm run test:config` to exercise those checks.
+
+> **Payment is deliberately offline.** There is no card processing in this
+> codebase and no payment is collected on the website. Confirmed orders link to
+> the owner's dot.cards profile (Venmo, Cash App, Zelle) and staff verify that
+> the money arrived before marking an order paid — opening the link does not
+> mark anything paid.
+
+---
+
+## Database
+
+Eight tables in `public`, defined in `supabase/schema.sql` and applied in order
+from `supabase/migrations/`.
+
+| Table | Public read | Holds |
+|---|---|---|
+| `products` | active rows only | The cake-pop menu, prices, stock |
+| `weekly_boxes` | active rows only | Box of the Week, contents, remaining stock |
+| `shop_settings` | yes | Single-pop and four-pack prices |
+| `orders` | **no** | Menu orders and customer contact details |
+| `quotes` | **no** | Custom / event requests |
+| `subscribers` | **no** | Newsletter signups |
+| `email_events` | **no** | What was emailed, to whom, and when |
+| `pickup_locations` | **no** | Saved addresses staff choose from |
+
+### Applying a change
+
+Paste the migration into the Supabase dashboard → SQL Editor and run it. That
+is normally the only step.
+
+**Why not the Edge Function?** `supabase/functions/bonbons-data/` predates
+several features and its deployed copy validates against the shape it shipped
+with — it pins single pops at $4 and rejects email types and actions added
+since. Rather than requiring a function deploy for every change, newer
+privileged work goes through database functions that a migration can create:
+
+- `bonbons_admin(token, action, payload)` — Box of the Week, shop prices,
+  per-flavor price and stock, order deletion, bulk import
+- `bonbons_record_email(token, payload)` — logs a sent email and stamps the
+  matching timestamp
+
+Both are `security definer`, callable by `anon` but useless without the
+server-only token, of which only a SHA-256 is stored. That is the same trust
+boundary the Edge Function uses, with one fewer deploy step.
+
+Redeploying the Edge Function is still worthwhile eventually — it would let the
+menu editor save a flavor's price in one write instead of two — but nothing
+depends on it.
+
+---
+
+## Deploying
+
+Heroku, Node 24, the `heroku/nodejs` buildpack and the `Procfile` web process.
+Supabase remains the database; no Heroku add-on is needed.
+
+```bash
+git push heroku main
+```
+
+`app.json` starts at **zero web dynos** so deploying the manifest never
+silently starts paid compute — choose and scale a dyno yourself.
+
+Setting up a new environment:
+
+1. Create the app on `heroku-24` in the US region.
+2. Set every config variable from the table above. Generate a **fresh**
+   `ADMIN_PASSWORD` and `ADMIN_SECRET` for production; never reuse the
+   development values and never commit them.
+3. Set `NEXT_PUBLIC_SITE_URL` to the app's HTTPS origin **before** building —
+   Next.js inlines `NEXT_PUBLIC_*` at build time, so changing it later needs a
+   rebuild, not just a restart.
+4. Add the Heroku hostname to the reCAPTCHA key's allowed domains.
+5. Deploy, scale the web dyno to 1, then check `/api/health`, `/shop`, `/cart`
+   and `/admin`.
+
+Vercel works too: import the repo and add the same variables.
+
+---
+
+## Testing
+
+```bash
+npm run test:all
+```
+
+101 tests across ten suites. They need no network, no database and no
+credentials — server-only modules are loaded into a VM context with explicit
+stubs, and a test that pulls in an unexpected dependency fails loudly.
+
+| Suite | Covers |
+|---|---|
+| `test:menu` | Server-side re-pricing, four-pack rules, tamper resistance |
+| `test:box` | Box validation, stock thresholds, sold-out enforcement |
+| `test:documents` | PDF rendering, invoice guards — asserts on decompressed PDF text |
+| `test:email` | Templates, escaping, attachments, save-before-send ordering |
+| `test:pickup` | Overdue detection, delay emails, date/time parsing |
+| `test:import` | Spreadsheet parsing, Excel dates, per-row errors |
+| `test:photos` | Styled-vs-real photo rules and disclosure |
+| `test:mobile`, `test:reveal` | Responsive behaviour and motion |
+| `test:config` | Production startup checks |
+
+---
+
+## Things that will bite you
+
+**Dates are parsed as local calendar days.** `new Date("2026-09-15")` is UTC
+midnight — the previous day anywhere west of Greenwich. Parsing date-only
+values that way would display the wrong day and mark same-day pickups overdue
+every evening in Texas. Use the helpers in `lib/date-values.js`.
+
+**`NEXT_PUBLIC_*` is baked in at build time.** Changing one on Heroku requires
+a rebuild; a restart is not enough.
+
+**Statically rendered pages cannot use `no-store`.** They silently fall back to
+default values. The shop-price read uses a revalidated cache tag for exactly
+this reason.
+
+**Photos are labelled honestly.** Styled product imagery carries a "Styled
+photo" badge and links to a gallery of the owner's own photos. If you swap a
+genuine photo for a styled one, move the label with it.
+
+**Order numbers come from a sequence.** Importing an order with status
+`confirmed` fires the same trigger as confirming one and consumes a real
+number. Import historical orders as `pending` unless you want numbers assigned.
+
+---
+
+## Project layout
+
+```
+app/                    Routes — pages and API handlers
+  admin/                Shop Desk shell and its stylesheet
+  api/                  Public and admin endpoints
+components/             UI — storefront and Shop Desk
+lib/                    Server logic: pricing, orders, email, PDFs, Supabase
+  order-pdf.js          Confirmation and invoice documents
+  email-template.js     Every customer email
+  order-menu.js         Server-side re-pricing and availability
+supabase/
+  schema.sql            Full database definition
+  migrations/           Applied in filename order
+  functions/            Edge Function (see "Why not the Edge Function?")
+tests/                  Ten suites, no network
+assets/                 Email and PDF logos
+public/products/        Product photography
+scripts/                Env checks and email previews
+```
+
+---
+
+## Appendix: how the design was chosen
+
+Six directions were built before the current site. Design 3 — *Party Pop*, a
+modern dark storefront — won and became what you see. Concepts 1–3 are HTML and
+still viewable at
+[`concepts.html`](https://eanthonycarranza.github.io/BonBons/concepts.html) or
+locally in `design-previews/`; concepts 4–6 (*Sugar Rush*, *Confetti
+Editorial*, *Storybook Pastel*) live in
+[Figma](https://www.figma.com/design/pieBhsc3pHgP3706D6dsp4) with the brand
+colors set up as variables.
+
+`index.html` and `concepts.html` deploy to GitHub Pages as a static preview of
+that original work. **GitHub Pages cannot run this app** — it only serves
+static files, and the real site needs a Node server and a database.
+
+The logo is available with a transparent background
+(`public/logo-transparent.png`), plus a monogram favicon
+(`public/favicon-monogram.svg`) that stays legible at 16×16 where the full logo
+reads as a colourful oval. An SVG of the full logo is still worth getting from
+whoever designed it.
