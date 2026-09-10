@@ -36,6 +36,8 @@ async function mutate(request, context, deleting) {
         price: product.price,
         stock_quantity: product.stock_quantity,
         low_stock_threshold: product.low_stock_threshold,
+        category: product.category,
+        bundle_eligible: product.bundle_eligible,
       });
     }
     refreshMenu();

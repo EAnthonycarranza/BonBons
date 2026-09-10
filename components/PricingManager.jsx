@@ -14,7 +14,7 @@ import { assertPrice, MenuValidationError } from "@/supabase/functions/_shared/m
 export default function PricingManager() {
   const [products, setProducts] = useState([]);
   const [drafts, setDrafts] = useState({});
-  const [settings, setSettings] = useState({ singlePopPrice: "", fourPackPrice: "" });
+  const [settings, setSettings] = useState({ singlePopPrice: "", fourPackPrice: "", pretzelRodPrice: "", pretzelPairPrice: "" });
   const [loading, setLoading] = useState(true);
   const [savingShop, setSavingShop] = useState(false);
   const [savingRow, setSavingRow] = useState("");
@@ -41,6 +41,8 @@ export default function PricingManager() {
         setSettings({
           singlePopPrice: String(data.settings.singlePopPrice),
           fourPackPrice: String(data.settings.fourPackPrice),
+          pretzelRodPrice: String(data.settings.pretzelRodPrice),
+          pretzelPairPrice: String(data.settings.pretzelPairPrice),
         });
       }
     }
@@ -57,12 +59,16 @@ export default function PricingManager() {
       // server would use.
       assertPrice(Number(settings.singlePopPrice), "The single cake-pop price");
       assertPrice(Number(settings.fourPackPrice), "The four-pack price");
+      assertPrice(Number(settings.pretzelRodPrice), "The pretzel-rod price");
+      assertPrice(Number(settings.pretzelPairPrice), "The two-pretzel-rod price");
       const response = await fetch("/api/admin/shop-settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           singlePopPrice: Number(settings.singlePopPrice),
           fourPackPrice: Number(settings.fourPackPrice),
+          pretzelRodPrice: Number(settings.pretzelRodPrice),
+          pretzelPairPrice: Number(settings.pretzelPairPrice),
         }),
       });
       const data = await response.json();
@@ -107,7 +113,7 @@ export default function PricingManager() {
         <span className="summary-icon"><AdminIcon name="payment" /></span>
         <div>
           <h2>Prices</h2>
-          <p>What each cake pop costs, and the four-pack price.</p>
+          <p>What each cake pop and pretzel rod costs, and both bundle prices.</p>
         </div>
       </header>
 
@@ -127,12 +133,24 @@ export default function PricingManager() {
             onChange={(e) => setSettings((c) => ({ ...c, fourPackPrice: e.target.value }))} />
           <small>What any four selected flavors cost together.</small>
         </label>
+        <label className="admin-field">
+          Single pretzel rod
+          <input type="number" min="0.01" max="500" step="0.01" value={settings.pretzelRodPrice}
+            onChange={(e) => setSettings((c) => ({ ...c, pretzelRodPrice: e.target.value }))} />
+          <small>The headline price on the pretzel-rod shelf.</small>
+        </label>
+        <label className="admin-field">
+          Two pretzel rods
+          <input type="number" min="0.01" max="500" step="0.01" value={settings.pretzelPairPrice}
+            onChange={(e) => setSettings((c) => ({ ...c, pretzelPairPrice: e.target.value }))} />
+          <small>What any two rods cost together.</small>
+        </label>
         <button type="submit" className="admin-btn admin-btn-primary" disabled={savingShop || loading}>
           {savingShop ? "Saving…" : "Save these prices"}
         </button>
       </form>
 
-      <h3 className="pricing-subhead">Every flavor</h3>
+      <h3 className="pricing-subhead">Every flavor and rod</h3>
       <p className="admin-footnote pricing-intro">
         Set a different price for any individual flavor. Most stay at the single
         cake-pop price above.

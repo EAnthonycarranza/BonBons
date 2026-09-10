@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useCart } from "./CartProvider";
+import { bundleGroupForCategory } from "@/lib/bundles";
 
 export default function AddToCart({ product }) {
   const { add, setOpen } = useCart();
@@ -21,6 +22,7 @@ export default function AddToCart({ product }) {
             price: product.price, qty, icon: product.icon,
             color: product.color, tint: product.tint,
             bundleEligible: product.bundleEligible,
+            bundleGroup: bundleGroupForCategory(product.category),
             image: product.image,
           });
           setOpen(true);

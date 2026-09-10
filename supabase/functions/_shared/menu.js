@@ -68,6 +68,11 @@ export function isMenuImageUrl(value) {
   } catch { return false; }
 }
 
+// A product's category decides which shelf it sits on in the shop and which
+// bundle it counts toward. Kept to a known list so a typo cannot strand a
+// flavor in a category of its own.
+export const MENU_CATEGORIES = ["everyday", "pretzel-rods", "custom"];
+
 export function validateMenuProduct(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new MenuValidationError("Enter the cake-pop details.");
   function text(key, limit, required = false) {
@@ -94,12 +99,14 @@ export function validateMenuProduct(input) {
     try { const url = new URL(source); valid = url.protocol === "https:" && url.hostname === "www.instagram.com" && !url.username && !url.password; } catch {}
     if (!valid) throw new MenuValidationError("The source must be an Instagram post link.");
   }
+  const category = input.category ?? "everyday";
+  if (!MENU_CATEGORIES.includes(category)) throw new MenuValidationError("Choose a category from the provided list.");
   return {
     name, slug, price, unit: "each", blurb: text("blurb", 160), description: text("description", 2000),
-    image, active: input.active, bundle_eligible: input.bundle_eligible, sort_order: sortOrder,
+    image, active: input.active, bundle_eligible: input.bundle_eligible, category, sort_order: sortOrder,
     allergens: [...new Set(allergens)], badge: text("badge", 32), source_url: source,
     stock_quantity: assertStock(input.stock_quantity), low_stock_threshold: assertThreshold(input.low_stock_threshold),
-    category: "everyday", icon: "i-cakepop", color: "#F285B5", tint: "242,133,181", badge_class: "", lead_time_hours: 72,
+    icon: "i-cakepop", color: "#F285B5", tint: "242,133,181", badge_class: "", lead_time_hours: 72,
   };
 }
 
@@ -172,5 +179,9 @@ export function validateShopSettings(input) {
   return {
     single_pop_price: assertPrice(input.single_pop_price, "The single cake-pop price"),
     four_pack_price: assertPrice(input.four_pack_price, "The four-pack price"),
+    ...(input.pretzel_rod_price === undefined ? {} :
+      { pretzel_rod_price: assertPrice(input.pretzel_rod_price, "The pretzel-rod price") }),
+    ...(input.pretzel_pair_price === undefined ? {} :
+      { pretzel_pair_price: assertPrice(input.pretzel_pair_price, "The two-pretzel-rod price") }),
   };
 }

@@ -15,15 +15,21 @@ test("flavor names produce stable, safe URL slugs", () => {
   assert.equal(menuSlug("Crème"), "creme");
 });
 test("menu validation strips privileged and unknown fields", () => {
-  const product = validateMenuProduct({ ...draft, id: 999, deleted_at: "x", category: "events", arbitrary: true });
+  const product = validateMenuProduct({ ...draft, id: 999, deleted_at: "x", arbitrary: true });
+  // A product with no category stated belongs on the cake-pop shelf.
   assert.equal(product.category, "everyday");
   assert.equal(product.unit, "each");
   assert.equal(product.active, false);
   assert.equal(product.id, undefined);
   assert.equal(product.deleted_at, undefined);
 });
-test("menu rejects invalid prices, visibility, names, sort order, and allergens", () => {
-  for (const change of [{ price: 0 }, { price: "4" }, { name: "" }, { slug: "../escape" }, { active: "true" }, { bundle_eligible: 1 }, { sort_order: -1 }, { sort_order: 0.5 }, { allergens: ["unknown"] }, { description: "x".repeat(2001) }]) {
+test("a product can be filed under any of the shop's real categories", () => {
+  for (const category of ["everyday", "pretzel-rods", "custom"]) {
+    assert.equal(validateMenuProduct({ ...draft, category }).category, category);
+  }
+});
+test("menu rejects invalid prices, visibility, names, sort order, allergens, and categories", () => {
+  for (const change of [{ price: 0 }, { price: "4" }, { name: "" }, { slug: "../escape" }, { active: "true" }, { bundle_eligible: 1 }, { sort_order: -1 }, { sort_order: 0.5 }, { allergens: ["unknown"] }, { description: "x".repeat(2001) }, { category: "events" }, { category: "" }]) {
     assert.throws(() => validateMenuProduct({ ...draft, ...change }));
   }
 });

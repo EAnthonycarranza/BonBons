@@ -18,15 +18,31 @@ export const dynamic = "force-dynamic";
 const CATEGORY_LABELS = {
   everyday: "The everyday favorites",
   custom: "For something a little special",
+  "pretzel-rods": "Pretzel rods",
 };
 
+// Categories come back in whatever order the menu is sorted; keep the cake pops
+// first so the shop still opens on what it is known for.
+const CATEGORY_ORDER = ["everyday", "pretzel-rods", "custom"];
+
 export default async function ShopPage() {
-  const { singlePopPrice, fourPackPrice } = await getShopSettings();
+  const { singlePopPrice, fourPackPrice, pretzelRodPrice, pretzelPairPrice } = await getShopSettings();
   const singleLabel = money(singlePopPrice);
   const packLabel = money(fourPackPrice);
+  const rodLabel = money(pretzelRodPrice);
+  const pairLabel = money(pretzelPairPrice);
 
   const products = await getProducts();
-  const categories = [...new Set(products.map((p) => p.category))];
+  const categories = [...new Set(products.map((p) => p.category))].sort((a, b) => {
+    const rank = (c) => (CATEGORY_ORDER.indexOf(c) === -1 ? CATEGORY_ORDER.length : CATEGORY_ORDER.indexOf(c));
+    return rank(a) - rank(b);
+  });
+
+  const categoryNote = (cat) => {
+    if (cat === "everyday") return `${singleLabel} each · selected four-pack ${packLabel}`;
+    if (cat === "pretzel-rods") return `${rodLabel} each · 2 for ${pairLabel}`;
+    return "Custom colors & event orders, by request";
+  };
 
   return (
     <section className="sec">
@@ -41,8 +57,9 @@ export default async function ShopPage() {
             </h1>
             <p>
               Cake pops are what we do. Pick a {singleLabel} single for yourself, or choose
-              a {packLabel} four-pack to mix your favorites. No special occasion
-              necessary.
+              a {packLabel} four-pack to mix your favorites. Chocolate-dipped pretzel
+              rods are here too, {rodLabel} each or 2 for {pairLabel}. No special
+              occasion necessary.
             </p>
             <Link className="text-link" href="/build-a-box">
               Build a {packLabel} four-pack <span aria-hidden="true">↗</span>
@@ -64,11 +81,7 @@ export default async function ShopPage() {
           <div key={cat} style={{ marginBottom: 46 }}>
             <div className="category-heading">
               <h2>{CATEGORY_LABELS[cat] || cat}</h2>
-              <span>
-                {cat === "everyday"
-                  ? `${singleLabel} each · selected four-pack ${packLabel}`
-                  : "Custom colors & event orders, by request"}
-              </span>
+              <span>{categoryNote(cat)}</span>
             </div>
             <div
               className="grid live-menu-grid"

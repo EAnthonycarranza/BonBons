@@ -52,7 +52,7 @@ export const viewport = {
 };
 
 export default async function RootLayout({ children }) {
-  const { singlePopPrice, fourPackPrice } = await getShopSettings();
+  const { singlePopPrice, fourPackPrice, pretzelRodPrice, pretzelPairPrice } = await getShopSettings();
   return (
     <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body>
@@ -60,7 +60,7 @@ export default async function RootLayout({ children }) {
           Skip to main content
         </a>
         <IconSprite />
-        <PricesProvider singlePopPrice={singlePopPrice} fourPackPrice={fourPackPrice}>
+        <PricesProvider singlePopPrice={singlePopPrice} fourPackPrice={fourPackPrice} pretzelRodPrice={pretzelRodPrice} pretzelPairPrice={pretzelPairPrice}>
         <CartProvider>
           <StorefrontOnly><SiteHeader /></StorefrontOnly>
           <main id="main">{children}</main>

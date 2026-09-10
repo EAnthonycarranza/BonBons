@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { buildFourPacksFromSingles, getCartPricing } from "@/lib/pricing";
+import { buildBundlesFromSingles, getCartPricing } from "@/lib/pricing";
+import { getBundleGroup } from "@/lib/bundles";
 import { usePrices } from "./PricesProvider";
 
 const CartContext = createContext(null);
@@ -67,13 +68,19 @@ export function CartProvider({ children }) {
   }, []);
   const clear = useCallback(() => setItems([]), []);
 
-  const convertSinglesToFourPacks = useCallback(() => {
-    const { packCount, convertedPops } = buildFourPacksFromSingles(items, prices);
+  // One converter for every bundle group, so switching cake pops into
+  // four-packs leaves any pretzel rods in the cart exactly as they were.
+  const convertSinglesToBundles = useCallback((groupKey = "cakepop") => {
+    const group = getBundleGroup(groupKey);
+    const { packCount, convertedUnits } = buildBundlesFromSingles(items, prices, groupKey);
     if (!packCount) return;
 
-    setItems((current) => buildFourPacksFromSingles(current, prices).items);
-    say(`Switched ${convertedPops} singles to ${packCount} four-pack${packCount === 1 ? "" : "s"}`);
-  }, [items, say]);
+    setItems((current) => buildBundlesFromSingles(current, prices, groupKey).items);
+    const packLabel = packCount === 1 ? group.packName : group.packNamePlural;
+    say(`Switched ${convertedUnits} singles to ${packCount} ${packLabel}`);
+  }, [items, prices, say]);
+
+  const convertSinglesToFourPacks = useCallback(() => convertSinglesToBundles("cakepop"), [convertSinglesToBundles]);
 
   const count = useMemo(() => items.reduce((n, i) => n + i.qty, 0), [items]);
   const pricing = useMemo(() => getCartPricing(items, prices), [items, prices]);
@@ -85,13 +92,16 @@ export function CartProvider({ children }) {
       singlePopCount: pricing.singlePopCount,
       suggestedFourPacks: pricing.suggestedFourPacks,
       potentialSavings: pricing.potentialSavings,
+      bundleGroups: pricing.groups,
+      convertSinglesToBundles,
       convertSinglesToFourPacks,
       open, setOpen, toast, say, ready,
     }),
     [
       items, add, remove, setQty, clear, count, subtotal,
       pricing.singlePopCount, pricing.suggestedFourPacks, pricing.potentialSavings,
-      convertSinglesToFourPacks, open, toast, say, ready,
+      pricing.groups, convertSinglesToBundles, convertSinglesToFourPacks,
+      open, toast, say, ready,
     ]
   );
 

@@ -8,6 +8,7 @@ import { money } from "@/lib/format";
 import { isStyledProductPhoto } from "@/lib/product-photos";
 import { stockLabel } from "@/lib/weekly-box";
 import { stockState } from "@/supabase/functions/_shared/menu";
+import { bundleGroupForCategory } from "@/lib/bundles";
 
 export default function ProductCard({ product }) {
   const { add } = useCart();
@@ -26,6 +27,7 @@ export default function ProductCard({ product }) {
       price: product.price,
       qty: 1,
       bundleEligible: product.bundleEligible,
+      bundleGroup: bundleGroupForCategory(product.category),
       image: product.image,
       icon: product.icon,
       color: product.color,

@@ -134,13 +134,7 @@ export default function CartDrawer() {
         </div>
 
         <div className="drawer-foot">
-          <BundleNudge
-            compact
-            singlePopCount={singlePopCount}
-            suggestedFourPacks={suggestedFourPacks}
-            potentialSavings={potentialSavings}
-            onConvert={convertSinglesToFourPacks}
-          />
+          <BundleNudge compact />
           <div className="dtot">
             <span>Estimated total</span>
             <b>{money(subtotal)}</b>

@@ -207,12 +207,7 @@ export default function CartPage() {
                 ))}
               </div>
 
-              <BundleNudge
-                singlePopCount={singlePopCount}
-                suggestedFourPacks={suggestedFourPacks}
-                potentialSavings={potentialSavings}
-                onConvert={convertSinglesToFourPacks}
-              />
+              <BundleNudge />
 
               <div className="tile" style={{ marginTop: 16, padding: 22 }}>
                 <div className="dtot">
