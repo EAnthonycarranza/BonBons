@@ -1033,4 +1033,6 @@ body:has(.admin-page) .mbar{display:none}
   list-style:none;border:1px solid var(--stroke);border-radius:999px;background:rgba(255,255,255,.04);
   font-size:11.5px;font-weight:600;letter-spacing:.01em;line-height:1;white-space:nowrap;color:var(--text)}
 .pay-mark{flex:none;display:block}
+/* The Venmo tile carries its own wordmark, so it needs no room for a label. */
+.pay-methods .pay-method-wordmark{padding:5px 6px}
 .pay-methods-center{justify-content:center;margin-top:14px}
