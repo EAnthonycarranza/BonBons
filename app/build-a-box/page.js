@@ -3,6 +3,7 @@ import Image from "next/image";
 import { getProducts } from "@/lib/products";
 import { getShopSettings } from "@/lib/weekly-box-data";
 import { money } from "@/lib/format";
+import { bundleGroupForCategory } from "@/lib/bundles";
 
 export const metadata = {
   title: "Build a four-pack",
@@ -17,7 +18,11 @@ export default async function BuildABoxPage() {
   const singleLabel = money(singlePopPrice);
   const packLabel = money(fourPackPrice);
 
-  const products = (await getProducts()).filter((product) => product.bundleEligible);
+  // Cake pops only. A pretzel rod is bundle-eligible too, but it bundles in
+  // twos on its own shelf - it must never land inside a four-pack.
+  const products = (await getProducts()).filter(
+    (product) => product.bundleEligible && bundleGroupForCategory(product.category) === "cakepop"
+  );
   return (
     <section className="light flat sec">
       <div className="wrap">

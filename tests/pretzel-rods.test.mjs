@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { getCartPricing, buildBundlesFromSingles, buildFourPacksFromSingles } from "../lib/pricing.js";
-import { bundleGroupForCategory, bundlePrices } from "../lib/bundles.js";
+import { assertBoxItemsAreCakePops, bundleGroupForCategory, bundlePrices } from "../lib/bundles.js";
 import { normalizeOrderItems } from "../lib/order-menu.js";
 
 const PRICES = { singlePopPrice: 3, fourPackPrice: 10, pretzelRodPrice: 3, pretzelPairPrice: 5 };
@@ -113,4 +113,67 @@ test("a single rod carries its category through to the order", () => {
   const [item] = normalizeOrderItems([{ key: "sprinkle-pretzel-rod", qty: 2 }], MENU, {});
   assert.equal(item.bundleGroup, "pretzel");
   assert.equal(item.price, 3);
+});
+
+// --- the two kinds must never share a bundle ---
+
+test("a four-pack cannot be built from pretzel rods", () => {
+  for (const flavors of [
+    [{ slug: "sprinkle-pretzel-rod", qty: 4 }],
+    [{ slug: "cookie-monster", qty: 2 }, { slug: "sprinkle-pretzel-rod", qty: 2 }],
+  ]) {
+    assert.throws(() => normalizeOrderItems(
+      [{ key: "box-4-cookie-monster", qty: 1, flavors }], MENU, { fourPackPrice: 10 }
+    ), /remove this four-pack/);
+  }
+});
+
+test("a four-pack of cake pops still builds", () => {
+  const [item] = normalizeOrderItems(
+    [{ key: "box-4-cookie-monster", qty: 1, flavors: [{ slug: "cookie-monster", qty: 4 }] }],
+    MENU, { fourPackPrice: 10 }
+  );
+  assert.equal(item.price, 10);
+  assert.equal(item.name, "Cake Pop Four-Pack (4 pc)");
+});
+
+test("two cake pops cost two singles - the 2-for is a pretzel deal only", () => {
+  const pricing = getCartPricing([pop("cookie-monster", 2)], PRICES);
+  assert.equal(pricing.subtotal, 6);
+  assert.equal(pricing.bundleSavings, 0);
+  for (const group of pricing.groups) assert.equal(group.suggestedPacks, 0);
+});
+
+test("two pretzel rods do get the pair price", () => {
+  const pricing = getCartPricing([rod("sprinkle", 2)], PRICES);
+  assert.equal(pricing.subtotal, 6);
+  const pretzel = pricing.groups.find((g) => g.key === "pretzel");
+  assert.equal(pretzel.suggestedPacks, 1);
+  assert.equal(pretzel.potentialSavings, 1);
+});
+
+test("mixed singles never combine into one bundle", () => {
+  // Three of each: each shelf bundles on its own terms and neither borrows
+  // from the other, so this is one four-pack short and one pair strong.
+  const pricing = getCartPricing([pop("cookie-monster", 3), rod("sprinkle", 3)], PRICES);
+  const cakepop = pricing.groups.find((g) => g.key === "cakepop");
+  const pretzel = pricing.groups.find((g) => g.key === "pretzel");
+  assert.equal(cakepop.suggestedPacks, 0);
+  assert.equal(pretzel.suggestedPacks, 1);
+  assert.equal(pricing.subtotal, 18);
+});
+
+test("the Box of the Week refuses a pretzel rod", () => {
+  const products = [
+    { slug: "cookie-monster", name: "Cookie Monster", category: "everyday" },
+    { slug: "sprinkle-pretzel-rod", name: "Sprinkle Pretzel Rod", category: "pretzel-rods" },
+  ];
+  assert.doesNotThrow(() => assertBoxItemsAreCakePops(
+    [{ slug: "cookie-monster", name: "Cookie Monster", qty: 10 }], products));
+  assert.throws(() => assertBoxItemsAreCakePops(
+    [{ slug: "sprinkle-pretzel-rod", name: "Sprinkle Pretzel Rod", qty: 2 }], products),
+    /cannot go in the Box of the Week/);
+  // A slug that is not on the menu at all is refused rather than trusted.
+  assert.throws(() => assertBoxItemsAreCakePops(
+    [{ slug: "not-a-flavor", name: "Made up", qty: 1 }], products), /no longer on the menu/);
 });

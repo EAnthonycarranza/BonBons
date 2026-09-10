@@ -6,6 +6,7 @@ import AdminIcon from "./AdminIcon";
 import ConfirmDialog from "./ConfirmDialog";
 import { boxPopCount, isMenuImageUrl, MENU_IMAGE_MAX_BYTES, menuSlug, stockState, validateWeeklyBox } from "@/supabase/functions/_shared/menu";
 import { money } from "@/lib/format";
+import { bundleGroupForCategory } from "@/lib/bundles";
 
 function draftFor(box) {
   return {
@@ -245,7 +246,11 @@ export default function WeeklyBoxManager() {
     if (menuRes.status === "fulfilled" && menuRes.value.ok) {
       const menuData = await menuRes.value.json().catch(() => ({}));
       // Deleted flavors cannot go in a new box; hidden ones still can.
-      setProducts((menuData.products || []).filter(product => !product.deletedAt));
+      // Pretzel rods are excluded outright: they bundle in twos on their own
+      // shelf, so they never belong inside a cake-pop box.
+      setProducts((menuData.products || []).filter(
+        product => !product.deletedAt && bundleGroupForCategory(product.category) === "cakepop"
+      ));
     }
 
     if (boxRes.status === "fulfilled") {
