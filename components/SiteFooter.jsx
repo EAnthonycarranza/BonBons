@@ -4,6 +4,7 @@ import { money } from "@/lib/format";
 import Image from "next/image";
 import { Icon } from "./Icons";
 import { SITE } from "@/lib/sample-data";
+import { PaymentMethods } from "./PaymentMarks";
 
 export default async function SiteFooter() {
   const { singlePopPrice, fourPackPrice } = await getShopSettings();
@@ -127,6 +128,7 @@ export default async function SiteFooter() {
                 <Link href="/faq">How pickup works →</Link>
               </li>
             </ul>
+            <PaymentMethods />
           </div>
         </div>
 

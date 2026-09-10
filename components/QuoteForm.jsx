@@ -4,6 +4,7 @@ import Image from "next/image";
 import { isEmail, isPhone } from "@/lib/format";
 import { Icon } from "./Icons";
 import { SITE } from "@/lib/sample-data";
+import { PaymentMethods } from "./PaymentMarks";
 
 const OCCASION_OPTIONS = [
   "No event — just a custom order",
@@ -271,6 +272,7 @@ export default function QuoteForm() {
       <p className="help" style={{ marginTop: 12, textAlign: "center" }}>
         Wait until Bonnie confirms your order and total, then open <a href={SITE.paymentUrl} target="_blank" rel="noopener noreferrer">Bon Bon’s payment options</a>. No payment is collected on this website.
       </p>
+      <PaymentMethods className="pay-methods-center" />
     </form>
   );
 }
