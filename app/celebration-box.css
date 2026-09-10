@@ -1,313 +1,227 @@
-/*
- * The Box of the Week reads as a printed flyer dropped into the dark site:
- * candy-pink ground, confetti, ribbon band, and a die-cut price tag. It is a
- * deliberate light island, so every colour here is set locally rather than
- * inherited from the dark theme.
- */
-.wb-page {
-  --wb-ink: #2A1220;
-  --wb-ink-soft: #6C4356;
-  --wb-pink: #E51E7E;
-  --wb-pink-soft: #FFD7E8;
-  --wb-blue: #2E7BD6;
-  --wb-blue-soft: #D9EBFF;
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  padding: 0 0 72px;
-  background: linear-gradient(178deg, #FFE6F1 0%, #FFF1F6 42%, #FFE9F3 100%);
-  color: var(--wb-ink);
+/* Box of the Week: an editorial, photo-led take on Bon Bon's celebration flyer.
+   Colors are local to this feature; copy and images remain admin-controlled. */
+.weekly-page, .weekly-home-feature {
+  --weekly-pink: #f28cbd;
+  --weekly-blue: #86cdeb;
+  --weekly-ink: #f7eee7;
+  --weekly-muted: #c2afbf;
+  color: var(--weekly-ink);
+  background: #100b13;
 }
-.wb-page h1,
-.wb-page h2,
-.wb-page h3 { color: var(--wb-ink); }
-
-/* Confetti: cheap repeating dots rather than an image request. */
-.wb-confetti {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: .5;
-  background-image:
-    radial-gradient(circle, #FF7FC0 42%, transparent 43%),
-    radial-gradient(circle, #6FB6FF 42%, transparent 43%),
-    radial-gradient(circle, #FFCE4B 42%, transparent 43%),
-    radial-gradient(circle, #A98BFF 42%, transparent 43%);
-  background-size: 190px 190px, 240px 240px, 300px 300px, 270px 270px;
-  background-position: 12px 30px, 120px 140px, 60px 220px, 210px 90px;
+.weekly-page { padding-bottom: 16px; }
+.weekly-page h1, .weekly-page h2, .weekly-page h3, .weekly-home-feature h2 { color: var(--weekly-ink); }
+.weekly-page em, .weekly-home-feature em { color: var(--weekly-pink); font-weight: 400; }
+.weekly-kicker { display: block; color: var(--weekly-pink); font: 600 10px/1.6 var(--sans); letter-spacing: .17em; text-transform: uppercase; }
+.weekly-breadcrumb { display: flex; gap: 12px; padding-top: 30px; color: #a794a5; font-size: 11px; }
+.weekly-breadcrumb a { color: var(--weekly-muted); }
+.weekly-hero { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); align-items: center; gap: 70px; padding-block: 38px 46px; }
+.weekly-hero h1 { font: 400 clamp(56px,6.7vw,96px)/.94 var(--display); letter-spacing: -.045em; margin: 24px 0; }
+.weekly-intro { color: var(--weekly-muted); font-size: 15px; line-height: 1.9; max-width: 43ch; }
+.weekly-intro strong { font-weight: 500; color: var(--weekly-ink); }
+.weekly-specs { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 16px; margin-top: 30px; padding-block: 22px; border-block: 1px solid #3a2a3d; }
+.weekly-specs > div + div { border-left: 1px solid #3a2a3d; padding-left: 18px; }
+.weekly-specs b { display: block; font: 500 30px/1.1 var(--display); }
+.weekly-specs span { display: block; margin-top: 8px; color: var(--weekly-muted); font-size: 10px; line-height: 1.6; }
+.weekly-lineup-link { display: inline-flex; align-items: center; gap: 18px; min-height: 44px; margin-top: 15px; font-size: 12px; color: var(--weekly-blue); }
+.weekly-hero-actions { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; margin-top: 24px; }
+.weekly-hero-actions .btn { font-size: 12px; }
+.weekly-hero-actions .weekly-lineup-link { margin: 0; }
+.weekly-hero-visual { min-width: 0; }
+.weekly-visual-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.weekly-visual-heading span:first-child { font: 500 23px/1.2 var(--display); }
+.weekly-visual-heading span:last-child { color: var(--weekly-blue); text-transform: uppercase; font-size: 9px; letter-spacing: .12em; }
+.weekly-artwork { margin: 0; min-width: 0; }
+.weekly-photo-mosaic { height: 440px; display: grid; grid-template-columns: 1.1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; }
+.weekly-photo-cell { position: relative; min-width: 0; overflow: hidden; border-radius: 8px; border: 1px solid #483444; background: #201720; }
+.weekly-photo-cell:first-child { grid-row: span 2; border-radius: 100px 8px 8px 8px; }
+.weekly-photo-cell img, .weekly-box-photo > img { object-fit: cover; }
+.weekly-photo-cell:first-child img { object-position: 47% 48%; }
+.weekly-photo-cell span { position: absolute; bottom: 12px; left: 12px; right: 12px; width: fit-content; max-width: calc(100% - 24px); padding: 6px 9px; border-radius: 4px; background: #160f1ae8; color: #fff3fa; font-size: 10px; line-height: 1.5; }
+.weekly-photo-mosaic.has-1 { grid-template-columns: 1fr; }
+.weekly-photo-mosaic.has-2 { grid-template-rows: 1fr; }
+.weekly-photo-mosaic.has-2 .weekly-photo-cell:first-child { grid-row: auto; }
+.weekly-box-photo { height: 440px; position: relative; border-radius: 12px; overflow: hidden; background: #24182a; }
+.weekly-photo-pending { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 22px; text-align: center; color: var(--weekly-muted); }
+.weekly-photo-pending > img { object-fit: contain; width: 150px; height: auto; }
+.weekly-photo-pending p { font-size: 13px; line-height: 1.7; }
+.weekly-artwork figcaption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--weekly-muted); margin-top: 13px; font-size: 9px; line-height: 1.5; }
+.weekly-artwork figcaption span:first-child { color: var(--weekly-pink); }
+/* Social flyers keep every edge and line of type, including square/landscape uploads. */
+.weekly-poster-link { display: block; padding: 10px 10px 0; color: #592a44; background: #fbe5eb; border: 1px solid #f8c9dc; border-radius: 9px; box-shadow: 0 22px 60px #0004; }
+.weekly-poster-sheet { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: #fbe5eb; border-radius: 3px; }
+.weekly-poster-sheet > img { object-fit: contain; }
+.weekly-poster-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 13px; font: 500 10px/1.6 var(--sans); }
+.weekly-poster-footer > span:last-child { color: #a11759; }
+.weekly-poster-footer > span:last-child > span { margin-left: 4px; }
+.weekly-poster-link:focus-visible { outline: 3px solid var(--weekly-blue); outline-offset: 6px; }
+.weekly-hero.has-poster { grid-template-columns: minmax(0,1fr) minmax(0,1.05fr); gap: 70px; padding-block: 38px 52px; }
+.weekly-hero.has-poster .weekly-hero-visual { width: 100%; max-width: 540px; justify-self: end; }
+.weekly-hero.has-poster h1 { font-size: clamp(58px,6vw,86px); }
+.weekly-hero.has-poster .weekly-kicker { color: #ff98c4; }
+.weekly-home-grid.has-poster { grid-template-columns: minmax(0,.95fr) minmax(0,1fr); background: #201425; border-top: 3px solid #e95c9f; }
+.weekly-home-grid.has-poster .weekly-home-art { width: 100%; max-width: 420px; justify-self: center; }
+.weekly-request-wrap { scroll-margin-top: 110px; }
+.weekly-request-card { display: grid; grid-template-columns: .8fr 1fr 1.55fr; gap: 30px; align-items: center; padding: 30px; border: 1px solid #5d3a54; border-radius: 12px; background: #211525; }
+.weekly-offer > div { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
+.weekly-offer b { font: 500 clamp(45px,4.7vw,66px)/1 var(--display); letter-spacing: -.055em; }
+.weekly-offer > div > span { color: var(--weekly-muted); font-size: 11px; line-height: 1.8; }
+.wb-stock { min-width: 0; }
+.wb-stock-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.wb-stock-top b { font: 500 14px/1.6 var(--sans); color: #a3d9c2; }
+.wb-stock-top span { color: var(--weekly-muted); font-size: 10px; }
+.wb-stock-meter { height: 4px; border-radius: 2px; background: #3f3044; margin-top: 12px; overflow: hidden; }
+.wb-stock-meter > span { display: block; height: 100%; background: #98cbb3; transition: width 400ms ease; }
+.wb-stock-note { color: var(--weekly-muted); font-size: 10px; line-height: 1.7; margin-top: 10px; }
+.wb-stock.is-low .wb-stock-top b { color: #f5c998; }
+.wb-stock.is-low .wb-stock-meter > span { background: #f5c998; }
+.wb-stock.is-sold_out .wb-stock-top b { color: var(--weekly-pink); }
+.weekly-request-actions { min-width: 0; }
+.wb-add { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.wb-add .stepper { margin: 0; padding: 4px; border: 1px solid #644963; border-radius: 7px; background: #160f1b; }
+.wb-add .stepper button { width: 36px; height: 40px; border: 0; color: #f7eee7; background: transparent; border-radius: 4px; font-size: 19px; }
+.wb-add .stepper button:disabled { opacity: .35; cursor: not-allowed; }
+.wb-add .stepper output { color: #fff5fb; min-width: 20px; font: 500 14px/1 var(--sans); text-align: center; }
+.wb-add-btn { flex: 1; min-height: 50px; padding: 12px 15px; font-size: 12px; border-radius: 7px; }
+.wb-add-note { flex-basis: 100%; color: var(--weekly-muted); font-size: 10px; line-height: 1.5; }
+.weekly-request-note { color: var(--weekly-muted); font-size: 10px; line-height: 1.7; margin-top: 12px; }
+.weekly-sold-out h2 { font: 500 24px/1.2 var(--display); }
+.weekly-sold-out p { font-size: 12px; color: var(--weekly-muted); margin: 8px 0 14px; }
+.weekly-lineup { scroll-margin-top: 90px; }
+.weekly-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; margin-bottom: 34px; }
+.weekly-section-heading h2, .weekly-pickup-grid h2, .weekly-closing h2 { font: 400 clamp(38px,4.2vw,60px)/1.08 var(--display); letter-spacing: -.025em; margin-top: 15px; }
+.weekly-section-heading > p { color: var(--weekly-muted); font-size: 12px; line-height: 1.8; }
+.weekly-flavor-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 26px; list-style: none; padding: 0; }
+.weekly-flavor-card { min-width: 0; }
+.weekly-flavor-photo { position: relative; height: 340px; overflow: hidden; background: #221726; border: 1px solid #433047; border-radius: 10px; }
+.weekly-flavor-photo > img { object-fit: cover; }
+.weekly-flavor-count { position: absolute; left: 16px; top: 16px; font-size: 10px; line-height: 1.5; padding: 7px 11px; border-radius: 5px; background: #bbe2f1; color: #17344d; font-weight: 600; }
+.weekly-flavor-card:nth-child(3n+2) .weekly-flavor-count { background: #f4bed6; color: #55223d; }
+.weekly-flavor-card:nth-child(3n+3) .weekly-flavor-count { background: #e6ceab; color: #48321e; }
+.weekly-flavor-info { display: flex; gap: 16px; padding-top: 20px; }
+.weekly-flavor-number { color: var(--weekly-blue); font-size: 10px; padding-top: 8px; }
+.weekly-flavor-info h3 { font: 500 clamp(24px,2.3vw,33px)/1.08 var(--display); overflow-wrap: anywhere; }
+.weekly-flavor-info p { color: var(--weekly-muted); font-size: 11px; line-height: 1.7; margin-top: 9px; }
+.weekly-flavor-placeholder { display: grid; justify-items: center; align-content: center; height: 100%; gap: 18px; color: var(--weekly-muted); font-size: 12px; }
+.weekly-lineup-footnote { border-top: 1px solid #382c3c; margin-top: 32px; padding-top: 20px; display: grid; gap: 8px; color: var(--weekly-muted); font-size: 11px; line-height: 1.8; }
+.weekly-lineup-footnote a { color: var(--weekly-pink); text-decoration: underline; text-underline-offset: 4px; }
+.weekly-pickup-section { background: #1b121f; border-block: 1px solid #392b3d; padding-block: 76px; }
+.weekly-pickup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; }
+.weekly-description { white-space: pre-line; color: var(--weekly-muted); font-size: 13px; line-height: 1.9; max-width: 44ch; margin-block: 24px; }
+.weekly-steps { display: grid; gap: 28px; list-style: none; padding: 0; }
+.weekly-steps li { display: flex; gap: 24px; padding-bottom: 24px; border-bottom: 1px solid #403146; }
+.weekly-steps li:last-child { border: 0; padding-bottom: 0; }
+.weekly-steps li > span { font: italic 400 29px/1 var(--display); color: var(--weekly-pink); }
+.weekly-steps h3 { font: 500 24px/1.1 var(--display); }
+.weekly-steps p { color: var(--weekly-muted); font-size: 12px; line-height: 1.85; margin-top: 10px; max-width: 46ch; }
+.weekly-closing { text-align: center; padding-block: 74px; }
+.weekly-closing h2 { margin: 17px 0 27px; }
+.weekly-closing p { color: var(--weekly-muted); font-size: 10px; line-height: 1.8; margin-top: 17px; }
+.weekly-empty { padding-block: 76px 96px; text-align: center; }
+.weekly-empty > img { margin: 0 auto 28px; }
+.weekly-empty h1 { font: 400 clamp(38px,5vw,68px)/1.05 var(--display); margin: 20px 0; }
+.weekly-empty p { color: var(--weekly-muted); max-width: 48ch; line-height: 1.9; margin: 0 auto 28px; }
+.weekly-actions { display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; }
+.weekly-home-feature { padding-block: 64px 72px; border-bottom: 1px solid #38273c; }
+.weekly-home-label { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding-bottom: 23px; }
+.weekly-home-label > span:last-child { color: var(--weekly-muted); font-size: 10px; }
+.weekly-home-grid { display: grid; grid-template-columns: 1.15fr 1fr; align-items: center; gap: 60px; padding: 34px; background: #201425; border: 1px solid #59354d; border-radius: 12px; }
+.weekly-home-overline { display: block; font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--weekly-blue); }
+.weekly-home-copy h2 { font: 400 clamp(43px,4.5vw,66px)/1.02 var(--display); letter-spacing: -.035em; margin-top: 18px; }
+.weekly-home-copy > p { font-size: 13px; color: var(--weekly-muted); line-height: 1.8; max-width: 39ch; margin-top: 20px; }
+.weekly-home-offer { display: flex; gap: 20px; align-items: center; margin: 23px 0; }
+.weekly-home-offer > b { font: 500 52px/1 var(--display); letter-spacing: -.035em; }
+.weekly-home-offer > span { font-size: 10px; line-height: 1.8; color: var(--weekly-muted); }
+.weekly-home-stock { display: block; color: #a3d9c2; font-size: 11px; margin-top: 3px; }
+.weekly-home-stock.is-low { color: #f5c998; }
+.weekly-home-stock.is-sold_out { color: var(--weekly-pink); }
+.weekly-home-copy > small { display: block; color: var(--weekly-muted); font-size: 10px; margin-top: 14px; line-height: 1.7; }
+.weekly-home-art { min-width: 0; }
+.weekly-home-art .weekly-photo-mosaic, .weekly-home-art .weekly-box-photo { height: 430px; }
+@media (hover:hover) and (pointer:fine) {
+  .weekly-photo-cell img, .weekly-flavor-photo > img { transition: transform 700ms var(--ease-out); }
+  .weekly-photo-cell:hover img, .weekly-flavor-card:hover .weekly-flavor-photo > img { transform: scale(1.035); }
+  .weekly-lineup-link:hover { color: #d4effb; }
 }
-
-.wb-eyebrow {
-  display: inline-block;
-  font: 700 11px/1 var(--sans);
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--wb-pink);
-  background: #fff;
-  border: 1px solid #FFC2DE;
-  border-radius: 999px;
-  padding: 9px 15px;
-  margin-bottom: 18px;
+@media (max-width:1100px) {
+  .weekly-hero { gap: 36px; }
+  .weekly-hero.has-poster { gap: 36px; }
+  .weekly-request-card { grid-template-columns: 1fr 1.5fr; gap: 24px; }
+  .weekly-request-actions { grid-column: 1 / -1; padding-top: 22px; border-top: 1px solid #4a334d; }
+  .weekly-request-actions .wb-add { flex-wrap: nowrap; }
+  .weekly-request-actions .wb-add-note { flex-basis: auto; flex: 1; }
+  .weekly-request-actions .wb-add-btn { flex: 0 1 280px; }
+  .weekly-home-grid { gap: 32px; padding: 28px; }
+  .weekly-flavor-photo { height: 290px; }
 }
-
-.wb-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, .86fr);
-  gap: 46px;
-  align-items: center;
-  padding-top: 54px;
-  padding-bottom: 54px;
+@media (max-width:760px) {
+  .weekly-breadcrumb { padding-top: 22px; font-size: 10px; }
+  .weekly-hero { grid-template-columns: minmax(0,1fr); padding-block: 30px 30px; gap: 30px; }
+  .weekly-hero.has-poster { grid-template-columns: minmax(0,1fr); gap: 32px; padding-block: 30px; }
+  .weekly-hero.has-poster .weekly-hero-visual { justify-self: center; }
+  .weekly-hero.has-poster h1 { font-size: clamp(56px,12vw,78px); }
+  .weekly-poster-link { padding: 6px 6px 0; }
+  .weekly-poster-footer { padding: 11px 4px; font-size: 9px; gap: 8px; }
+  .weekly-hero h1 { font-size: clamp(58px,12vw,78px); margin-block: 20px; }
+  .weekly-intro { font-size: 14px; max-width: 100%; }
+  .weekly-specs { margin-top: 24px; padding-block: 18px; }
+  .weekly-specs b { font-size: 28px; }
+  .weekly-specs span { font-size: 10px; }
+  .weekly-lineup-link { margin-top: 10px; }
+  .weekly-visual-heading span:first-child { font-size: 22px; }
+  .weekly-visual-heading span:last-child { font-size: 8px; }
+  .weekly-photo-mosaic, .weekly-box-photo { height: 370px; }
+  .weekly-artwork figcaption { font-size: 8px; gap: 5px; }
+  .weekly-request-wrap { scroll-margin-top: 92px; }
+  .weekly-request-card { padding: 22px; gap: 23px; }
+  .weekly-offer > div { flex-wrap: wrap; gap: 7px; }
+  .weekly-offer b { font-size: 48px; }
+  .weekly-offer > div > span { font-size: 10px; }
+  .weekly-offer .weekly-kicker { font-size: 8px; }
+  .weekly-request-actions .wb-add { flex-wrap: wrap; }
+  .weekly-request-actions .wb-add-btn { flex: 1; }
+  .weekly-request-actions .wb-add-note { flex: 1 0 100%; }
+  .wb-add .stepper button { width: 36px; height: 44px; }
+  .weekly-request-note { font-size: 10px; }
+  .weekly-lineup { padding-block: 58px; }
+  .weekly-section-heading { display: block; margin-bottom: 28px; }
+  .weekly-section-heading > p { margin-top: 18px; }
+  .weekly-flavor-grid { gap: 30px 18px; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .weekly-flavor-photo { height: 250px; }
+  .weekly-flavor-info { gap: 10px; }
+  .weekly-flavor-info h3 { font-size: 26px; }
+  .weekly-pickup-section { padding-block: 56px; }
+  .weekly-pickup-grid { grid-template-columns: 1fr; gap: 36px; }
+  .weekly-description { font-size: 13px; }
+  .weekly-closing { padding-block: 60px; }
+  .weekly-closing h2 { font-size: 42px; }
+  .weekly-home-feature { padding-block: 40px 48px; }
+  .weekly-home-grid { grid-template-columns: minmax(0,1fr); gap: 28px; padding: 22px; }
+  .weekly-home-grid.has-poster { grid-template-columns: minmax(0,1fr); }
+  .weekly-home-copy { order: -1; }
+  .weekly-home-copy h2 { font-size: 48px; }
+  .weekly-home-copy > p { max-width: none; }
+  .weekly-home-copy .btn { width: 100%; font-size: 12px; padding-inline: 12px; }
+  .weekly-home-art .weekly-photo-mosaic, .weekly-home-art .weekly-box-photo { height: 320px; }
 }
-.wb-hero h1 {
-  font: 800 clamp(38px, 5.4vw, 68px)/1.02 var(--sans);
-  letter-spacing: -.04em;
-  margin-bottom: 14px;
+@media (max-width:480px) {
+  .weekly-hero h1 { font-size: 64px; }
+  .weekly-kicker { font-size: 9px; }
+  .weekly-specs { gap: 10px; }
+  .weekly-specs > div + div { padding-left: 12px; }
+  .weekly-photo-mosaic, .weekly-box-photo { height: 330px; gap: 7px; }
+  .weekly-photo-cell:first-child { border-top-left-radius: 70px; }
+  .weekly-photo-cell span { left: 8px; right: 8px; bottom: 8px; max-width: calc(100% - 16px); font-size: 9px; padding: 5px 6px; }
+  .weekly-request-card { padding: 18px; grid-template-columns: 1fr 1.25fr; gap: 18px; }
+  .weekly-request-actions .wb-add-btn { flex-basis: 100%; }
+  .wb-add .stepper button { width: 44px; }
+  .weekly-flavor-grid { grid-template-columns: 1fr; }
+  .weekly-flavor-photo { height: auto; aspect-ratio: 1.08; }
+  .weekly-flavor-info h3 { font-size: 30px; }
+  .weekly-home-grid { padding: 20px; }
+  .weekly-home-label > span:last-child { font-size: 9px; }
+  .weekly-home-copy h2 { font-size: 46px; }
+  .weekly-home-overline { font-size: 9px; }
 }
-.wb-hero h1 em {
-  display: block;
-  font-family: var(--font-display), Georgia, serif;
-  font-style: italic;
-  font-weight: 500;
-  letter-spacing: -.02em;
-  color: var(--wb-pink);
-}
-.wb-tagline {
-  max-width: 46ch;
-  color: var(--wb-ink-soft);
-  font-size: 16px;
-  line-height: 1.75;
-  margin-bottom: 26px;
-}
-
-.wb-price-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
-  align-items: stretch;
-  margin-bottom: 26px;
-}
-/* Die-cut tag, echoing the flyer's $25 flash. */
-.wb-price-tag {
-  flex: 0 0 auto;
-  display: grid;
-  align-content: center;
-  gap: 3px;
-  padding: 16px 26px;
-  border-radius: 14px 4px 14px 4px;
-  background: linear-gradient(150deg, #FF3D97, #D6156F);
-  color: #fff;
-  box-shadow: 0 12px 26px rgba(214, 21, 111, .32);
-}
-.wb-price-tag small {
-  font: 700 9.5px/1.2 var(--sans);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  opacity: .92;
-}
-.wb-price-tag b { font: 800 40px/1 var(--sans); letter-spacing: -.03em; }
-
-.wb-stock {
-  flex: 1 1 260px;
-  min-width: 0;
-  padding: 15px 18px;
-  border-radius: 14px;
-  background: #fff;
-  border: 1px solid #FFD0E4;
-}
-.wb-stock-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
-.wb-stock-top b { font: 800 19px/1.2 var(--sans); letter-spacing: -.02em; }
-.wb-stock-top span { font-size: 11.5px; color: var(--wb-ink-soft); }
-.wb-stock-meter {
-  height: 9px;
-  margin: 11px 0 9px;
-  border-radius: 999px;
-  background: #FFE2EE;
-  overflow: hidden;
-}
-.wb-stock-meter > span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #3FD9A4, #23B98A);
-  transition: width .4s ease;
-}
-.wb-stock-note { font-size: 12px; line-height: 1.6; color: var(--wb-ink-soft); }
-
-.wb-stock.is-low { border-color: #FFB27A; background: #FFF6EE; }
-.wb-stock.is-low .wb-stock-top b { color: #C2530B; }
-.wb-stock.is-low .wb-stock-meter { background: #FFE3CB; }
-.wb-stock.is-low .wb-stock-meter > span { background: linear-gradient(90deg, #FFA23D, #EF6C12); }
-.wb-stock.is-sold_out { border-color: #E7B9C7; background: #FBF0F4; }
-.wb-stock.is-sold_out .wb-stock-top b { color: #A32748; }
-.wb-stock.is-sold_out .wb-stock-meter > span { background: #C9A5B2; }
-
-.wb-add { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.wb-add-btn { min-height: 52px; }
-.wb-add-note { flex: 1 0 100%; font-size: 12px; color: var(--wb-ink-soft); }
-/* The storefront stepper is built for the dark theme; repaint it for the flyer. */
-.wb-page .stepper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px;
-  background: #fff;
-  border: 1px solid #FFC9E0;
-  border-radius: 12px;
-}
-.wb-page .stepper button {
-  width: 40px;
-  height: 40px;
-  background: #FFEAF3;
-  border: 1px solid #FFC2DE;
-  border-radius: 9px;
-  color: var(--wb-pink);
-  font-size: 18px;
-  line-height: 1;
-}
-.wb-page .stepper button:hover:not(:disabled) { background: #FFD9EA; }
-.wb-page .stepper output { color: var(--wb-ink); min-width: 28px; text-align: center; }
-
-.wb-soldout-panel {
-  padding: 20px 22px;
-  border-radius: 16px;
-  background: #fff;
-  border: 1px dashed #E9A9BF;
-}
-.wb-soldout-panel b { display: block; font-size: 19px; letter-spacing: -.02em; }
-.wb-soldout-panel p { margin: 7px 0 15px; font-size: 13.5px; color: var(--wb-ink-soft); }
-.wb-soldout-panel .btn-ghost { border-color: #E9A9BF; color: var(--wb-pink); }
-
-.wb-hero-photo { position: relative; }
-.wb-hero-photo img {
-  width: 100%;
-  height: auto;
-  border-radius: 22px;
-  border: 7px solid #fff;
-  box-shadow: 0 20px 50px rgba(190, 40, 110, .22);
-}
-.wb-photo-empty {
-  display: grid;
-  place-items: center;
-  gap: 10px;
-  aspect-ratio: 1;
-  border-radius: 22px;
-  border: 7px solid #fff;
-  background: #FFDCEB;
-  color: var(--wb-ink-soft);
-  font-size: 12px;
-}
-.wb-photo-empty img { width: 110px; height: auto; border: 0; box-shadow: none; border-radius: 0; }
-/* The kraft "Thank you!" sticker from the flyer. */
-.wb-thankyou {
-  position: absolute;
-  top: -16px;
-  right: -14px;
-  display: grid;
-  place-items: center;
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  background: #E8C9A0;
-  color: #4A2E1B;
-  font-family: var(--font-display), Georgia, serif;
-  font-style: italic;
-  font-size: 19px;
-  line-height: 1.1;
-  text-align: center;
-  transform: rotate(9deg);
-  box-shadow: 0 8px 20px rgba(120, 70, 30, .26);
-}
-
-/* Ribbon band, matching the flyer's brush-stroke divider. */
-.wb-includes-band {
-  margin: 8px 0 40px;
-  padding: 18px 0;
-  background: linear-gradient(90deg, #FF4B9E, #E5197C 55%, #FF4B9E);
-  box-shadow: 0 10px 26px rgba(214, 21, 111, .22);
-}
-.wb-includes-band h2 {
-  color: #fff;
-  text-align: center;
-  font: 800 clamp(19px, 2.5vw, 28px)/1.2 var(--sans);
-  letter-spacing: .01em;
-  text-transform: uppercase;
-}
-
-.wb-item-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
-  gap: 16px;
-  list-style: none;
-}
-.wb-item-grid > li {
-  position: relative;
-  padding: 22px 20px 20px;
-  border-radius: 16px;
-  border: 1px solid #fff;
-  box-shadow: 0 8px 20px rgba(180, 60, 120, .10);
-}
-.wb-item-grid > li.is-blue { background: linear-gradient(160deg, var(--wb-blue-soft), #EFF7FF); }
-.wb-item-grid > li.is-pink { background: linear-gradient(160deg, var(--wb-pink-soft), #FFF0F6); }
-.wb-item-index {
-  display: block;
-  font: 800 10px/1 var(--sans);
-  letter-spacing: .16em;
-  margin-bottom: 9px;
-}
-.wb-item-grid > li.is-blue .wb-item-index { color: var(--wb-blue); }
-.wb-item-grid > li.is-pink .wb-item-index { color: var(--wb-pink); }
-.wb-item-grid > li b {
-  display: block;
-  font: 800 21px/1.15 var(--sans);
-  letter-spacing: -.03em;
-  text-transform: uppercase;
-}
-.wb-item-qty {
-  display: inline-block;
-  margin-top: 8px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: #fff;
-  font: 800 11px/1.4 var(--sans);
-  letter-spacing: .02em;
-}
-.wb-item-grid > li.is-blue .wb-item-qty { color: var(--wb-blue); }
-.wb-item-grid > li.is-pink .wb-item-qty { color: var(--wb-pink); }
-.wb-item-note { display: block; margin-top: 8px; font-size: 12.5px; line-height: 1.65; color: var(--wb-ink-soft); }
-.wb-items-empty { color: var(--wb-ink-soft); font-size: 14px; }
-
-.wb-description { max-width: 62ch; margin-top: 30px; display: grid; gap: 14px; }
-.wb-description p { font-size: 15px; line-height: 1.8; color: var(--wb-ink-soft); }
-
-.wb-footnote {
-  margin-top: 34px;
-  padding: 18px 20px;
-  border-radius: 14px;
-  background: #fff;
-  border: 1px solid #FFD0E4;
-  font-size: 13px;
-  line-height: 1.8;
-  color: var(--wb-ink-soft);
-}
-.wb-footnote b { color: var(--wb-pink); }
-
-.wb-empty { padding: 90px 0 100px; text-align: center; }
-.wb-empty h1 { font: 800 clamp(32px, 4.5vw, 52px)/1.05 var(--sans); letter-spacing: -.04em; }
-.wb-empty p { max-width: 46ch; margin: 16px auto 26px; color: var(--wb-ink-soft); line-height: 1.8; }
-
-@media (max-width: 900px) {
-  .wb-hero { grid-template-columns: minmax(0, 1fr); gap: 34px; padding-top: 38px; }
-  .wb-hero-photo { order: -1; }
-  .wb-thankyou { width: 76px; height: 76px; font-size: 15px; top: -10px; right: -6px; }
-}
-@media (max-width: 560px) {
-  .wb-price-row { gap: 12px; }
-  .wb-price-tag { width: 100%; }
-  .wb-price-tag b { font-size: 34px; }
-  .wb-add-btn { width: 100%; }
-  .wb-item-grid { grid-template-columns: minmax(0, 1fr); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .wb-stock-meter > span { transition: none; }
+@media (prefers-reduced-motion:reduce) {
+  .weekly-photo-cell img, .weekly-flavor-photo > img, .wb-stock-meter > span { transition: none; }
 }

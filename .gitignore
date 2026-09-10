@@ -22,3 +22,10 @@ yarn-error.log*
 # Editor
 .vscode/
 .idea/
+
+# Local scratch: PDF review workspaces and generated one-off documents
+/tmp/
+/output/
+
+# Claude Code local dev-server config
+/.claude/

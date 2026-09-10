@@ -12,7 +12,7 @@
     "start": "next start",
     "start:heroku": "node scripts/check-production-env.mjs && next start --hostname 0.0.0.0",
     "lint": "next lint",
-    "test:all": "node --experimental-vm-modules --test tests/email.test.mjs tests/reveal.test.mjs tests/production-env.test.mjs tests/menu.test.mjs tests/mobile-experience.test.mjs tests/product-photos.test.mjs tests/weekly-box.test.mjs tests/order-import.test.mjs tests/pickup-delay.test.mjs tests/order-documents.test.mjs",
+    "test:all": "node --experimental-vm-modules --test tests/email.test.mjs tests/reveal.test.mjs tests/production-env.test.mjs tests/menu.test.mjs tests/mobile-experience.test.mjs tests/product-photos.test.mjs tests/weekly-box.test.mjs tests/weekly-box-design.test.mjs tests/order-import.test.mjs tests/pickup-delay.test.mjs tests/order-documents.test.mjs",
     "test:email": "node --experimental-vm-modules --test tests/email.test.mjs",
     "test:reveal": "node --experimental-vm-modules --test tests/reveal.test.mjs",
     "test:config": "node --test tests/production-env.test.mjs",
@@ -20,7 +20,7 @@
     "test:mobile": "node --test tests/mobile-experience.test.mjs",
     "test:photos": "node --test tests/product-photos.test.mjs",
     "preview:email": "node scripts/preview-emails.mjs",
-    "test:box": "node --test tests/weekly-box.test.mjs",
+    "test:box": "node --test tests/weekly-box.test.mjs tests/weekly-box-design.test.mjs",
     "test:import": "node --test tests/order-import.test.mjs",
     "test:pickup": "node --experimental-vm-modules --test tests/pickup-delay.test.mjs",
     "test:documents": "node --experimental-vm-modules --test tests/order-documents.test.mjs"

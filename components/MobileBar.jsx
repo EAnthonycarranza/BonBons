@@ -6,7 +6,7 @@ import { usePrices } from "./PricesProvider";
 export default function MobileBar() {
   const pathname = usePathname();
   const { singleLabel, packLabel } = usePrices();
-  if (["/cart", "/build-a-box", "/admin"].includes(pathname)) return null;
+  if (["/cart", "/build-a-box", "/box-of-the-week", "/admin"].includes(pathname)) return null;
   return (
     <div className="mbar">
       <Link className="btn btn-ghost" href="/shop">

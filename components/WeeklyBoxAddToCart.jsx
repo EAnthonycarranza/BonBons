@@ -3,26 +3,31 @@ import { useState } from "react";
 import { useCart } from "./CartProvider";
 
 export default function WeeklyBoxAddToCart({ box, cartKey, remaining }) {
-  const { add, setOpen } = useCart();
+  const { add, setOpen, items } = useCart();
   const [qty, setQty] = useState(1);
-  const max = Math.max(1, Math.min(50, remaining));
+  const alreadyAdded = items.find(item => item.key === cartKey)?.qty || 0;
+  const max = Math.max(0, Math.min(50, remaining) - alreadyAdded);
+  const selectedQty = Math.min(qty, Math.max(1, max));
 
   return (
     <div className="wb-add">
       <div className="stepper" aria-label="Quantity">
-        <button type="button" onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="One fewer box">−</button>
-        <output key={qty} aria-label="Box quantity">{qty}</output>
-        <button type="button" onClick={() => setQty((q) => Math.min(max, q + 1))} aria-label="One more box">+</button>
+        <button type="button" disabled={selectedQty <= 1 || max === 0} onClick={() => setQty(Math.max(1, selectedQty - 1))} aria-label="One fewer box">−</button>
+        <output key={selectedQty} aria-label="Box quantity" aria-live="polite">{selectedQty}</output>
+        <button type="button" disabled={selectedQty >= max} onClick={() => setQty(Math.min(max, selectedQty + 1))} aria-label="One more box">+</button>
       </div>
       <button
         className="btn btn-pink wb-add-btn"
+        type="button"
+        disabled={max === 0}
         onClick={() => {
+          if (max === 0) return;
           add({
             key: cartKey,
             name: box.title,
             desc: box.items.map((item) => `${item.name}${Number(item.qty) > 1 ? ` \u00d7${item.qty}` : ""}`).join(", "),
             price: box.price,
-            qty,
+            qty: selectedQty,
             icon: "i-favor",
             color: "#FF2E9A",
             tint: "255,46,154",
@@ -32,11 +37,9 @@ export default function WeeklyBoxAddToCart({ box, cartKey, remaining }) {
           setOpen(true);
         }}
       >
-        Add this box to my request
+        {max === 0 ? "Available boxes already added" : "Add to pickup request"}
       </button>
-      {remaining < 50 ? (
-        <p className="wb-add-note">Up to {max} {max === 1 ? "box" : "boxes"} per request while stock lasts.</p>
-      ) : null}
+      <p className="wb-add-note">{alreadyAdded > 0 ? `${alreadyAdded} ${alreadyAdded === 1 ? "box is" : "boxes are"} already in your request.` : "A fixed selection, made to share. No online payment."}</p>
     </div>
   );
 }

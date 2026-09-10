@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
+    qualities: [75, 90],
     remotePatterns: [{ protocol: "https", hostname: "slerrjoiowaskmvgykxt.supabase.co", pathname: "/storage/v1/object/public/menu-photos/**" }],
   },
   outputFileTracingIncludes: {

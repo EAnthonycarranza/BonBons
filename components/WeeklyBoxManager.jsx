@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import AdminIcon from "./AdminIcon";
 import ConfirmDialog from "./ConfirmDialog";
-import { boxPopCount, menuSlug, stockState, validateWeeklyBox } from "@/supabase/functions/_shared/menu";
+import { boxPopCount, isMenuImageUrl, MENU_IMAGE_MAX_BYTES, menuSlug, stockState, validateWeeklyBox } from "@/supabase/functions/_shared/menu";
 import { money } from "@/lib/format";
 
 function draftFor(box) {
@@ -43,25 +44,52 @@ function BoxEditor({ box, products, onClose, onSaved }) {
   const initial = useMemo(() => draftFor(box), [box]);
   const [form, setForm] = useState(initial);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploadNotice, setUploadNotice] = useState("");
   const [error, setError] = useState("");
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
 
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty && !uploading) return;
     const warn = event => { event.preventDefault(); event.returnValue = ""; };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  }, [dirty, uploading]);
 
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   function close() {
-    if (busy) return;
+    if (busy || uploading) return;
     if (!dirty) { onClose(); return; }
     setConfirmDiscard(true);
   }
   function change(key, value) {
     setForm(current => ({ ...current, [key]: value, ...(!box && key === "title" ? { slug: menuSlug(value) } : {}) }));
     setError("");
+  }
+  async function upload(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || busy || uploading) return;
+    setUploadError("");
+    setUploadNotice("");
+    if (!file.size || file.size > MENU_IMAGE_MAX_BYTES || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setUploadError("Choose a JPG, PNG, or WebP image up to 5 MB.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const body = new FormData();
+      body.append("photo", file);
+      // Reuse the authenticated upload route and its server-side file validation.
+      const response = await fetch("/api/admin/menu/photo", { method: "POST", body });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "The image could not be uploaded. Please try again.");
+      if (!data.url || !isMenuImageUrl(data.url)) throw new Error("The upload did not return a valid image. Please try again.");
+      change("image", data.url);
+      setUploadNotice("Image uploaded. Save this box to publish it.");
+    } catch (err) { setUploadError(err.message); }
+    finally { setUploading(false); }
   }
   function changeItem(index, key, value) {
     setForm(current => ({ ...current, items: current.items.map((item, i) => i === index ? { ...item, [key]: value } : item) }));
@@ -86,6 +114,7 @@ function BoxEditor({ box, products, onClose, onSaved }) {
 
   async function save(event) {
     event.preventDefault();
+    if (busy || uploading) return;
     setError("");
     const payload = { ...form, items: form.items.filter(item => item.slug && item.name) };
     try { validateWeeklyBox(payload); } catch (err) { setError(err.message); return; }
@@ -116,7 +145,23 @@ function BoxEditor({ box, products, onClose, onSaved }) {
     <Modal label={box ? "Edit box" : "New box"} title={box ? box.title : "Build this week's box."} onClose={close}>
     <form onSubmit={save}>
       <div className="admin-dialog-body">
-        <fieldset disabled={busy} className="menu-fields">
+        <section className="wbm-artwork-editor" aria-labelledby="wbm-artwork-heading" aria-busy={uploading}>
+          <div className="wbm-artwork-preview">
+            {form.image ? <a href={form.image} target="_blank" rel="noopener noreferrer" aria-label="Preview the full box image (opens in a new tab)"><Image src={form.image} alt="Box of the Week image preview" fill unoptimized sizes="200px" /></a> : <div><AdminIcon name="upload"/><span>Your weekly flyer<br />or box photo</span></div>}
+          </div>
+          <div className="wbm-artwork-controls">
+            <span className="admin-kicker">Made for your social posts</span>
+            <h3 id="wbm-artwork-heading">This week’s spotlight</h3>
+            <p>Upload the same flyer you share on social media. The complete image appears on the Box of the Week page and homepage, without cropping.</p>
+            <label className={`admin-btn admin-btn-secondary upload-button${uploading ? " is-busy" : ""}`}><AdminIcon name="upload"/>{uploading ? "Uploading…" : form.image ? "Replace image" : "Upload flyer or photo"}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={busy || uploading} aria-label="Upload weekly box flyer or photo" aria-describedby="wbm-artwork-help"/></label>
+            <small id="wbm-artwork-help">JPG, PNG, or WebP · up to 5 MB. Portrait flyers work especially well; square and landscape images fit too.</small>
+            {form.image && <button type="button" className="admin-text-btn" disabled={busy || uploading} onClick={() => { change("image", ""); setUploadError(""); setUploadNotice("Image removed from this draft. Save the box to publish the change."); }}>Remove image from box</button>}
+          </div>
+          <p className="wbm-artwork-hint">Keep your flyer’s price and flavors in sync with the box details below. Uploading an image does not change the order contents or price.</p>
+          {uploadNotice && <p className="wbm-artwork-status" role="status">{uploadNotice}</p>}
+          {uploadError && <p className="admin-alert is-error" role="alert">{uploadError}</p>}
+        </section>
+        <fieldset disabled={busy || uploading} className="menu-fields">
           <legend className="sr-only">Box details</legend>
           <label className="admin-field">Box name <span className="admin-required">*</span><input required maxLength={90} value={form.title} onChange={e => change("title", e.target.value)} placeholder="e.g. Celebration Box" autoFocus/></label>
           <label className="admin-field">Tagline<input maxLength={160} value={form.tagline} onChange={e => change("tagline", e.target.value)} placeholder="10 delicious cake pops. Big variety. Big flavor."/></label>
@@ -169,8 +214,8 @@ function BoxEditor({ box, products, onClose, onSaved }) {
         {error ? <p className="admin-alert is-error" role="alert">{error}</p> : null}
       </div>
       <div className="admin-dialog-footer">
-        <button type="button" className="admin-btn admin-btn-secondary" onClick={close} disabled={busy}>Cancel</button>
-        <button type="submit" className="admin-btn admin-btn-primary" disabled={busy}>{busy ? "Saving…" : box ? "Save box" : "Create box"}</button>
+        <button type="button" className="admin-btn admin-btn-secondary" onClick={close} disabled={busy || uploading}>Cancel</button>
+        <button type="submit" className="admin-btn admin-btn-primary" disabled={busy || uploading}>{busy ? "Saving…" : box ? "Save box" : "Create box"}</button>
       </div>
     </form>
   </Modal>

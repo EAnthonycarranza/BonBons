@@ -1,6 +1,7 @@
 /.env
 /.env.*
 /.git
+/.claude
 /.github
 /.next
 /node_modules

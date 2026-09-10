@@ -87,6 +87,7 @@ export default async function HomePage() {
         <span>One pop or a whole four-pack</span>
         <span>San Antonio pickup only</span>
       </div>
+      <WeeklyBoxTeaser box={weeklyBox} products={products} />
       <section className="sec menu-section">
         <div className="wrap">
           <div className="sec-top rv-anim">
@@ -111,7 +112,6 @@ export default async function HomePage() {
           </p>
         </div>
       </section>
-      <WeeklyBoxTeaser box={weeklyBox} />
       <section className="wrap flavor-banner rv-anim">
         <Link href="/shop">
           <Image

@@ -94,7 +94,7 @@ export default function SiteHeader() {
             <span className="dot hide-sm" aria-hidden="true">
               ·
             </span>
-            <Link href="/box-of-the-week">Box of the Week · 10 for $25</Link>
+            <Link href="/box-of-the-week">Discover the Box of the Week</Link>
           </div>
           <button
             className="announce-x"
