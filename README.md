@@ -383,6 +383,39 @@ Singles are currently **$3** and four-packs **$10**.
 
 Run `npm run test:box` for the pricing, stock, and box-validation checks.
 
+### Invoices and PDF documents
+
+Two customer emails carry a PDF the customer can keep:
+
+- **Order confirmation** — sent from the order desk once the stage is Order
+  Confirmed and saved. A PDF confirmation is attached automatically.
+- **Paid invoice** — a separate *Send paid invoice* action, unlocked only once
+  the payment arrangement is set to a paid option (cash or as arranged) **and
+  saved**. The attached invoice is stamped **PAID IN FULL**.
+
+Both documents share one layout, so a customer's confirmation and invoice can
+never disagree about what was ordered. They carry the shop letterhead, the order
+number, the itemised lines with quantities, the confirmed total, the payment
+position, and the pickup date, time and address.
+
+The unpaid guard is enforced in three places rather than only in the UI: the
+button is disabled, the API returns 409, and the email builder itself refuses —
+so an invoice cannot claim payment that has not been recorded. Resending asks
+for confirmation, and `paid_invoice_sent_at` is stamped on the record.
+
+If a PDF cannot be built, the email is still sent without it and the admin is
+told the attachment was missing — a customer is better served by the message
+than by silence.
+
+Tracking for this email type goes through `public.bonbons_record_email()` rather
+than the Edge Function, whose deployed copy only whitelists the three original
+types. As with the Box of the Week, applying the migration is the only step.
+
+The PDF uses `assets/logo-pdf.png`, a 192px copy of the email logo. Embedding
+the full 620px asset made every document roughly 600 KB; it is now about 33 KB.
+
+Run `npm run test:documents` for the PDF and invoice-guard checks.
+
 ### Order tracking & fulfillment
 
 **Overdue pickups.** A pickup date shows amber once the day has passed and the

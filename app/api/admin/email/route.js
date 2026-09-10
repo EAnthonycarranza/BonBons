@@ -6,7 +6,7 @@ import {
   sendOrderEmail,
   verifyEmailConnection,
 } from "@/lib/email";
-import { callSupabaseData, toOrder, toQuote } from "@/lib/supabase-data";
+import { callBonbonsRecordEmail, callSupabaseData, toOrder, toQuote } from "@/lib/supabase-data";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +46,7 @@ export async function POST(request) {
   if (!["orders", "quotes"].includes(kind) || !/^\d+$/.test(id)) {
     return NextResponse.json({ error: "Invalid order." }, { status: 400 });
   }
-  if (!["request_received", "confirmation", "status_update"].includes(emailType) ||
+  if (!["request_received", "confirmation", "status_update", "paid_invoice"].includes(emailType) ||
       (emailType === "request_received" && kind !== "orders")) {
     return NextResponse.json({ error: "Invalid email type." }, { status: 400 });
   }
@@ -71,6 +71,18 @@ export async function POST(request) {
     if (!isEmail(customer.email)) {
       return NextResponse.json({ error: "This customer does not have a valid email." }, { status: 400 });
     }
+    if (emailType === "paid_invoice" && !["paid_cash", "paid_direct"].includes(record.paymentStatus)) {
+      return NextResponse.json(
+        { error: "Mark the payment as received and save it before sending a paid invoice." },
+        { status: 409 }
+      );
+    }
+    if (emailType === "paid_invoice" && record.paidInvoiceSentAt && body.force !== true) {
+      return NextResponse.json(
+        { error: "An invoice was already sent. Confirm the resend first." },
+        { status: 409 }
+      );
+    }
     if (emailType === "confirmation" && record.confirmationSentAt && body.force !== true) {
       return NextResponse.json(
         { error: "A confirmation was already sent. Confirm the resend first." },
@@ -93,7 +105,9 @@ export async function POST(request) {
     let savedRecord = record;
     let trackingWarning = "";
     try {
-      const tracked = await callSupabaseData("record_email", {
+      // Through the database function rather than the Edge Function: the
+      // deployed copy of the latter rejects any email type it predates.
+      const tracked = await callBonbonsRecordEmail({
         record_kind: kind,
         record_id: id,
         order_number: record.orderNumber || "",
@@ -102,7 +116,7 @@ export async function POST(request) {
         subject: sent.subject,
         provider_message_id: sent.messageId,
       });
-      savedRecord = mapper(tracked.data);
+      savedRecord = mapper(tracked);
     } catch (trackingError) {
       console.error("Email sent but tracking failed:", trackingError.message);
       trackingWarning = "Email sent, but the activity timestamp could not be saved.";
@@ -110,9 +124,12 @@ export async function POST(request) {
 
     return NextResponse.json({
       ok: true,
-      message: isReceipt ? `Request receipt sent to ${sent.recipient}.` : emailType === "confirmation"
-        ? `Confirmation sent to ${sent.recipient}.`
-        : `Order update sent to ${sent.recipient}.`,
+      message: isReceipt ? `Request receipt sent to ${sent.recipient}.`
+        : emailType === "paid_invoice"
+          ? `Paid invoice sent to ${sent.recipient}.${sent.documentAttached ? "" : " The PDF could not be attached."}`
+        : emailType === "confirmation"
+          ? `Confirmation sent to ${sent.recipient}.${sent.documentAttached ? "" : " The PDF could not be attached."}`
+          : `Order update sent to ${sent.recipient}.`,
       record: savedRecord,
       trackingWarning,
     });

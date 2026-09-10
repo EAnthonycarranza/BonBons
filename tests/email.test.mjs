@@ -85,17 +85,29 @@ test("requires order number for confirmation; blocks a misleading receipt after 
   assert.throws(() => buildOrderEmail({ record: confirmedOrder, kind: "orders", emailType: "request_received" }));
 });
 
-test("SMTP message contains embedded logo, reply address, auto-message header and plain text", async () => {
-  let options;
-  const email = await isolated("lib/email.js", {
+async function isolatedMailer(capture, { documentFails = false } = {}) {
+  return isolated("lib/email.js", {
     nodemailer: { default: { createTransport: () => ({ sendMail: async (value) => {
-      options = value;
+      capture.options = value;
       return { accepted: [pickupRequest.customer.email], messageId: "test-id" };
     } }) } },
     "node:path": { default: path }, "./email-template.js": { buildOrderEmail, EMAIL_LOGO_CID, EMAIL_SOCIAL_CIDS },
     "./sample-data.js": { SITE },
+    "./order-pdf.js": {
+      buildOrderDocument: async () => {
+        if (documentFails) throw new Error("Test PDF failure");
+        return Buffer.from("%PDF-1.7 test");
+      },
+      documentFilename: () => "BonBons-Test.pdf",
+    },
   }, { GMAIL_USER: "sender@example.invalid", GMAIL_APP_PASSWORD: "fake-test-only" });
+}
+
+test("SMTP message contains embedded logo, reply address, auto-message header and plain text", async () => {
+  const capture = {};
+  const email = await isolatedMailer(capture);
   const result = await email.sendOrderEmail({ record: pickupRequest, kind: "orders", emailType: "request_received" });
+  const options = capture.options;
   assert.equal(result.messageId, "test-id");
   assert.equal(options.replyTo, SITE.email);
   assert.equal(options.to.address, pickupRequest.customer.email);
@@ -186,4 +198,40 @@ test("failed CAPTCHA cannot save a request or send an email", async () => {
   const { response, calls } = await orderRoute({ captchaValid: false });
   assert.equal(response.status, 403);
   assert.deepEqual(calls, []);
+});
+
+test("confirmations and paid invoices carry a PDF; other emails do not", async () => {
+  const confirmed = { ...confirmedOrder, paymentStatus: "paid_cash" };
+
+  for (const emailType of ["confirmation", "paid_invoice"]) {
+    const capture = {};
+    const email = await isolatedMailer(capture);
+    const result = await email.sendOrderEmail({ record: confirmed, kind: "orders", emailType });
+    const pdf = capture.options.attachments.find((item) => item.contentType === "application/pdf");
+    assert.ok(pdf, `${emailType} should attach a PDF`);
+    assert.equal(pdf.filename, "BonBons-Test.pdf");
+    assert.equal(result.documentAttached, true);
+  }
+
+  // A receipt and a status update are informational; nothing to file away.
+  for (const [record, emailType] of [[pickupRequest, "request_received"], [confirmed, "status_update"]]) {
+    const capture = {};
+    const email = await isolatedMailer(capture);
+    const result = await email.sendOrderEmail({ record, kind: "orders", emailType });
+    assert.equal(capture.options.attachments.some((item) => item.contentType === "application/pdf"), false);
+    assert.equal(result.documentAttached, false);
+  }
+});
+
+test("a PDF that cannot be built still lets the email go out", async () => {
+  const capture = {};
+  const email = await isolatedMailer(capture, { documentFails: true });
+  const result = await email.sendOrderEmail({
+    record: { ...confirmedOrder, paymentStatus: "paid_cash" }, kind: "orders", emailType: "paid_invoice",
+  });
+  // The customer is better served by the message without its attachment than
+  // by no message at all.
+  assert.equal(result.messageId, "test-id");
+  assert.equal(result.documentAttached, false);
+  assert.equal(capture.options.attachments.some((item) => item.contentType === "application/pdf"), false);
 });

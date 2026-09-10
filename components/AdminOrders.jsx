@@ -226,7 +226,8 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
 
   async function sendEmail(emailType, confirmedResend = false) {
     const isResend = (emailType === "confirmation" && Boolean(record.confirmationSentAt)) ||
-      (emailType === "request_received" && Boolean(record.receiptSentAt));
+      (emailType === "request_received" && Boolean(record.receiptSentAt)) ||
+      (emailType === "paid_invoice" && Boolean(record.paidInvoiceSentAt));
     // Sending a second copy to a customer deserves a deliberate confirmation.
     if (isResend && !confirmedResend) { setPendingResend(emailType); return; }
 
@@ -254,6 +255,9 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
   // Judged on what is currently in the form, so picking a new date clears the
   // warning immediately rather than waiting for a save.
   const overdue = pickupDateState({ status: form.status, pickupDate: form.pickupDate || requestedDate(record) }) === "overdue";
+  // Judged on the saved record, not the form: the email is built from what
+  // the database holds, so an unsaved "paid" must not unlock the invoice.
+  const isPaid = ["paid_cash", "paid_direct"].includes(record.paymentStatus);
   const emailDisabled = !record.orderNumber || dirty || !emailState.connected || Boolean(emailBusy);
 
   return (
@@ -423,6 +427,21 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
               {emailBusy === "status_update" ? "Sending…" : delayNotice ? "Send delay update" : "Send status update"}
             </button>
 
+            <button
+              className="btn btn-invoice btn-block"
+              type="button"
+              disabled={emailDisabled || !isPaid}
+              title={isPaid ? "Email a paid invoice with a PDF attached" : "Mark the payment as received and save it first"}
+              onClick={() => sendEmail("paid_invoice")}
+            >
+              {emailBusy === "paid_invoice"
+                ? "Sending…"
+                : record.paidInvoiceSentAt ? "Resend paid invoice" : "Send paid invoice"}
+            </button>
+            {!isPaid ? (
+              <p className="crm-email-help">A paid invoice unlocks once the payment arrangement is set to a paid option and saved.</p>
+            ) : null}
+
             {kind === "orders" && !record.orderNumber && ["pending", "contacted"].includes(record.status) ? (
               <button className="btn btn-ghost btn-block" type="button" disabled={dirty || !emailState.connected || Boolean(emailBusy)} onClick={() => sendEmail("request_received")}>
                 {emailBusy === "request_received" ? "Sending…" : record.receiptSentAt ? "Resend request receipt" : "Send request receipt"}
@@ -434,6 +453,7 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
             {record.receiptSentAt ? <p className="crm-email-history">Request receipt emailed {timeStamp(record.receiptSentAt)}</p> : null}
             {record.receiptEmailError ? <p className="crm-email-error">{record.receiptEmailError}</p> : null}
             {record.confirmationSentAt ? <p className="crm-email-history">Confirmation sent {timeStamp(record.confirmationSentAt)}</p> : null}
+            {record.paidInvoiceSentAt ? <p className="crm-email-history">Paid invoice sent {timeStamp(record.paidInvoiceSentAt)}</p> : null}
             {record.lastUpdateSentAt ? <p className="crm-email-history">Latest update sent {timeStamp(record.lastUpdateSentAt)}</p> : null}
           </section>
 
