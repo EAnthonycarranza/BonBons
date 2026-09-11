@@ -113,7 +113,7 @@ test("an unpaid invoice says so rather than claiming payment", async () => {
 
 test("custom requests become a single descriptive line", () => {
   const [line] = documentLines(quote, "quotes");
-  assert.equal(line.name, "Custom cake-pop order");
+  assert.equal(line.name, "Cake-pop cart rental");
   assert.equal(line.amount, 96);
   assert.match(line.detail, /Baby shower/);
   assert.match(line.detail, /Cookie Monster, Biscoff/);
@@ -132,7 +132,7 @@ test("menu order lines multiply price by quantity", () => {
 test("a custom request produces a document too", async () => {
   const buffer = await buildOrderDocument({ record: quote, kind: "quotes", documentKind: "invoice" });
   assert.equal(buffer.subarray(0, 5).toString(), "%PDF-");
-  assert.match(pdfText(buffer), /Custom cake-pop order/);
+  assert.match(pdfText(buffer), /Cake-pop cart rental/);
 });
 
 test("a paid invoice email refuses to go out on an unpaid order", () => {

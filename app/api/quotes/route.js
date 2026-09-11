@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
 import { isEmail, isPhone } from "@/lib/format";
+import { partySizeById, resolveEventType, EVENT_TYPE_OTHER } from "@/lib/cart-rental";
 import {
   callSupabaseData,
   hasSupabaseDatabase,
@@ -24,6 +25,10 @@ export async function POST(request) {
   if (!isEmail(body.email)) errors.push("email");
   if (!isPhone(body.phone)) errors.push("phone");
   if (!body.eventDate) errors.push("eventDate");
+  const eventType = resolveEventType(body.eventType, body.eventTypeOther);
+  if (!eventType) errors.push(String(body.eventType || "").trim() === EVENT_TYPE_OTHER ? "eventTypeOther" : "eventType");
+  const partySize = partySizeById(body.partySize);
+  if (!partySize) errors.push("partySize");
   if (errors.length) {
     return NextResponse.json(
       { error: `Please check these fields: ${errors.join(", ")}.` },
@@ -36,8 +41,10 @@ export async function POST(request) {
     email: String(body.email).trim().toLowerCase(),
     phone: String(body.phone || "").trim(),
     eventDate: String(body.eventDate),
-    occasion: String(body.occasion || ""),
-    guests: body.guests ? Number(body.guests) : null,
+    // Event type lands in `occasion`; the party-size tier's upper bound in
+    // `guests`. Both existing columns, so no migration. See lib/cart-rental.js.
+    occasion: eventType,
+    guests: partySize.max,
     fulfilment: "Pickup",
     zip: "",
     interests: Array.isArray(body.interests) ? body.interests.slice(0, 20) : [],
@@ -58,8 +65,8 @@ export async function POST(request) {
       ok: true,
       stored: true,
       message:
-        `We'll contact you at ${doc.email} or ${doc.phone} to confirm the design, ` +
-        "pickup time, price, and payment arrangement.",
+        `Bonnie will contact you at ${doc.email} or ${doc.phone} to go over the event details, ` +
+        "confirm flavors and price, and then coordinate the cart with you.",
     });
   } catch (err) {
     console.error("Quote save failed:", err.message);

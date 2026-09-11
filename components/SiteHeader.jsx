@@ -220,12 +220,12 @@ export default function SiteHeader() {
             </div>
             <Link
               className="mobile-menu-cta"
-              href="/quote"
+              href="/rent-a-cart"
               onClick={() => setMenu(false)}
             >
               <span>
-                <small>Planning something special?</small>
-                <b>Ask about custom or event pops</b>
+                <small>Planning an event?</small>
+                <b>Rent the cake-pop cart</b>
               </span>
               <span aria-hidden="true">→</span>
             </Link>

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Image from "next/image";
 import FaqList from "@/components/FaqList";
 import { SITE } from "@/lib/sample-data";
@@ -24,9 +23,9 @@ export default function FaqPage() {
             From your first cake pop to pickup day, here is what you need to
             know.
           </p>
-          <Link className="text-link" href="/quote">
-            Still have a question? <span aria-hidden="true">↗</span>
-          </Link>
+          <a className="text-link" href={`mailto:${SITE.email}`}>
+            Still have a question? Email Bonnie <span aria-hidden="true">↗</span>
+          </a>
           <Image
             className="faq-photo"
             src="/products/bonbons-assortment-styled.webp"

@@ -3,7 +3,7 @@
 The website and back office for a handmade cake-pop business in San Antonio, Texas.
 
 Customers browse the menu, build a four-pack, or claim a limited Box of the
-Week, then send a pickup request. The owner runs everything else — menu,
+Week, then send a pickup request — or ask to rent the cake-pop cart for an event. The owner runs everything else — menu,
 prices, stock, orders, emails and invoices — from a password-protected
 dashboard called **the Shop Desk**. There is no online checkout: pickup is
 arranged and payment is settled directly with the owner.
@@ -88,7 +88,7 @@ the admin session and the request origin first.
 | `/build-a-box` | Pick any four flavors for the four-pack price |
 | `/box-of-the-week` | The limited Celebration Box, with a live "only N left" meter |
 | `/cart` | Review the request and send it — reCAPTCHA, then a receipt email |
-| `/quote` | Custom / event order request |
+| `/rent-a-cart` | Rent the cake-pop cart for an event — date, event type (with a free-text *Other*), and one of three party sizes. `/quote` redirects here. |
 | `/occasions`, `/occasions/[slug]` | Weddings, birthdays, corporate, baby showers |
 | `/about`, `/faq`, `/dessert-tables` | Story, questions, and the dessert-table service |
 | `/sitemap.xml`, `/robots.txt` | Generated |
@@ -250,7 +250,7 @@ from `supabase/migrations/`.
 | `weekly_boxes` | active rows only | Box of the Week, contents, remaining stock |
 | `shop_settings` | yes | Single-pop and four-pack prices |
 | `orders` | **no** | Menu orders and customer contact details |
-| `quotes` | **no** | Custom / event requests |
+| `quotes` | **no** | Cart-rental requests. Event type lives in `occasion` (free text when *Other*); the party-size tier's upper bound in `guests` — see `lib/cart-rental.js` |
 | `subscribers` | **no** | Newsletter signups |
 | `email_events` | **no** | What was emailed, to whom, and when |
 | `pickup_locations` | **no** | Saved addresses staff choose from |

@@ -97,14 +97,14 @@ export default async function SiteFooter() {
           </div>
 
           <div>
-            <h4>Custom &amp; Events</h4>
+            <h4>Events</h4>
             <ul>
               <li>
-                <Link href="/quote">Tell us what you need</Link>
+                <Link href="/rent-a-cart">Rent the cake-pop cart</Link>
               </li>
               <li>
-                <Link href="/quote">
-                  Custom color cake pops
+                <Link href="/rent-a-cart">
+                  Party sizes &amp; how it works
                 </Link>
               </li>
               <li>

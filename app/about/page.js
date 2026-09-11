@@ -132,8 +132,8 @@ export default function AboutPage() {
           <Link className="btn btn-pink" href="/shop">
             Shop cake pops <span aria-hidden="true">↗</span>
           </Link>
-          <Link className="text-link" href="/quote">
-            Have something special in mind? →
+          <Link className="text-link" href="/rent-a-cart">
+            Planning an event? Rent the cart →
           </Link>
         </div>
       </section>

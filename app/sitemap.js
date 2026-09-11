@@ -9,7 +9,7 @@ export default async function sitemap() {
   const now = new Date();
   const staticRoutes = [
     "", "/shop", "/build-a-box", "/box-of-the-week",
-    "/occasions", "/about", "/faq", "/quote",
+    "/occasions", "/about", "/faq", "/rent-a-cart",
   ].map((p) => ({ url: `${BASE}${p}`, lastModified: now }));
 
   const slugs = await getProductSlugs();

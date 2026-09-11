@@ -57,8 +57,8 @@ export default async function OccasionPage({ params }) {
                 ))}
               </ul>
               <div className="hero-cta">
-                <Link className="btn btn-pink" href="/quote">
-                  Get a quote
+                <Link className="btn btn-pink" href="/rent-a-cart">
+                  Rent the cart for this
                 </Link>
                 <Link className="btn btn-ghost" href="/shop">
                   Browse cake pops

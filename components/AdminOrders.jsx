@@ -7,6 +7,7 @@ import { DatePicker, TimePicker } from "./DateTimePicker";
 import { money } from "@/lib/format";
 import { SITE } from "@/lib/sample-data";
 import { ORDER_STATUSES, PAYMENT_STATUSES, QUOTE_STATUSES, pickupDateState } from "@/lib/order-tracking";
+import { partySizeLabel } from "@/lib/cart-rental";
 import PickupLocationManager, { PickupLocationPicker } from "@/components/PickupLocationManager";
 
 const STAGE_FILTERS = [
@@ -120,10 +121,10 @@ function RequestSummary({ record, kind }) {
   }
 
   const details = [
-    ["Requested quantity", record.guests],
+    ["Event type", record.occasion],
+    ["Party size", partySizeLabel(record.guests)],
+    ["Theme or colors", record.colors],
     ["Cake-pop interests", record.interests?.join(", ")],
-    ["Colors or theme", record.colors],
-    ["Occasion (optional)", record.occasion],
   ].filter(([, value]) => value);
 
   return (
@@ -264,7 +265,7 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
     <section className="crm-workspace" aria-label="Selected order workspace">
       <header className="crm-workspace-header">
         <div>
-          <span className="crm-record-type">{kind === "orders" ? "Menu order" : "Custom request"}</span>
+          <span className="crm-record-type">{kind === "orders" ? "Menu order" : "Cart rental request"}</span>
           <div className="crm-customer-title">
             <h2>{customer.name || "Unnamed customer"}</h2>
             <span className={`crm-status crm-status-${statusTone(record.status)}`}>{stageLabel(record.status, kind)}</span>

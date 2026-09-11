@@ -1036,3 +1036,11 @@ body:has(.admin-page) .mbar{display:none}
 /* The Venmo tile carries its own wordmark, so it needs no room for a label. */
 .pay-methods .pay-method-wordmark{padding:5px 6px}
 .pay-methods-center{justify-content:center;margin-top:14px}
+
+/* Rent-a-cart aside: three numbered steps */
+.cart-steps{list-style:none;margin:0;padding:0;display:grid;gap:16px}
+.cart-steps li{display:flex;gap:14px;align-items:flex-start}
+.cart-step-n{flex:0 0 30px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--pink);color:#fff;font-weight:800;font-size:14px}
+.cart-steps b{display:block;font-size:15.5px;color:var(--cream);margin-bottom:3px}
+.cart-steps p{margin:0;font-size:14px;line-height:1.55;color:#C9BFD1}
+.size-note{display:block;margin-top:6px;font-style:normal;font-size:12px;font-weight:600;color:var(--pink-2)}

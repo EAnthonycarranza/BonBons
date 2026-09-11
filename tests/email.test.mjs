@@ -76,7 +76,7 @@ test("escapes customer/product/message HTML, keeps line breaks", () => {
 test("confirmed quote uses the same design and valid details", () => {
   const record = { name: "Jamie", email: "a@example.invalid", status: "booked", orderNumber: "BB-26-PREVIEW", eventDate: "2026-09-12", guests: 12, colors: "Pink", interests: ["Cake pops"] };
   const email = buildOrderEmail({ record, kind: "quotes", emailType: "confirmation" });
-  assert.match(email.text, /Requested quantity/);
+  assert.match(email.text, /Party size/);
   assert.doesNotMatch(email.html, /undefined|NaN/);
 });
 
