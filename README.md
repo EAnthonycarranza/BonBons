@@ -131,9 +131,12 @@ Stock here is **owner-managed, not decremented at request time**. Orders are
 requests that staff confirm and that are paid offline, so subtracting on submit
 would let unpaid requests exhaust a limited run.
 
-### Pickup orders
-The request queue and the workspace where an order is confirmed, scheduled and
-communicated.
+### Orders & cart rentals
+The request queue — pickup orders and cart-rental requests side by side, with a
+filter for each — and the workspace where a request is confirmed, scheduled and
+communicated. A cart request shows its event type and party size in the queue,
+and its stages are worded for the event (Cart booked → Ready for the event →
+Event done).
 
 - **Stages** — received → confirmed → payment arranged → ready → collected.
   Confirming assigns a permanent customer-facing order number.

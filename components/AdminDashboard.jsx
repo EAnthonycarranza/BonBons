@@ -12,7 +12,7 @@ import AdminIcon from "./AdminIcon";
 const SECTIONS = [
   { id: "menu", label: "Cake-pop menu", icon: "menu", note: "Flavors & availability" },
   { id: "weeklyBox", label: "Box of the week", icon: "photo", note: "Limited box & prices" },
-  { id: "orders", label: "Pickup orders", icon: "orders", note: "Requests & confirmations" },
+  { id: "orders", label: "Orders & cart rentals", icon: "orders", note: "Pickup orders and event requests" },
   { id: "settings", label: "Shop settings", icon: "settings", note: "Pickup, contact & payment" },
 ];
 

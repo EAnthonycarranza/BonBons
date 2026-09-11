@@ -64,7 +64,7 @@ export async function POST(request) {
     }
     if (!isReceipt && !record.orderNumber) {
       return NextResponse.json(
-        { error: "Set the stage to Order Confirmed and save it before emailing the customer." },
+        { error: `Set the stage to ${kind === "orders" ? "Order Confirmed" : "Cart booked"} and save it before emailing the customer.` },
         { status: 409 }
       );
     }

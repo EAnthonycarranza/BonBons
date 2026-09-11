@@ -299,10 +299,10 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
         <div><span>Email</span><b>{customer.email || "Not supplied"}</b></div>
         <div><span>Phone</span><b>{customer.phone || "Not supplied"}</b></div>
         <div className={`crm-pickup-cell is-${pickupDateState(record)}`}>
-          <span>Requested pickup</span>
+          <span>{kind === "orders" ? "Requested pickup" : "Event date"}</span>
           <b>{dateLabel(requestedDate(record), { year: true })}</b>
-          {pickupDateState(record) === "overdue" ? <em>Pickup date has passed</em> : null}
-          {pickupDateState(record) === "today" ? <em>Pickup is today</em> : null}
+          {pickupDateState(record) === "overdue" ? <em>{kind === "orders" ? "Pickup date has passed" : "Event date has passed"}</em> : null}
+          {pickupDateState(record) === "today" ? <em>{kind === "orders" ? "Pickup is today" : "Event is today"}</em> : null}
         </div>
         <ContactLinks customer={customer} />
       </div>
@@ -337,13 +337,13 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
               <Field label="Confirmed total">
                 <div className="crm-money-input"><span>$</span><input type="number" min="0" step="0.01" value={form.confirmedTotal} onChange={(event) => change("confirmedTotal", event.target.value)} /></div>
               </Field>
-              <Field label="Pickup date" compact hint={overdue ? "This date has passed. Set a new one, then send a status update." : undefined}>
+              <Field label={kind === "orders" ? "Pickup date" : "Event date"} compact hint={overdue ? "This date has passed. Set a new one, then send a status update." : undefined}>
                 <DatePicker value={form.pickupDate} onChange={(next) => change("pickupDate", next)} invalid={overdue} />
               </Field>
-              <Field label="Pickup time" compact>
+              <Field label={kind === "orders" ? "Pickup time" : "Cart arrival time"} compact>
                 <TimePicker value={form.pickupTime} onChange={(next) => change("pickupTime", next)} />
               </Field>
-              <Field label="Pickup location" wide>
+              <Field label={kind === "orders" ? "Pickup location" : "Event location"} wide>
                 <PickupLocationPicker
                   locations={pickupLocations}
                   value={form.pickupLocation}
@@ -369,7 +369,7 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
             <ConfirmDialog
               open={pendingDelete}
               title="Delete this request?"
-              message={`${customer.name || "This customer"}'s ${kind === "orders" ? "order" : "custom request"}${record.orderNumber ? ` (${record.orderNumber})` : ""} will be removed from the Shop Desk, including any confirmed pickup details.`}
+              message={`${customer.name || "This customer"}'s ${kind === "orders" ? "order" : "cart rental request"}${record.orderNumber ? ` (${record.orderNumber})` : ""} will be removed from the Shop Desk, including any confirmed pickup details.`}
               consequence="This permanently deletes the customer's name, contact details and order history, whatever stage it has reached. It cannot be undone, and no email is sent to them."
               confirmLabel="Delete permanently"
               tone="danger"
@@ -401,7 +401,7 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
             {record.orderNumber ? (
               <div className="crm-number-panel"><span>Customer order number</span><b>{record.orderNumber}</b></div>
             ) : (
-              <div className="crm-number-panel is-pending"><span>Order number pending</span><p>Set the stage to Order Confirmed and save first.</p></div>
+              <div className="crm-number-panel is-pending"><span>Order number pending</span><p>Set the stage to {kind === "orders" ? "Order Confirmed" : "Cart booked"} and save first.</p></div>
             )}
 
             <label className="crm-email-note">
@@ -566,7 +566,7 @@ export default function AdminOrders({ dbReady }) {
       <header className="crm-header">
         <div className="crm-brand-block">
           <span>Bon Bon&apos;s staff</span>
-          <h1>Pickup orders.</h1>
+          <h1>Orders &amp; cart rentals.</h1>
           <p>Customer requests, pickup details, and order communication in one place.</p>
         </div>
         <div className="crm-header-actions">
@@ -602,7 +602,7 @@ export default function AdminOrders({ dbReady }) {
             {loading ? <small>Refreshing…</small> : null}
           </div>
           <div className="crm-kind-tabs" aria-label="Request type filter">
-            {[["all", "All"], ["orders", "Menu"], ["quotes", "Custom"]].map(([value, label]) => (
+            {[["all", "All"], ["orders", "Menu"], ["quotes", "Cart rentals"]].map(([value, label]) => (
               <button type="button" key={value} className={kindFilter === value ? "active" : ""} onClick={() => setKindFilter(value)}>{label}</button>
             ))}
           </div>
@@ -628,7 +628,12 @@ export default function AdminOrders({ dbReady }) {
                   <span className={`crm-row-marker crm-row-marker-${statusTone(record.status)}`} />
                   <span className="crm-row-copy">
                     <span className="crm-row-topline"><b>{customer.name || "Unnamed customer"}</b><strong>{amountLabel(record, kind)}{record.paymentStatus === "cash_at_pickup" ? <em className="crm-row-cash" title="Customer chose cash at pickup"> · cash</em> : null}</strong></span>
-                    <span className="crm-row-meta"><span>{record.orderNumber || shortId(record._id)}</span><span>{kind === "orders" ? "Menu" : "Custom"}</span><span className={`crm-row-date is-${pickupDateState(record)}`}>{dateLabel(requestedDate(record))}</span></span>
+                    {kind === "quotes" && (record.occasion || record.guests) ? (
+                      <span className="crm-row-event">
+                        {[record.occasion, partySizeLabel(record.guests)].filter(Boolean).join(" · ")}
+                      </span>
+                    ) : null}
+                    <span className="crm-row-meta"><span>{record.orderNumber || shortId(record._id)}</span><span>{kind === "orders" ? "Menu" : "Cart"}</span><span className={`crm-row-date is-${pickupDateState(record)}`}>{dateLabel(requestedDate(record))}</span></span>
                     <span className="crm-row-stage">{stageLabel(record.status, kind)}</span>
                   </span>
                 </button>
@@ -652,7 +657,7 @@ export default function AdminOrders({ dbReady }) {
           <section className="crm-no-selection">
             <span>Order desk</span>
             <h2>{records.length ? "No requests match your filters" : "No pickup requests yet"}</h2>
-            <p>{records.length ? "Adjust the search or stage filter to see other requests." : "New menu and custom requests will appear here."}</p>
+            <p>{records.length ? "Adjust the search or stage filter to see other requests." : "New menu orders and cart rental requests will appear here."}</p>
           </section>
         )}
       </section>
