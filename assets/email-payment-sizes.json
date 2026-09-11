@@ -1,0 +1,17 @@
+{
+  "venmo": {
+    "width": 84,
+    "height": 28,
+    "bytes": 2635
+  },
+  "cashapp": {
+    "width": 28,
+    "height": 28,
+    "bytes": 1398
+  },
+  "zelle": {
+    "width": 28,
+    "height": 28,
+    "bytes": 1044
+  }
+}

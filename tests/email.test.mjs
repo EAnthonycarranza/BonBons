@@ -4,7 +4,7 @@ import { readFile, access } from "node:fs/promises";
 import path from "node:path";
 import vm from "node:vm";
 import nodemailer from "nodemailer";
-import { buildOrderEmail, EMAIL_LOGO_CID, EMAIL_SOCIAL_CIDS } from "../lib/email-template.js";
+import { buildOrderEmail, EMAIL_LOGO_CID, EMAIL_PAYMENT_CIDS, EMAIL_SOCIAL_CIDS } from "../lib/email-template.js";
 import { money, isEmail, isPhone } from "../lib/format.js";
 import { pickupRequest, confirmedOrder } from "./fixtures/email-record.mjs";
 import { normalizeOrderItems } from "../lib/order-menu.js";
@@ -91,7 +91,7 @@ async function isolatedMailer(capture, { documentFails = false } = {}) {
       capture.options = value;
       return { accepted: [pickupRequest.customer.email], messageId: "test-id" };
     } }) } },
-    "node:path": { default: path }, "./email-template.js": { buildOrderEmail, EMAIL_LOGO_CID, EMAIL_SOCIAL_CIDS },
+    "node:path": { default: path }, "./email-template.js": { buildOrderEmail, EMAIL_LOGO_CID, EMAIL_PAYMENT_CIDS, EMAIL_SOCIAL_CIDS },
     "./sample-data.js": { SITE },
     "./order-pdf.js": {
       buildOrderDocument: async () => {
@@ -113,8 +113,11 @@ test("SMTP message contains embedded logo, reply address, auto-message header an
   assert.equal(options.to.address, pickupRequest.customer.email);
   assert.equal(options.headers["Auto-Submitted"], "auto-generated");
   assert.equal(options.attachments[0].cid, EMAIL_LOGO_CID);
-  assert.equal(options.attachments.length, 4);
-  assert.equal(options.attachments.slice(1).map((attachment) => attachment.cid).join(","), Object.values(EMAIL_SOCIAL_CIDS).join(","));
+  // Logo, three social icons, three payment marks.
+  assert.equal(options.attachments.length, 7);
+  const cids = options.attachments.map((attachment) => attachment.cid);
+  assert.equal(cids.slice(1, 4).join(","), Object.values(EMAIL_SOCIAL_CIDS).join(","));
+  assert.equal(cids.slice(4).join(","), Object.values(EMAIL_PAYMENT_CIDS).join(","));
   for (const attachment of options.attachments) await access(attachment.path);
   await access(options.attachments[0].path);
   const mime = await nodemailer.createTransport({ streamTransport: true, buffer: true }).sendMail(options);
@@ -123,6 +126,7 @@ test("SMTP message contains embedded logo, reply address, auto-message header an
   assert.match(raw, /Content-Type: image\/png/);
   assert.match(raw, /Content-Disposition: inline/);
   assert.ok(raw.includes(`Content-ID: <${EMAIL_LOGO_CID}>`));
+  for (const cid of Object.values(EMAIL_PAYMENT_CIDS)) assert.ok(raw.includes(`Content-ID: <${cid}>`));
   assert.match(raw, /Content-Type: text\/plain/);
 });
 

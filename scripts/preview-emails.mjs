@@ -1,6 +1,6 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { buildOrderEmail, EMAIL_LOGO_CID, EMAIL_SOCIAL_CIDS } from "../lib/email-template.js";
+import { buildOrderEmail, EMAIL_LOGO_CID, EMAIL_PAYMENT_CIDS, EMAIL_SOCIAL_CIDS } from "../lib/email-template.js";
 import { pickupRequest, confirmedOrder } from "../tests/fixtures/email-record.mjs";
 
 const logo = await readFile(new URL("../assets/logo-embed-tp.png", import.meta.url));
@@ -13,8 +13,10 @@ for (const [name, record, emailType] of [
 ]) {
   const email = buildOrderEmail({ record, kind: "orders", emailType });
   let html = email.html.replace(`cid:${EMAIL_LOGO_CID}`, `data:image/png;base64,${logo.toString("base64")}`);
-  for (const [platform, cid] of Object.entries(EMAIL_SOCIAL_CIDS)) {
-    const icon = await readFile(join(process.cwd(), "assets", `email-${platform}.png`));
+  // Socials and payment marks are attached by CID in a real send; inline them
+  // so the preview shows what the customer sees.
+  for (const [name, cid] of [...Object.entries(EMAIL_SOCIAL_CIDS), ...Object.entries(EMAIL_PAYMENT_CIDS)]) {
+    const icon = await readFile(join(process.cwd(), "assets", `email-${name}.png`));
     html = html.replaceAll(`cid:${cid}`, `data:image/png;base64,${icon.toString("base64")}`);
   }
   await writeFile(new URL(`${name}.html`, output), html);
