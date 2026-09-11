@@ -131,14 +131,27 @@ export default function RentCartForm() {
       </div>
 
       <div className="two">
-        <div className={`field${errors.eventType ? " bad" : ""}`}>
+        <div className={`field${errors.eventType || errors.eventTypeOther ? " bad" : ""}`}>
           <label htmlFor="f-eventType">What kind of event? <span className="req">*</span></label>
           <select id="f-eventType" value={form.eventType} onChange={set("eventType")}
             aria-invalid={errors.eventType ? "true" : "false"}>
             <option value="">Choose one…</option>
             {CART_EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
-          <div className="err">{errors.eventType}</div>
+          {isOther ? (
+            <input
+              id="f-eventTypeOther"
+              className="event-other"
+              value={form.eventTypeOther}
+              onChange={set("eventTypeOther")}
+              placeholder="Type the event, e.g. retirement party"
+              aria-label="What kind of event? Type the event"
+              maxLength={120}
+              autoFocus
+              aria-invalid={errors.eventTypeOther ? "true" : "false"}
+            />
+          ) : null}
+          <div className="err">{errors.eventType || errors.eventTypeOther}</div>
         </div>
         <div className="field">
           <label htmlFor="f-colors">Theme or colors (optional)</label>
@@ -146,16 +159,6 @@ export default function RentCartForm() {
             placeholder="e.g. blush pink and gold" />
         </div>
       </div>
-
-      {isOther ? (
-        <div className={`field${errors.eventTypeOther ? " bad" : ""}`}>
-          <label htmlFor="f-eventTypeOther">Tell us the event <span className="req">*</span></label>
-          <input id="f-eventTypeOther" value={form.eventTypeOther} onChange={set("eventTypeOther")}
-            placeholder="e.g. retirement party, team fundraiser" maxLength={120} autoFocus
-            aria-invalid={errors.eventTypeOther ? "true" : "false"} />
-          <div className="err">{errors.eventTypeOther}</div>
-        </div>
-      ) : null}
 
       <div className={`field${errors.partySize ? " bad" : ""}`}>
         <label id="f-partySize-label">About how many guests? <span className="req">*</span></label>
@@ -173,7 +176,7 @@ export default function RentCartForm() {
               <label htmlFor={`f-partySize-${size.id}`}>
                 <b>{size.label}</b>
                 <span>{size.range}</span>
-                {size.note ? <em className="size-note">{size.note}</em> : null}
+                {size.note ? <small className="size-note">{size.note}</small> : null}
               </label>
             </div>
           ))}
