@@ -268,6 +268,9 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
           <div className="crm-customer-title">
             <h2>{customer.name || "Unnamed customer"}</h2>
             <span className={`crm-status crm-status-${statusTone(record.status)}`}>{stageLabel(record.status, kind)}</span>
+            {record.paymentStatus === "cash_at_pickup" ? (
+              <span className="crm-status crm-status-cash" title="The customer chose to pay cash when they pick up">Cash at pickup</span>
+            ) : null}
           </div>
           <p className="crm-order-reference">
             {record.orderNumber ? <b>{record.orderNumber}</b> : <span>{shortId(record._id)}</span>}
@@ -623,7 +626,7 @@ export default function AdminOrders({ dbReady }) {
                 <button className={`crm-record-row${selected?.key === key ? " active" : ""}`} type="button" key={key} onClick={() => setSelectedKey(key)}>
                   <span className={`crm-row-marker crm-row-marker-${statusTone(record.status)}`} />
                   <span className="crm-row-copy">
-                    <span className="crm-row-topline"><b>{customer.name || "Unnamed customer"}</b><strong>{amountLabel(record, kind)}</strong></span>
+                    <span className="crm-row-topline"><b>{customer.name || "Unnamed customer"}</b><strong>{amountLabel(record, kind)}{record.paymentStatus === "cash_at_pickup" ? <em className="crm-row-cash" title="Customer chose cash at pickup"> · cash</em> : null}</strong></span>
                     <span className="crm-row-meta"><span>{record.orderNumber || shortId(record._id)}</span><span>{kind === "orders" ? "Menu" : "Custom"}</span><span className={`crm-row-date is-${pickupDateState(record)}`}>{dateLabel(requestedDate(record))}</span></span>
                     <span className="crm-row-stage">{stageLabel(record.status, kind)}</span>
                   </span>

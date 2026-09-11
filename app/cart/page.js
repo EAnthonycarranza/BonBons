@@ -33,6 +33,7 @@ export default function CartPage() {
     phone: "",
     wantedDate: "",
     notes: "",
+    paymentChoice: "online",
   });
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState("idle");
@@ -77,6 +78,7 @@ export default function CartPage() {
           customer: { name: form.name, email: form.email, phone: form.phone },
           wantedDate: form.wantedDate,
           notes: form.notes,
+          paymentChoice: form.paymentChoice,
           recaptchaToken,
         }),
       });
@@ -102,6 +104,11 @@ export default function CartPage() {
             <b>Thanks — your pickup request is in.</b>
             <br />
             {result?.message}
+            {result?.paymentChoice === "cash" && result?.cashChoiceSaved ? (
+              <p style={{ marginTop: 12 }}>
+                <strong>Paying cash at pickup.</strong> Changed your mind? Your confirmation email will have a link to pay online instead.
+              </p>
+            ) : null}
             <div style={{ marginTop: 16 }}>
               <Link className="btn btn-dark btn-sm" href="/shop">
                 Browse more cake pops
@@ -315,6 +322,32 @@ export default function CartPage() {
                       you directly.
                     </span>
                   </div>
+                </div>
+                <div className="field">
+                  <label style={{ color: "var(--cream)" }}>How will you pay?</label>
+                  <div className="toggle" role="radiogroup" aria-label="Payment method">
+                    {[
+                      { id: "online", label: "Venmo, Cash App or Zelle" },
+                      { id: "cash", label: "Cash at pickup" },
+                    ].map((opt) => (
+                      <div key={opt.id}>
+                        <input
+                          type="radio"
+                          name="c-pay"
+                          id={`c-pay-${opt.id}`}
+                          value={opt.id}
+                          checked={form.paymentChoice === opt.id}
+                          onChange={() => setForm((f) => ({ ...f, paymentChoice: opt.id }))}
+                        />
+                        <label htmlFor={`c-pay-${opt.id}`}>{opt.label}</label>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="help">
+                    {form.paymentChoice === "cash"
+                      ? "Bring the confirmed total with you. Nothing to send ahead."
+                      : "You'll get a payment link once your order and total are confirmed. Nothing is charged now."}
+                  </p>
                 </div>
                 <div className="field">
                   <label htmlFor="c-notes" style={{ color: "var(--cream)" }}>

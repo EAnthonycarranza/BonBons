@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { CASH_AT_PICKUP } from "@/lib/order-tracking";
 import { isAdmin } from "@/lib/auth";
 import { isEmail, isPhone } from "@/lib/format";
 import { getProducts } from "@/lib/products";
@@ -93,21 +94,48 @@ export async function POST(request) {
     );
   }
 
+  // The customer may say up front that they'll pay cash at pickup. The deployed
+  // create_order whitelists its columns and drops payment_status, so the intent
+  // is written with a second call once the row exists. If that second call
+  // fails the request is still saved — the customer is told to mention cash
+  // when the owner confirms, rather than being asked to submit again.
+  const wantsCash = body.paymentChoice === "cash";
+
   try {
     const { data } = await callSupabaseData("create_order", { order: orderToRow(doc) });
-    const receipt = await sendPickupReceipt(toOrder(data));
+    let row = data;
+    let cashSaved = false;
+    if (wantsCash) {
+      try {
+        const updated = await callSupabaseData("update_order", {
+          id: String(data.id),
+          update: { payment_status: CASH_AT_PICKUP },
+        });
+        row = updated.data || row;
+        cashSaved = row.payment_status === CASH_AT_PICKUP;
+      } catch (err) {
+        console.error("Could not record cash-at-pickup choice:", err.message);
+      }
+    }
+    const receipt = await sendPickupReceipt(toOrder(row));
     return NextResponse.json({
       ok: true,
       stored: true,
       subtotal,
       orderId: String(data.id),
       receiptEmailSent: receipt.sent,
+      paymentChoice: wantsCash ? "cash" : "online",
+      cashChoiceSaved: cashSaved,
       message:
         "Your pickup request is saved. " +
         (receipt.sent ? "We've emailed you a receipt; check your inbox or spam folder. "
           : "We couldn't send the email receipt, but your request is safely saved—please don't submit it again. ") +
-        "The owner will contact you to confirm the details, " +
-        "pickup time, total, and how to pay through Bon Bon’s payment options.",
+        (wantsCash
+          ? (cashSaved
+              ? "You've chosen to pay cash at pickup, so there's nothing to send. The owner will contact you to confirm the details, pickup time and total."
+              : "We couldn't save your cash-at-pickup choice, so please mention it when the owner contacts you to confirm the details, pickup time and total.")
+          : "The owner will contact you to confirm the details, " +
+            "pickup time, total, and how to pay through Bon Bon’s payment options."),
     });
   } catch (err) {
     console.error("Order save failed:", err.message);

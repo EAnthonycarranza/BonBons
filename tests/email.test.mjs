@@ -148,6 +148,7 @@ async function orderRoute({ mailFails = false, saveFails = false, trackingFails 
   });
   const route = await isolated("app/api/orders/route.js", {
     "next/server": { NextResponse: Response }, "@/lib/auth": { isAdmin: async () => false },
+    "@/lib/order-tracking": { CASH_AT_PICKUP: "cash_at_pickup" },
     "@/lib/format": { money, isEmail, isPhone },
     "@/lib/products": { getProducts: async () => [{ slug: "chocolate-drizzle-cake-pops", name: "Chocolate Drizzle Pop", price: 4, bundleEligible: true }] },
     "@/lib/order-menu": { normalizeOrderItems },
@@ -238,4 +239,69 @@ test("a PDF that cannot be built still lets the email go out", async () => {
   assert.equal(result.messageId, "test-id");
   assert.equal(result.documentAttached, false);
   assert.equal(capture.options.attachments.some((item) => item.contentType === "application/pdf"), false);
+});
+
+// ---------------------------------------------------------------------------
+// Cash at pickup: the customer can declare it, the emails reflect it, and it
+// never unlocks an invoice.
+// ---------------------------------------------------------------------------
+const SECRET_FOR_LINKS = "email-test-secret-long-enough-for-hmac-0000";
+
+function withSecret(fn) {
+  const saved = process.env.ADMIN_SECRET;
+  process.env.ADMIN_SECRET = SECRET_FOR_LINKS;
+  try { return fn(); } finally {
+    if (saved === undefined) delete process.env.ADMIN_SECRET; else process.env.ADMIN_SECRET = saved;
+  }
+}
+
+test("receipt reflects a cash-at-pickup choice made at checkout", () => {
+  const email = buildOrderEmail({
+    record: { ...pickupRequest, paymentStatus: "cash_at_pickup" }, kind: "orders", emailType: "request_received",
+  });
+  assert.match(email.text, /chose to pay cash at pickup/);
+  assert.match(email.text, /No payment is due until the owner confirms/);
+  assert.doesNotMatch(email.html, /Open payment options/);
+});
+
+test("confirmation for online payment carries the marks, the memo advice, and a cash link", () => withSecret(() => {
+  const email = buildOrderEmail({ record: confirmedOrder, kind: "orders", emailType: "confirmation" });
+  assert.match(email.html, /Open payment options/);
+  assert.match(email.html, new RegExp(`cid:${EMAIL_PAYMENT_CIDS.venmo}`));
+  assert.match(email.html, /Put order <strong>BB-26-PREVIEW<\/strong> in the payment note/);
+  assert.match(email.html, /If you forget, reply to this email or text Bonnie/);
+  assert.match(email.html, /pay cash at pickup/);
+  assert.match(email.html, /\/api\/orders\/900001\/payment-choice\?t=[0-9a-f]{40}&(amp;)?choice=cash/);
+  assert.match(email.text, /Prefer cash at pickup\? Use this link: http/);
+}));
+
+test("confirmation for a cash-at-pickup order says so and offers to pay ahead instead", () => withSecret(() => {
+  const email = buildOrderEmail({
+    record: { ...confirmedOrder, paymentStatus: "cash_at_pickup" }, kind: "orders", emailType: "confirmation",
+  });
+  assert.match(email.html, /Cash at pickup/);
+  assert.match(email.html, /chosen to pay cash at pickup/);
+  assert.match(email.html, /Pay ahead online instead/);
+  assert.match(email.html, /payment-choice\?t=[0-9a-f]{40}&(amp;)?choice=online/);
+  assert.doesNotMatch(email.html, /I'll pay cash at pickup/);
+  assert.match(email.text, /Paying cash at pickup\. Changed your mind\?/);
+}));
+
+test("without ADMIN_SECRET the confirmation omits the one-click link but keeps the reply fallback", () => {
+  const saved = process.env.ADMIN_SECRET;
+  delete process.env.ADMIN_SECRET;
+  try {
+    const email = buildOrderEmail({ record: confirmedOrder, kind: "orders", emailType: "confirmation" });
+    assert.doesNotMatch(email.html, /payment-choice\?/);
+    assert.match(email.text, /Prefer cash at pickup\? Just reply to this email/);
+  } finally {
+    if (saved !== undefined) process.env.ADMIN_SECRET = saved;
+  }
+});
+
+test("cash intent can never produce a paid invoice", () => {
+  assert.throws(
+    () => buildOrderEmail({ record: { ...confirmedOrder, paymentStatus: "cash_at_pickup" }, kind: "orders", emailType: "paid_invoice" }),
+    /marked as paid/
+  );
 });

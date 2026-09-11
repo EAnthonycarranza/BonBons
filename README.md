@@ -137,6 +137,12 @@ communicated.
 
 - **Stages** — received → confirmed → payment arranged → ready → collected.
   Confirming assigns a permanent customer-facing order number.
+- **Cash at pickup** — customers say so at checkout ("How will you pay?") or
+  with a one-click link in their confirmation email. Either way the order's
+  payment status becomes `cash_at_pickup` and a gold **Cash at pickup** pill
+  shows in the queue and the workspace. It records *intent*, not money: only
+  `paid_cash` and `paid_direct` mean payment arrived, and the invoice guard
+  still checks for exactly those two.
 - **Overdue pickups** show amber once the day has passed and the customer still
   has not collected, and mint on the day itself. Only stages that still owe a
   pickup are flagged, so a collected or cancelled order is never marked late.
@@ -168,7 +174,7 @@ URL).
 | Email | When | Carries |
 |---|---|---|
 | Request receipt | Automatically, after a request is saved | "Not confirmed yet — don't pay" |
-| Order confirmation | Staff, once the stage is Confirmed and saved | **PDF confirmation** |
+| Order confirmation | Staff, once the stage is Confirmed and saved | **PDF confirmation**; payment marks + dot.cards button; a one-click *I'll pay cash at pickup* link (or *Pay ahead online instead* if they chose cash) |
 | Status update | Staff, any time | Current stage |
 | Delay update | Staff, via *Tell them the pickup date changed* | New date, or a request to call |
 | Paid invoice | Staff, once payment is marked paid and saved | **PDF invoice, stamped PAID IN FULL** |
@@ -222,6 +228,14 @@ public HTTPS origin. Run `npm run test:config` to exercise those checks.
 > the owner's dot.cards profile (Venmo, Cash App, Zelle) and staff verify that
 > the money arrived before marking an order paid — opening the link does not
 > mark anything paid.
+>
+> Customers are asked to put their order number in the payment note; if they
+> forget, the email tells them to reply or text with the app they paid from.
+> A customer can also declare **cash at pickup** — at checkout, or from a link
+> in the confirmation email. The email link is authorised by an HMAC of the
+> order id signed with `ADMIN_SECRET` (see `lib/order-links.js`), so it needs no
+> login and nothing extra is stored. Rotating `ADMIN_SECRET` invalidates links
+> already sent; the desk can still set the status by hand.
 
 ---
 
@@ -240,6 +254,12 @@ from `supabase/migrations/`.
 | `subscribers` | **no** | Newsletter signups |
 | `email_events` | **no** | What was emailed, to whom, and when |
 | `pickup_locations` | **no** | Saved addresses staff choose from |
+
+### Migrations to apply
+
+| File | What it does |
+|---|---|
+| `20260911120000_cash_at_pickup.sql` | Adds `cash_at_pickup` to the `payment_status` check on `orders` and `quotes`. **Until it is applied, a customer's cash choice cannot be saved** — the app degrades gracefully (the order is still stored and the customer is told to mention cash when confirmed), but the desk won't see the pill. |
 
 ### Applying a change
 
