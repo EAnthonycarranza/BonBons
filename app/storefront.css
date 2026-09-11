@@ -2227,3 +2227,94 @@ body:not(:has(.mbar)) {
     transform: none;
   }
 }
+
+/* ------------------------------------------------------------------
+   Party-size cards (Rent a Cart)
+   The grid cell stretches but the visible card is the <label>, so it
+   used to grow only to its own text — a card with a note came out
+   taller than its neighbours. Now the label fills the cell, every card
+   is the same height, and a selection ring makes them read as choices.
+   ------------------------------------------------------------------ */
+.sizes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+.size {
+  display: flex;
+}
+.size label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 118px;
+  padding: 16px 46px 16px 18px;
+  position: relative;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.size label:hover {
+  border-color: var(--stroke-2);
+  background: #2c1f31;
+}
+/* radio ring, top-right */
+.size label::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--stroke-2);
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.size input:checked + label {
+  box-shadow: 0 0 0 3px rgba(255, 46, 154, 0.16);
+}
+.size input:checked + label::before {
+  border-color: var(--pink);
+  background: var(--pink);
+  box-shadow: inset 0 0 0 4px #332034;
+}
+.size label b {
+  font-size: 17px;
+  line-height: 1.2;
+}
+.size label span {
+  font-size: 13.5px;
+  margin-top: 0;
+}
+/* the note becomes a badge pinned to the bottom, so it never changes
+   a card's height relative to its neighbours */
+.size label small.size-note {
+  margin-top: auto;
+  padding-top: 12px;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pink-2);
+}
+.size label small.size-note::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pink);
+  margin-right: 7px;
+  vertical-align: 1px;
+}
+@media (max-width: 720px) {
+  .sizes {
+    grid-template-columns: 1fr;
+  }
+  .size label {
+    min-height: 0;
+  }
+  .size label small.size-note {
+    margin-top: 2px;
+    padding-top: 6px;
+  }
+}

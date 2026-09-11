@@ -1043,5 +1043,4 @@ body:has(.admin-page) .mbar{display:none}
 .cart-step-n{flex:0 0 30px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--pink);color:#fff;font-weight:800;font-size:14px}
 .cart-steps b{display:block;font-size:15.5px;color:var(--cream);margin-bottom:3px}
 .cart-steps p{margin:0;font-size:14px;line-height:1.55;color:#C9BFD1}
-.size label small.size-note{display:block;margin-top:6px;font-size:12px;line-height:1.4;font-weight:600;color:var(--pink-2)}
 .event-other{margin-top:8px}
