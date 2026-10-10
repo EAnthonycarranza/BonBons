@@ -228,6 +228,17 @@ rest.
 Open **Events & email updates** in the Shop Desk. Save an event as a draft,
 publish it to `/events`, display a cancellation notice, or archive it. Dates
 and times use San Antonio time. Photos use the existing shop photo uploader.
+Flyers display in full on the calendar and in admin previews, with a link to
+open the original image; event emails also preserve the image's proportions.
+Published and cancelled events automatically move to **Archived** after their
+end time. Without an end time they remain visible until midnight after their
+end date. Multi-day events use the final date. Archived records and images stay
+available to admins, and drafts remain drafts.
+
+The database runs `private.archive_ended_events()` every minute using Supabase
+Cron, even when nobody visits the website. Public row permissions hide ended
+events immediately. Check the `bonbons-archive-ended-events` job and its history
+in Supabase's Cron dashboard when troubleshooting automatic archiving.
 
 The homepage and events page offer an explicit email opt-in with reCAPTCHA.
 Customers confirm their address from an email link before joining the audience.
@@ -252,10 +263,14 @@ stalled attempts, check Gmail's Sent folder before explicitly retrying: SMTP can
 accept a message even if its response or database confirmation is lost.
 
 Apply `supabase/migrations/20261010150303_local_events_and_email_updates.sql`
-and `supabase/migrations/20261010152753_complete_event_subscriber_audience.sql`.
+and `supabase/migrations/20261010152753_complete_event_subscriber_audience.sql`,
+then `supabase/migrations/20261010174828_automatically_archive_ended_events.sql`.
 `tests/events-database.sql` verifies consent, visibility, snapshots, unsubscribe,
 and delivery retry rules in a transaction that rolls back its fixtures.
-Application tests are included in `npm run test:all`; none send real emails.
+`tests/event-archiving-database.sql` verifies expiry, daylight saving, private
+archive permissions, idempotence, and preservation of real records using only
+fixtures that are rolled back. Application tests are included in
+`npm run test:all`; none send real emails.
 
 Coupon browsing now starts with promotion cards. Open a promotion to choose a
 generation batch, print its unused codes, export it, or generate another batch

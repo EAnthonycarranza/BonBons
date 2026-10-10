@@ -35,6 +35,25 @@ test("events preserve local calendar dates, times and multiline descriptions", (
   assert.equal(isUpcomingEvent(converted, "2026-11-14"), true); assert.equal(isUpcomingEvent(converted, "2026-11-15"), false);
   assert.equal(isUpcomingEvent({ ...converted, endDate: "2026-11-16" }, "2026-11-15"), true);
 });
+test("events end at their closing time, rather than at the start or next day", () => {
+  const current = { ...event, date: "2026-10-10", endDate: "2026-10-10", endsAt: "2026-10-10T19:00:00Z" };
+  assert.equal(isUpcomingEvent(current, "2026-10-10T14:00:00Z"), true);
+  assert.equal(isUpcomingEvent(current, "2026-10-10T18:59:59Z"), true);
+  assert.equal(isUpcomingEvent(current, "2026-10-10T19:00:00Z"), false);
+  assert.equal(isUpcomingEvent({ ...current, endsAt: "" }, "2026-10-10T19:00:00Z"), false);
+  assert.equal(toEvent({ id: 1, ...eventToRow(current), ends_at: current.endsAt }).endsAt, current.endsAt);
+});
+test("events with no closing time stay through their final day in San Antonio", () => {
+  const allDay = { ...event, endTime: "", endDate: "2026-11-16" };
+  assert.equal(isUpcomingEvent(allDay, "2026-11-17T05:59:59Z"), true);
+  assert.equal(isUpcomingEvent(allDay, "2026-11-17T06:00:00Z"), false);
+});
+test("stored end instants handle both daylight saving transitions", () => {
+  assert.equal(isUpcomingEvent({ ...event, endsAt: "2026-03-08T08:30:00Z" }, "2026-03-08T08:29:59Z"), true);
+  assert.equal(isUpcomingEvent({ ...event, endsAt: "2026-03-08T08:30:00Z" }, "2026-03-08T08:30:00Z"), false);
+  assert.equal(isUpcomingEvent({ ...event, endsAt: "2026-11-01T07:30:00Z" }, "2026-11-01T06:30:00Z"), true);
+  assert.equal(isUpcomingEvent({ ...event, endsAt: "2026-11-01T07:30:00Z" }, "2026-11-01T07:30:00Z"), false);
+});
 test("invalid dates, times, missing venues and unsafe links are rejected", () => {
   for (const patch of [{ date: "2026-02-30" }, { endDate: "2026-11-13" }, { endTime: "08:59" }, { startTime: "25:00" }, { venue: "" }, { link: "javascript:alert(1)" }, { link: "https://user:pass@example.com" }, { status: "bogus" }]) assert.throws(() => validateEvent({ ...event, ...patch }));
   assert.throws(() => safeEventImage("https://evil.example/img.png"));
@@ -57,6 +76,14 @@ test("all email layouts escape content and include plain text, location, cancell
 test("confirmation email explains opt-in and expiration instead of claiming automatic subscription", () => {
   const email = buildSubscriptionEmail({ confirmationUrl: "https://bonbonssweets.com/updates/confirm?token=test", siteUrl: "https://bonbonssweets.com" });
   assert.match(email.html, /Confirm my email/); assert.match(email.text, /48 hours/); assert.match(email.text, /will not be added/);
+});
+test("event flyers keep their natural proportions in spotlight and digest emails", () => {
+  for (const layout of ["spotlight", "digest"]) {
+    const email = buildEventUpdateEmail({ design: { ...design, layout }, events: [{ ...event, id: "42", image: "/photos/flyer.webp" }], siteUrl: "https://bonbonssweets.com", unsubscribeUrl: "https://bonbonssweets.com/updates/unsubscribe?token=test" });
+    assert.match(email.html, /src="https:\/\/bonbonssweets.com\/photos\/flyer.webp"/);
+    assert.match(email.html, /width:100%;height:auto;border:0/);
+    assert.doesNotMatch(email.html, /object-fit:cover|<img[^>]+max-height:/);
+  }
 });
 async function signup({ captcha = true, smtpFails = false, alreadyActive = false } = {}) {
   const calls = [], payloads = [];
