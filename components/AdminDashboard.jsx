@@ -7,12 +7,14 @@ import MenuManager from "./MenuManager";
 import WeeklyBoxManager from "./WeeklyBoxManager";
 import AdminOrders from "./AdminOrders";
 import AdminSettings from "./AdminSettings";
+import AdminCoupons from "./AdminCoupons";
 import AdminIcon from "./AdminIcon";
 
 const SECTIONS = [
   { id: "menu", label: "Cake-pop menu", icon: "menu", note: "Flavors & availability" },
   { id: "weeklyBox", label: "Box of the week", icon: "photo", note: "Limited box & prices" },
   { id: "orders", label: "Orders & cart rentals", icon: "orders", note: "Pickup orders and event requests" },
+  { id: "coupons", label: "Coupons", icon: "coupon", note: "Print codes & track redemptions" },
   { id: "settings", label: "Shop settings", icon: "settings", note: "Pickup, contact & payment" },
 ];
 
@@ -46,6 +48,7 @@ export default function AdminDashboard({ dbReady }) {
         <div hidden={section!=="menu"}><MenuManager/></div>
         {visited.weeklyBox?<div hidden={section!=="weeklyBox"}><WeeklyBoxManager/></div>:null}
         {visited.orders?<div hidden={section!=="orders"}><AdminOrders dbReady={dbReady}/></div>:null}
+        {visited.coupons?<div hidden={section!=="coupons"}><AdminCoupons/></div>:null}
         {visited.settings?<div hidden={section!=="settings"}><AdminSettings/></div>:null}
       </div>
       <footer className="admin-bottomline"><span>Bon Bon&apos;s Sweets &amp; More</span><span>San Antonio, Texas · Pickup only</span></footer>

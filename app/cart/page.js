@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ProductThumbnail from "@/components/ProductThumbnail";
@@ -11,6 +11,7 @@ import { usePrices } from "@/components/PricesProvider";
 import { hasRecaptchaClientConfig } from "@/lib/recaptcha-client";
 import RecaptchaDisclosure from "@/components/RecaptchaDisclosure";
 import RecaptchaCheckbox from "@/components/RecaptchaCheckbox";
+import CouponEntry from "@/components/CouponEntry";
 import { SITE } from "@/lib/sample-data";
 
 export default function CartPage() {
@@ -40,6 +41,17 @@ export default function CartPage() {
   const [result, setResult] = useState(null);
   const [recaptchaToken, setRecaptchaToken] = useState("");
   const [captchaResetKey, setCaptchaResetKey] = useState(0);
+  const [couponPreview, setCouponPreview] = useState(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+  const [couponDraft, setCouponDraft] = useState("");
+  const onCouponChange = useCallback(value => {
+    setCouponPreview(value);
+    setErrors(current => ({ ...current, coupon: "" }));
+  }, []);
+  const couponStamp = JSON.stringify({ items, subtotal });
+  const coupon = couponPreview?.stamp === couponStamp ? couponPreview.coupon : null;
+  const estimatedTotal = coupon ? coupon.subtotal : subtotal;
+  const couponAttempt = useRef(null);
 
   const onCaptchaChange = useCallback((token) => {
     setRecaptchaToken(token);
@@ -52,24 +64,32 @@ export default function CartPage() {
   };
   async function submit(e) {
     e.preventDefault();
-    if (status === "sending") return;
+    if (status === "sending" || couponBusy) return;
     const errs = {};
     if (!form.name.trim()) errs.name = "Please tell us your name.";
     if (!isEmail(form.email)) errs.email = "Please enter a valid email.";
     if (!isPhone(form.phone))
       errs.phone = "Please enter a phone number with at least 10 digits.";
     if (!form.wantedDate) errs.wantedDate = "When do you need it?";
+    if (couponDraft.trim() && !coupon) errs.coupon = "Please apply your coupon or remove the code before sending your request.";
     if (!recaptchaToken)
       errs.captcha =
         "Please complete the “I'm not a robot” check before sending your request.";
     setErrors(errs);
     if (Object.keys(errs).length) {
-      document.getElementById(`c-${Object.keys(errs)[0]}`)?.focus();
+      const firstError = Object.keys(errs)[0];
+      document.getElementById(firstError === "coupon" ? "coupon-code" : `c-${firstError}`)?.focus();
       return;
     }
 
     setStatus("sending");
     try {
+      // Keep the ID on a retry after a lost response. Changing the request
+      // produces a new ID so it cannot silently replay an earlier order.
+      const attemptKey = JSON.stringify({ items, form, couponCode: coupon?.code });
+      if (coupon && couponAttempt.current?.key !== attemptKey) {
+        couponAttempt.current = { key: attemptKey, id: crypto.randomUUID() };
+      }
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -79,6 +99,8 @@ export default function CartPage() {
           wantedDate: form.wantedDate,
           notes: form.notes,
           paymentChoice: form.paymentChoice,
+          couponCode: coupon?.code || "",
+          couponRequestId: coupon ? couponAttempt.current.id : undefined,
           recaptchaToken,
         }),
       });
@@ -104,6 +126,7 @@ export default function CartPage() {
             <b>Thanks — your pickup request is in.</b>
             <br />
             {result?.message}
+            {result?.couponCode ? <p style={{ marginTop: 12 }}><strong>Coupon {result.couponCode}: {money(result.discountAmount)} off.</strong> Your estimated total is {money(result.subtotal)}.</p> : null}
             {result?.paymentChoice === "cash" && result?.cashChoiceSaved ? (
               <p style={{ marginTop: 12 }}>
                 <strong>Paying cash at pickup.</strong> Changed your mind? Your confirmation email will have a link to pay online instead.
@@ -217,9 +240,11 @@ export default function CartPage() {
               <BundleNudge />
 
               <div className="tile" style={{ marginTop: 16, padding: 22 }}>
+                <CouponEntry items={items} stamp={couponStamp} disabled={status === "sending"} onChange={onCouponChange} onBusy={setCouponBusy} onDraft={setCouponDraft} submitError={errors.coupon}/>
+                {coupon ? <div className="checkout-coupon-totals"><div><span>Subtotal</span><span>{money(coupon.originalSubtotal)}</span></div><div><span>Coupon · {coupon.code}</span><b>−{money(coupon.discountAmount)}</b></div></div> : null}
                 <div className="dtot">
                   <span>Estimated total</span>
-                  <b>{money(subtotal)}</b>
+                  <b>{money(estimatedTotal)}</b>
                 </div>
                 <div className="dnote">
                   The owner confirms the final total before your order is
@@ -382,11 +407,11 @@ export default function CartPage() {
                 <button
                   className="btn btn-pink btn-block"
                   type="submit"
-                  disabled={status === "sending" || !hasRecaptchaClientConfig()}
+                  disabled={status === "sending" || couponBusy || !hasRecaptchaClientConfig()}
                 >
                   {status === "sending"
                     ? "Sending your request…"
-                    : `Send pickup request · ${money(subtotal)} est.`}
+                    : `Send pickup request · ${money(estimatedTotal)} est.`}
                 </button>
                 <RecaptchaDisclosure />
                 <p className="sum-note" style={{ textAlign: "center" }}>

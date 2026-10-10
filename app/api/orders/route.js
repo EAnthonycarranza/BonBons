@@ -9,8 +9,10 @@ import { getCartPricing } from "@/lib/pricing";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha-actions";
 import { verifyRecaptcha } from "@/lib/recaptcha";
 import { sendPickupReceipt } from "@/lib/pickup-receipt";
+import { normalizeCouponCode } from "@/lib/coupons";
 import {
   callSupabaseData,
+  callBonbonsAdmin,
   hasSupabaseDatabase,
   orderToRow,
   toOrder,
@@ -65,7 +67,7 @@ export async function POST(request) {
   let normalizedItems;
   try {
     normalizedItems = normalizeOrderItems(items, products, {
-      fourPackPrice: settings.fourPackPrice,
+      ...settings,
       weeklyBox,
     });
   } catch (error) {
@@ -100,12 +102,23 @@ export async function POST(request) {
   // fails the request is still saved — the customer is told to mention cash
   // when the owner confirms, rather than being asked to submit again.
   const wantsCash = body.paymentChoice === "cash";
+  let couponCode = "";
+  if (body.couponCode) {
+    try {
+      couponCode = normalizeCouponCode(body.couponCode);
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(body.couponRequestId || ""))) {
+        throw new Error("Please apply your coupon again before sending the request.");
+      }
+    } catch (error) { return NextResponse.json({ error: error.message }, { status: 400 }); }
+  }
 
   try {
-    const { data } = await callSupabaseData("create_order", { order: orderToRow(doc) });
+    const { data, replayed = false } = couponCode
+      ? await callBonbonsAdmin("coupon_order", { code: couponCode, request_id: body.couponRequestId, order: orderToRow(doc), payment_choice: wantsCash ? "cash" : "online" })
+      : await callSupabaseData("create_order", { order: orderToRow(doc) });
     let row = data;
-    let cashSaved = false;
-    if (wantsCash) {
+    let cashSaved = row.payment_status === CASH_AT_PICKUP;
+    if (wantsCash && !cashSaved && !replayed) {
       try {
         const updated = await callSupabaseData("update_order", {
           id: String(data.id),
@@ -117,18 +130,22 @@ export async function POST(request) {
         console.error("Could not record cash-at-pickup choice:", err.message);
       }
     }
-    const receipt = await sendPickupReceipt(toOrder(row));
+    const savedOrder = toOrder(row);
+    const receipt = replayed ? { sent: false } : await sendPickupReceipt(savedOrder);
     return NextResponse.json({
       ok: true,
       stored: true,
-      subtotal,
+      subtotal: Number(row.subtotal),
+      subtotalBeforeDiscount: savedOrder.subtotalBeforeDiscount ?? subtotal,
+      discountAmount: savedOrder.discountAmount || 0,
+      couponCode: savedOrder.couponCode || "",
       orderId: String(data.id),
       receiptEmailSent: receipt.sent,
       paymentChoice: wantsCash ? "cash" : "online",
       cashChoiceSaved: cashSaved,
       message:
         "Your pickup request is saved. " +
-        (receipt.sent ? "We've emailed you a receipt; check your inbox or spam folder. "
+        (replayed ? "This request was already received; please don't send it again. " : receipt.sent ? "We've emailed you a receipt; check your inbox or spam folder. "
           : "We couldn't send the email receipt, but your request is safely saved—please don't submit it again. ") +
         (wantsCash
           ? (cashSaved
@@ -139,6 +156,9 @@ export async function POST(request) {
     });
   } catch (err) {
     console.error("Order save failed:", err.message);
+    if (couponCode && err.status && err.status < 500) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     return NextResponse.json({ error: "Could not save your order." }, { status: 500 });
   }
 }

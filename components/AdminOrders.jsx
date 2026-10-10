@@ -116,6 +116,7 @@ function RequestSummary({ record, kind }) {
             <strong>{money(Number(item.price || 0) * Number(item.qty || 1))}</strong>
           </div>
         )) : <p className="crm-empty-note">No item details were included.</p>}
+        {record.couponCode ? <><div className="crm-line-item"><span>Request subtotal</span><strong>{money(record.subtotalBeforeDiscount)}</strong></div><div className="crm-line-item crm-coupon-discount"><div><b>Coupon · {record.couponCode}</b><small>Included in the estimated total. Enter a final total that includes this discount when confirming.</small></div><strong>−{money(record.discountAmount)}</strong></div><div className="crm-line-item"><b>Estimated total after coupon</b><strong>{money(record.subtotal)}</strong></div></> : null}
       </div>
     );
   }
@@ -635,6 +636,7 @@ export default function AdminOrders({ dbReady }) {
                     ) : null}
                     <span className="crm-row-meta"><span>{record.orderNumber || shortId(record._id)}</span><span>{kind === "orders" ? "Menu" : "Cart"}</span><span className={`crm-row-date is-${pickupDateState(record)}`}>{dateLabel(requestedDate(record))}</span></span>
                     <span className="crm-row-stage">{stageLabel(record.status, kind)}</span>
+                    {record.couponCode ? <span className="crm-row-coupon">Coupon {record.couponCode} · −{money(record.discountAmount)}</span> : null}
                   </span>
                 </button>
               );

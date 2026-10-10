@@ -9,6 +9,7 @@ import { money, isEmail, isPhone } from "../lib/format.js";
 import { pickupRequest, confirmedOrder } from "./fixtures/email-record.mjs";
 import { normalizeOrderItems } from "../lib/order-menu.js";
 import { SITE } from "../lib/sample-data.js";
+import { normalizeCouponCode } from "../lib/coupons.js";
 
 // Isolate server-only modules with explicit dependencies. No test can access
 // live Gmail credentials, Supabase, CAPTCHA, or a real customer mailbox.
@@ -160,7 +161,8 @@ async function orderRoute({ mailFails = false, saveFails = false, trackingFails 
     "@/lib/recaptcha-actions": { RECAPTCHA_ACTIONS: { order: "submit_pickup_order" } },
     "@/lib/recaptcha": { verifyRecaptcha: async () => ({ ok: captchaValid }) },
     "@/lib/pickup-receipt": { sendPickupReceipt: receipt.sendPickupReceipt },
-    "@/lib/supabase-data": { callSupabaseData, hasSupabaseDatabase: () => true, orderToRow: (record) => record, toOrder: (record) => record },
+    "@/lib/coupons": { normalizeCouponCode },
+    "@/lib/supabase-data": { callSupabaseData, callBonbonsAdmin: async () => { throw new Error("Unexpected coupon redemption"); }, hasSupabaseDatabase: () => true, orderToRow: (record) => record, toOrder: (record) => record },
   });
   const response = await route.POST(new Request("http://localhost/api/orders", {
     method: "POST", headers: { "Content-Type": "application/json" },

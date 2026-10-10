@@ -26,7 +26,7 @@ Open http://localhost:3000 for the shop, and http://localhost:3000/admin for
 the Shop Desk.
 
 ```bash
-npm run test:all     # 101 tests, no network or database needed
+npm run test:all     # automated tests, no network or database needed
 npm run build        # production build
 ```
 
@@ -105,7 +105,7 @@ pages accurate without forcing them dynamic.
 
 ## The Shop Desk (`/admin`)
 
-Four sections, one password.
+Five sections, one password.
 
 ### Cake-pop menu
 Add a flavor, edit its details and photo, set its own price and quantity, and
@@ -159,6 +159,64 @@ Event done).
 - **Delete** works at any stage, for menu orders and custom requests alike, and
   is permanent — these rows hold customer contact details the owner may need to
   remove on request.
+
+### Coupons
+Create dollar-off coupon campaigns, starting with **$1 off**. Unique single-use
+codes are the default; generate up to 200 at once for physical handouts. Choose
+**Shared code** to create one code with a total redemption limit. A custom code,
+minimum order amount, and expiration date are optional. Codes with the same
+campaign name belong to the same promotion (ignoring case and extra spaces).
+Each checkout email can redeem only one coupon per promotion, across all its
+codes, even if its original order is cancelled or deleted. Expiration is inclusive
+of the selected day in San Antonio (America/Chicago).
+
+Select codes to **Print coupons** or **Export CSV**. Printing matches the supplied
+8 × 11-inch cardstock PDF: **3 columns × 4 rows, 12 coupons per sheet**, with
+additional sheets generated automatically. Shared codes have a copies-per-code
+control (up to 200); single-use codes always print once. Use actual size / 100%, background
+graphics on, and browser headers/footers off. Each unique code is incorporated
+inside the supplied $1 artwork. Other discount amounts use an equivalent card
+with the actual offer. Unavailable codes are visibly marked; do not distribute
+those cards. Disable a code to stop future uses; re-enabling never resets its use
+count or expiration. Generate a new promotion for different terms.
+
+For a physical sale, staff use **Redeem a physical coupon** in Shop Desk → Coupons,
+with the code, customer email, and purchase subtotal. Customers can redeem at
+`/redeem` (also linked in the footer), complete the security check, and show the
+confirmation to staff. They should do this only when the shop is ready to apply
+the discount. Staff verify the code in **Recent redemptions** before honoring a
+confirmation. The purchase amount is entered for the physical sale and must be
+checked by staff; this form does not collect a payment or create an online order.
+All channels use the same code counter and promotion/email limit. A physical
+redemption immediately blocks another use of a single-use code online or in
+person. Shared codes continue only up to their total limit, once per customer.
+An unchanged physical retry returns the existing confirmation without consuming
+another use. Customer names are optional; email enforces the promotion limit.
+
+Customers enter a code on `/cart`, click **Apply**, and see the dollar discount
+and estimated total. One coupon is allowed per pickup request, including singles,
+bundles, and the weekly box; it does not apply to cart-rental quotes. Changing the
+cart requires applying the code again. The server recalculates menu prices and
+checks the terms again on submission. Discounts are capped at the order total.
+
+Previewing does not consume a code. Saving the pickup request and increasing its
+redemption count happen in one database transaction with a row lock, so concurrent
+requests cannot exceed the limit. An unchanged retry with the same request ID
+returns the existing order without consuming another use or sending another
+receipt. Cancelling or deleting an order does **not** restore the use.
+
+The original subtotal, code, and discount stay with the order and appear in the
+Shop Desk, emails, PDFs, and spreadsheet exports. The estimated subtotal already
+includes the discount. When confirming, staff should enter the final total with
+the coupon included; it is not automatically subtracted again.
+
+Apply `supabase/migrations/20261010034033_coupons.sql`,
+`supabase/migrations/20261010040511_coupon_promotions.sql`, and
+`supabase/migrations/20261010041509_physical_coupon_redemption.sql` before releasing this feature.
+It adds a private coupon table and a helper called only through the existing
+token-guarded admin RPC. No extra environment variables are needed. Run
+`npm run test:coupons` for isolated application tests and
+`tests/coupons-database.sql` for database assertions that roll back all fixtures.
 
 ### Shop settings
 Pickup addresses, customer contact, the Gmail connection, and **Prices** — the

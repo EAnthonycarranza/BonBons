@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import zlib from "node:zlib";
+import { PDFDocument } from "pdf-lib";
 import { buildOrderDocument, documentFilename, documentLines } from "../lib/order-pdf.js";
 import { buildOrderEmail } from "../lib/email-template.js";
 
@@ -35,6 +36,35 @@ const quote = {
   confirmedTotal: 96,
   pickupDate: "2026-10-02",
 };
+
+test("coupon appears in receipts, confirmations, and invoices without subtracting twice", async () => {
+  const discounted = { ...order, couponCode: "BB-TEST1234", discountAmount: 1, subtotalBeforeDiscount: 32, subtotal: 31, confirmedTotal: 31 };
+  for (const emailType of ["request_received", "confirmation", "paid_invoice"]) {
+    const record = emailType === "request_received" ? { ...discounted, orderNumber: null, confirmedTotal: null } : discounted;
+    const email = buildOrderEmail({ record, kind: "orders", emailType });
+    assert.match(email.text, /Request subtotal: \$32/);
+    assert.match(email.text, /Coupon BB-TEST1234: -\$1/);
+    assert.match(email.text, /total: \$31/);
+    assert.match(email.html, /Coupon BB-TEST1234/);
+    assert.doesNotMatch(email.text, /total: \$30/);
+  }
+  for (const documentKind of ["confirmation", "invoice"]) {
+    const text = pdfText(await buildOrderDocument({ record: discounted, kind: "orders", documentKind }));
+    assert.match(text, /Coupon BB-TEST1234/);
+    assert.match(text, /-\$1/);
+    assert.match(text, /\$31/);
+  }
+});
+
+test("long coupon orders keep every item and the discount on printable pages", async () => {
+  const record = { ...order, items: Array.from({ length: 20 }, (_, i) => ({ name: `Flavor ${i + 1}`, description: "A handmade cake pop", qty: 1, price: 3 })), couponCode: "BB-TEST1234", discountAmount: 1, subtotalBeforeDiscount: 60, subtotal: 59, confirmedTotal: 59 };
+  const buffer = await buildOrderDocument({ record, kind: "orders" });
+  const pdf = await PDFDocument.load(buffer);
+  assert.ok(pdf.getPageCount() > 1);
+  const text = pdfText(buffer);
+  assert.match(text, /Flavor 20/); assert.match(text, /Coupon BB-TEST1234/);
+  assert.match(text, /\$59/); assert.match(text, /PICKUP/);
+});
 
 /**
  * Text drawn into the document.

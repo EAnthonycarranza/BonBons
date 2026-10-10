@@ -5,7 +5,7 @@ import Script from "next/script";
 import { RECAPTCHA_SITE_KEY } from "@/lib/recaptcha-client";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha-actions";
 
-export default function RecaptchaCheckbox({ onChange, resetKey, error }) {
+export default function RecaptchaCheckbox({ onChange, resetKey, error, action = RECAPTCHA_ACTIONS.order }) {
   const containerRef = useRef(null);
   const widgetRef = useRef(null);
   const [scriptReady, setScriptReady] = useState(false);
@@ -50,7 +50,7 @@ export default function RecaptchaCheckbox({ onChange, resetKey, error }) {
       try {
         widgetRef.current = enterprise.render(host, {
           sitekey: RECAPTCHA_SITE_KEY,
-          action: RECAPTCHA_ACTIONS.order,
+          action,
           theme: "dark",
           size,
           callback: (token) => {
@@ -84,7 +84,7 @@ export default function RecaptchaCheckbox({ onChange, resetKey, error }) {
       }
       host.remove();
     };
-  }, [scriptReady, size, onChange]);
+  }, [scriptReady, size, onChange, action]);
 
   useEffect(() => {
     if (!resetKey || widgetRef.current === null) return;
