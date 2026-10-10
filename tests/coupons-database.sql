@@ -119,6 +119,12 @@ begin
   result:=private.bonbons_coupon_redemption('coupon_redeem',jsonb_set(payload,'{subtotal}','5'));
   if (result->>'subtotal')::numeric<>0 or (result->>'discountAmount')::numeric<>5 then raise exception 'Physical clamp failed'; end if;
   if jsonb_array_length(private.bonbons_coupon_redemption('coupon_redemptions','{}'::jsonb))<4 then raise exception 'History missing redemptions'; end if;
+  perform private.bonbons_coupons('coupon_create', '{"codes":["QA-DELETE-A","QA-DELETE-B"],"name":"QA delete","discount_amount":1}'::jsonb);
+  rejected:=false;
+  begin perform private.bonbons_coupons('coupon_delete', jsonb_build_object('ids',(select jsonb_agg(id) from public.coupons where code in ('QA-DELETE-A','QA-COUPON-ONCE')))); exception when sqlstate '22023' then rejected:=true; end;
+  if not rejected or not exists(select 1 from public.coupons where code='QA-DELETE-A') then raise exception 'Used coupon was deleted'; end if;
+  result:=private.bonbons_coupons('coupon_delete', jsonb_build_object('ids',(select jsonb_agg(id::text) from public.coupons where code like 'QA-DELETE-%')));
+  if jsonb_array_length(result)<>2 or exists(select 1 from public.coupons where code like 'QA-DELETE-%') then raise exception 'Unused coupon delete failed'; end if;
   rejected := false;
   begin perform public.bonbons_admin('invalid-token','coupon_list','{}'::jsonb); exception when sqlstate '28000' then rejected := true; end;
   if not rejected then raise exception 'Unauthenticated coupon listing allowed'; end if;

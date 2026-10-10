@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import vm from "node:vm";
 import { readFile } from "node:fs/promises";
-import { randomBytes } from "node:crypto";
-import { normalizeCouponCode, validateCouponBatch, validatePhysicalRedemption, toCoupon, couponStatus } from "../lib/coupons.js";
+import { randomInt } from "node:crypto";
+import { normalizeCouponCode, validateCouponBatch, validatePhysicalRedemption, toCoupon, couponStatus, generateCouponCodes } from "../lib/coupons.js";
 import { normalizeOrderItems } from "../lib/order-menu.js";
 import { getCartPricing } from "../lib/pricing.js";
 import { isEmail, isPhone } from "../lib/format.js";
@@ -27,7 +27,7 @@ const uuid = "e345c943-a42b-4cf8-8ab7-f26998ef4d98";
 const request = body => new Request("http://localhost/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const sharedImports = {
   "next/server": { NextResponse: Response },
-  "@/lib/coupons": { normalizeCouponCode, validateCouponBatch, validatePhysicalRedemption, toCoupon },
+  "@/lib/coupons": { normalizeCouponCode, validateCouponBatch, validatePhysicalRedemption, toCoupon, generateCouponCodes },
   "@/lib/products": { getProducts: async () => products },
   "@/lib/weekly-box-data": { getShopSettings: async () => settings, getFeaturedWeeklyBox: async () => null },
   "@/lib/order-menu": { normalizeOrderItems }, "@/lib/pricing": { getCartPricing },
@@ -43,6 +43,7 @@ test("single-use defaults and shared limits; validate money, dates, and code bat
   assert.throws(() => normalizeCouponCode("<script>"));
   assert.throws(() => normalizeCouponCode("A".repeat(33)));
   assert.equal(normalizeCouponCode(" bb-1234 "), "BB-1234");
+  assert.equal(normalizeCouponCode(" k7m 4qx "), "K7M4QX");
 });
 
 test("availability includes expiration day, limits, and disabled codes", () => {
@@ -127,25 +128,62 @@ test("redemption requires CAPTCHA and a valid retry ID", async () => {
 test("admin code generation defaults to one use and produces independent printable codes", async () => {
   let captured;
   const route = await isolated("app/api/admin/coupons/route.js", {
-    ...sharedImports, "node:crypto": { randomBytes },
+    ...sharedImports, "node:crypto": { randomInt },
     "@/lib/admin-menu": { menuGuard: async () => null, menuError: error => Response.json({ error: error.message }, { status: 400 }) },
     "@/lib/supabase-data": { callBonbonsAdmin: async (action, payload) => { captured = { action, payload }; return payload.codes.map((code, index) => ({ id: index, code, name: payload.name, discount_amount: payload.discount_amount, minimum_subtotal: 0, max_redemptions: payload.max_redemptions, redemption_count: 0, active: true })); } },
   });
   const res = await route.POST(request({ name: "Handouts", discountAmount: 1, quantity: 10 })); const data = await res.json();
   assert.equal(res.status, 201); assert.equal(data.coupons.length, 10);
   assert.equal(captured.payload.max_redemptions, 1); assert.equal(new Set(captured.payload.codes).size, 10);
-  assert.ok(captured.payload.codes.every(code => /^BB-[A-F0-9]{16}$/.test(code)));
+  assert.ok(captured.payload.codes.every(code => /^[2-9A-HJKMNP-Z]{6}$/.test(code)));
+  assert.ok(captured.payload.codes.every(code => normalizeCouponCode(code) === code));
 });
 
-test("unauthorized admins cannot list or generate codes", async () => {
+test("a code collision draws a fresh batch; a custom code collision is reported", async () => {
+  const attempts = [];
+  const taken = Object.assign(new Error("That coupon code already exists. Choose a different code."), { status: 409 });
+  const route = await isolated("app/api/admin/coupons/route.js", {
+    ...sharedImports, "node:crypto": { randomInt },
+    "@/lib/admin-menu": { menuGuard: async () => null, menuError: error => Response.json({ error: error.message }, { status: error.status || 400 }) },
+    "@/lib/supabase-data": { callBonbonsAdmin: async (action, payload) => { attempts.push(payload.codes); if (attempts.length === 1 || payload.codes[0] === "TAKEN") throw taken; return payload.codes.map((code, id) => ({ id, code, name: payload.name, discount_amount: 1, minimum_subtotal: 0, max_redemptions: 1, redemption_count: 0, active: true })); } },
+  });
+  assert.equal((await route.POST(request({ name: "Handouts", discountAmount: 1, quantity: 3 }))).status, 201);
+  assert.equal(attempts.length, 2); assert.notDeepEqual(attempts[0], attempts[1]);
+  attempts.length = 1;
+  assert.equal((await route.POST(request({ name: "Handouts", discountAmount: 1, code: "taken" }))).status, 409);
+  assert.equal(attempts.length, 2);
+});
+
+test("generated codes are unique within a batch", () => {
+  let n = 0; const repeating = () => [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1][n++ % 12];
+  assert.deepEqual(generateCouponCodes(2, repeating), ["222222", "333333"]);
+});
+
+test("admins delete selected coupons by id; bad selections never reach the database", async () => {
+  const calls = [];
+  const route = await isolated("app/api/admin/coupons/route.js", {
+    ...sharedImports, "node:crypto": { randomInt },
+    "@/lib/admin-menu": { menuGuard: async () => null, menuError: error => Response.json({ error: error.message }, { status: error.status || 400 }) },
+    "@/lib/supabase-data": { callBonbonsAdmin: async (action, payload) => { calls.push({ action, payload }); return payload.ids; } },
+  });
+  const del = body => route.DELETE(new Request("http://localhost/api/admin/coupons", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
+  const res = await del({ ids: ["7", 8] });
+  assert.equal(res.status, 200); assert.deepEqual((await res.json()).deleted, ["7", "8"]);
+  assert.equal(JSON.stringify(calls), JSON.stringify([{ action: "coupon_delete", payload: { ids: ["7", "8"] } }]));
+  for (const body of [{}, { ids: [] }, { ids: ["7; drop"] }, { ids: "7" }]) assert.equal((await del(body)).status, 400);
+  assert.equal(calls.length, 1);
+});
+
+test("unauthorized admins cannot list, generate, or delete codes", async () => {
   let called = false;
   const route = await isolated("app/api/admin/coupons/route.js", {
-    ...sharedImports, "node:crypto": { randomBytes },
+    ...sharedImports, "node:crypto": { randomInt },
     "@/lib/admin-menu": { menuGuard: async () => Response.json({ error: "Not authorized" }, { status: 401 }), menuError: () => {} },
     "@/lib/supabase-data": { callBonbonsAdmin: async () => { called = true; } },
   });
   assert.equal((await route.GET(request({}))).status, 401);
-  assert.equal((await route.POST(request({}))).status, 401); assert.equal(called, false);
+  assert.equal((await route.POST(request({}))).status, 401);
+  assert.equal((await route.DELETE(request({ ids: ["7"] }))).status, 401); assert.equal(called, false);
 });
 
 test("order exports preserve coupon code, amount, and original subtotal", () => {

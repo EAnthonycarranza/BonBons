@@ -4,6 +4,7 @@ import { money } from "@/lib/format";
 import { couponStatus } from "@/lib/coupons";
 import AdminIcon from "./AdminIcon";
 import CouponRedemption from "./CouponRedemption";
+import ConfirmDialog from "./ConfirmDialog";
 import "./coupons.css";
 
 const INITIAL = { name: "", mode: "single", discountAmount: "1", minimumSubtotal: "0", quantity: "1", maxRedemptions: "100", code: "", expiresOn: "" };
@@ -25,6 +26,8 @@ export default function AdminCoupons() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
@@ -68,6 +71,23 @@ export default function AdminCoupons() {
     } catch (err) { setError(err.message); }
     finally { setUpdating(""); }
   }
+  async function remove() {
+    setDeleting(true); setError(""); setNotice("");
+    try {
+      const res = await fetch("/api/admin/coupons", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: chosen.map(c => c.id) }) });
+      const data = await res.json(); if (!res.ok) throw new Error(data.error || "Could not delete coupons.");
+      const gone = new Set(data.deleted.map(String));
+      setCoupons(current => current.filter(c => !gone.has(c.id)));
+      setSelected(current => current.filter(id => !gone.has(id)));
+      setNotice(`${gone.size} ${gone.size === 1 ? "coupon was" : "coupons were"} deleted.`);
+    } catch (err) { setError(err.message); }
+    finally { setDeleting(false); setConfirmDelete(false); }
+  }
+  function askDelete() {
+    const used = chosen.filter(c => c.redemptionCount > 0);
+    if (used.length) { setNotice(""); setError(`${used.length === 1 ? `${used[0].code} has` : `${used.length} of the selected coupons have`} been used, so ${used.length === 1 ? "it stays" : "they stay"} in your records. Disable ${used.length === 1 ? "it" : "them"} instead, or unselect ${used.length === 1 ? "it" : "them"} to delete the rest.`); return; }
+    setConfirmDelete(true);
+  }
   const visible = coupons.filter(c => `${c.code} ${c.name}`.toLowerCase().includes(search.toLowerCase()));
   const chosen = coupons.filter(c => selected.includes(c.id));
   const allSelected = visible.length > 0 && visible.every(c => selected.includes(c.id));
@@ -84,7 +104,7 @@ export default function AdminCoupons() {
           <label className="admin-field">Campaign name<input value={form.name} onChange={set("name")} placeholder="Fall market handouts" required maxLength={80}/><small>The same name groups codes into one promotion. One use per checkout email across all its codes.</small></label>
           <label className="admin-field">Discount ($)<input type="number" value={form.discountAmount} onChange={set("discountAmount")} min="0.01" max="500" step="0.01" required/></label>
           {shared ? <label className="admin-field">Total redemptions allowed<input type="number" value={form.maxRedemptions} onChange={set("maxRedemptions")} min="1" max="1000000" step="1" required/></label> : <label className="admin-field">Number of unique codes<input type="number" value={form.quantity} onChange={set("quantity")} min="1" max="200" step="1" required/></label>}
-          {quantity === 1 ? <label className="admin-field">Custom code (optional)<input value={form.code} onChange={set("code")} placeholder="Auto-generate a code" maxLength={32} autoCapitalize="characters" spellCheck={false}/><small>4–32 letters, numbers or hyphens.</small></label> : <div className="coupon-auto-note">Every printed coupon gets its own randomly generated code.</div>}
+          {quantity === 1 ? <label className="admin-field">Custom code (optional)<input value={form.code} onChange={set("code")} placeholder="Auto-generate a code" maxLength={32} autoCapitalize="characters" spellCheck={false}/><small>4–32 letters, numbers or hyphens.</small></label> : <div className="coupon-auto-note">Every printed coupon gets its own short 6-character code, like K7M4QX.</div>}
           <label className="admin-field">Minimum order ($)<input type="number" value={form.minimumSubtotal} onChange={set("minimumSubtotal")} min="0" max="100000" step="0.01" required/><small>Leave at 0 for no minimum.</small></label>
           <label className="admin-field">Expiration date (optional)<input type="date" value={form.expiresOn} onChange={set("expiresOn")}/><small>Valid through this date in San Antonio.</small></label>
         </div>
@@ -92,8 +112,9 @@ export default function AdminCoupons() {
       </div>
     </form>
     <div className="coupon-library-head"><div><h2>Your coupon codes</h2><p>{coupons.length} {coupons.length === 1 ? "code" : "codes"} · {coupons.reduce((sum, c) => sum + c.redemptionCount, 0)} redemptions</p></div><label className="coupon-search"><AdminIcon name="search"/><input aria-label="Search coupon codes" placeholder="Search campaign or code" value={search} onChange={e => setSearch(e.target.value)}/></label></div>
-    <div className="coupon-selection"><span>{chosen.length} selected</span><div><button type="button" className="admin-btn admin-btn-secondary" disabled={!chosen.length} onClick={() => exportCodes(chosen)}>Export CSV</button><a className={`admin-btn admin-btn-secondary${chosen.length ? "" : " is-disabled"}`} aria-disabled={!chosen.length} href={chosen.length ? `/admin/coupons/print?ids=${chosen.map(c => c.id).join(",")}` : undefined} target="_blank" rel="noopener">Print coupons<AdminIcon name="external"/></a></div></div>
+    <div className="coupon-selection"><span>{chosen.length} selected</span><div><button type="button" className="admin-btn admin-btn-secondary" disabled={!chosen.length} onClick={() => exportCodes(chosen)}>Export CSV</button><a className={`admin-btn admin-btn-secondary${chosen.length ? "" : " is-disabled"}`} aria-disabled={!chosen.length} href={chosen.length ? `/admin/coupons/print?ids=${chosen.map(c => c.id).join(",")}` : undefined} target="_blank" rel="noopener">Print coupons<AdminIcon name="external"/></a><button type="button" className="admin-btn admin-btn-danger" disabled={!chosen.length || deleting || loading || saving} onClick={askDelete}><AdminIcon name="trash"/>Delete</button></div></div>
     <div className="coupon-table-wrap"><table className="coupon-table"><thead><tr><th><input type="checkbox" aria-label="Select all visible coupons" checked={allSelected} onChange={() => setSelected(current => allSelected ? current.filter(id => !visible.some(c => c.id === id)) : [...new Set([...current, ...visible.map(c => c.id)])])}/></th><th>Code / campaign</th><th>Offer</th><th>Redemptions</th><th>Status</th><th>Availability</th></tr></thead><tbody>{visible.map(c => <tr key={c.id}><td><input type="checkbox" aria-label={`Select ${c.code}`} checked={selected.includes(c.id)} onChange={() => choose(c.id)}/></td><td><code>{c.code}</code><small>{c.name}</small></td><td><b>{money(c.discountAmount)} off</b><small>{c.minimumSubtotal > 0 ? `${money(c.minimumSubtotal)} minimum` : "No minimum"} · {c.expiresOn ? `Through ${c.expiresOn}` : "No expiration"}</small></td><td>{c.redemptionCount} / {c.maxRedemptions}<small>{c.maxRedemptions === 1 ? "Single use" : "Shared code"}</small></td><td><span className={`coupon-status ${couponStatus(c) === "Available" ? "is-available" : ""}`}>{couponStatus(c)}</span></td><td><button type="button" className="admin-btn admin-btn-secondary" onClick={() => toggle(c)} disabled={Boolean(updating) || loading || saving} aria-label={`${c.active ? "Disable" : "Enable"} ${c.code}`}>{updating === c.id ? "Saving…" : c.active ? "Disable" : "Enable"}</button></td></tr>)}</tbody></table>{!visible.length ? <p className="coupon-empty">{loading ? "Loading coupons…" : coupons.length ? "No matching codes." : "Your first coupon campaign starts here. Generate codes above, then print them to hand out."}</p> : null}</div>
+    <ConfirmDialog open={confirmDelete} tone="danger" busy={deleting} title={`Delete ${chosen.length} ${chosen.length === 1 ? "coupon" : "coupons"}?`} message={chosen.length === 1 ? `${chosen[0].code} from ${chosen[0].name}` : `${chosen.length} selected codes`} consequence="Deleted codes stop working right away, including any already printed or handed out. This can't be undone." confirmLabel="Delete" onConfirm={remove} onCancel={() => setConfirmDelete(false)}/>
     <CouponRedemption admin onRedeemed={load}/>
     <div className="coupon-library-head"><div><h2>Recent redemptions</h2><p>Latest 200 · Check the code here before honoring a customer&apos;s confirmation.</p></div><label className="coupon-search"><AdminIcon name="search"/><input aria-label="Search redemptions" placeholder="Code, email or reference" value={historySearch} onChange={e => setHistorySearch(e.target.value)}/></label></div>
     <div className="coupon-table-wrap"><table className="coupon-table"><thead><tr><th>Code / promotion</th><th>Customer</th><th>Redeemed</th><th>Discount</th><th>Method / reference</th></tr></thead><tbody>{redemptions.filter(r => `${r.code} ${r.customer_email} ${r.reference || ""} ${r.campaign}`.toLowerCase().includes(historySearch.toLowerCase())).map(r => <tr key={r.id}><td><code>{r.code}</code><small>{r.campaign}</small></td><td>{r.customer_email}<small>{r.customer_name}</small></td><td>{new Date(r.redeemed_at).toLocaleString("en-US", { timeZone: "America/Chicago" })}<small>San Antonio time</small></td><td>{r.discount_amount == null ? "—" : money(Number(r.discount_amount))}</td><td>{r.channel === "online" ? "Online order" : r.channel === "admin" ? "Staff redemption" : "Customer in person"}<small className="coupon-history-reference">{r.reference || `Order #${r.order_id || "deleted"}`}</small></td></tr>)}</tbody></table>{!redemptions.length ? <p className="coupon-empty">No coupons have been redeemed yet.</p> : null}</div>
