@@ -1,66 +1,68 @@
 "use client";
 import { useEffect, useState } from "react";
 import { money } from "@/lib/format";
-import { couponStatus } from "@/lib/coupons";
+import { couponStatus, groupCouponPromotions } from "@/lib/coupons";
 import AdminIcon from "./AdminIcon";
 import CouponRedemption from "./CouponRedemption";
+import CouponCreateForm, { INITIAL_COUPON_FORM } from "./CouponCreateForm";
 import ConfirmDialog from "./ConfirmDialog";
 import "./coupons.css";
 
-const INITIAL = { name: "", mode: "single", discountAmount: "1", minimumSubtotal: "0", quantity: "1", maxRedemptions: "100", code: "", expiresOn: "" };
-
 function exportCodes(coupons) {
-  const cell = (value) => {
-    const text = String(value ?? "");
-    return `"${(/^[=+\-@\t\r]/.test(text) ? "'" : "") + text.replace(/"/g, '""')}"`;
-  };
+  const cell = value => `"${(/^[=+\-@\t\r]/.test(String(value ?? "")) ? "'" : "") + String(value ?? "").replace(/"/g, '""')}"`;
   const rows = [["Code", "Campaign", "Discount", "Minimum order", "Expiration", "Uses allowed", "Uses redeemed", "Active"], ...coupons.map(c => [c.code, c.name, c.discountAmount, c.minimumSubtotal, c.expiresOn, c.maxRedemptions, c.redemptionCount, c.active])];
   const url = URL.createObjectURL(new Blob(["\uFEFF" + rows.map(row => row.map(cell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }));
   const link = document.createElement("a"); link.href = url; link.download = "bonbons-coupons.csv"; link.click(); URL.revokeObjectURL(url);
 }
+function Pager({ page, total, size, onChange }) {
+  const pages = Math.max(1, Math.ceil(total / size));
+  return <div className="coupon-pager"><span>{total ? `${(page - 1) * size + 1}–${Math.min(page * size, total)} of ${total}` : "0 results"}</span><div><button className="admin-btn admin-btn-secondary" disabled={page <= 1} onClick={() => onChange(page - 1)}>Previous</button><span>{page} / {pages}</span><button className="admin-btn admin-btn-secondary" disabled={page >= pages} onClick={() => onChange(page + 1)}>Next</button></div></div>;
+}
+function PrintLink({ codes, label = "Print selected" }) {
+  return <a className={`admin-btn admin-btn-secondary${codes.length ? "" : " is-disabled"}`} aria-disabled={!codes.length} href={codes.length ? `/admin/coupons/print?ids=${codes.map(c => c.id).join(",")}` : undefined} target="_blank" rel="noopener">{label}<AdminIcon name="external"/></a>;
+}
+const batchDate = value => value === "legacy" ? "Earlier batch" : new Date(value).toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
 
 export default function AdminCoupons() {
-  const [coupons, setCoupons] = useState([]);
-  const [form, setForm] = useState(INITIAL);
-  const [selected, setSelected] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [updating, setUpdating] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [search, setSearch] = useState("");
-  const [redemptions, setRedemptions] = useState([]);
-  const [historySearch, setHistorySearch] = useState("");
+  const [coupons, setCoupons] = useState([]), [redemptions, setRedemptions] = useState([]);
+  const [view, setView] = useState("promotions"), [promotionKey, setPromotionKey] = useState(""), [batchKey, setBatchKey] = useState("");
+  const [createForm, setCreateForm] = useState(null), [selected, setSelected] = useState([]), [redeemCode, setRedeemCode] = useState("");
+  const [loading, setLoading] = useState(true), [saving, setSaving] = useState(false), [updating, setUpdating] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false), [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState(""), [notice, setNotice] = useState("");
+  const [search, setSearch] = useState(""), [filter, setFilter] = useState("All"), [page, setPage] = useState(1);
+  const [historySearch, setHistorySearch] = useState(""), [historyPage, setHistoryPage] = useState(1);
   async function load() {
     setLoading(true); setError("");
     try {
-      const [res, historyRes] = await Promise.all([fetch("/api/admin/coupons", { cache: "no-store" }), fetch("/api/admin/coupons/redeem", { cache: "no-store" })]);
-      const [data, history] = await Promise.all([res.json(), historyRes.json()]);
-      if (!res.ok || !historyRes.ok) throw new Error(data.error || history.error || "Could not load coupons.");
-      setCoupons(data.coupons);
-      setRedemptions(history.redemptions);
-    } catch (err) { setError(err.message); }
-    finally { setLoading(false); }
+      const responses = await Promise.all([fetch("/api/admin/coupons", { cache: "no-store" }), fetch("/api/admin/coupons/redeem", { cache: "no-store" })]);
+      const [data, history] = await Promise.all(responses.map(res => res.json()));
+      if (responses.some(res => !res.ok)) throw new Error(data.error || history.error || "Could not load coupons.");
+      setCoupons(data.coupons); setRedemptions(history.redemptions);
+    } catch (err) { setError(err.message); } finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
-  const set = key => event => setForm(current => ({ ...current, [key]: event.target.value }));
-  const shared = form.mode === "shared";
-  const quantity = shared ? 1 : Number(form.quantity);
-  async function create(event) {
-    event.preventDefault(); if (saving) return;
-    setSaving(true); setError(""); setNotice("");
+  const groups = groupCouponPromotions(coupons);
+  const promotion = groups.find(p => p.key === promotionKey);
+  const batch = promotion?.batches.find(b => b.key === batchKey) || promotion?.batches[0];
+  const scope = batch?.codes || [];
+  const available = codes => codes.filter(c => couponStatus(c) === "Available");
+  const shownGroups = groups.filter(p => `${p.name} ${p.coupons.map(c => c.code).join(" ")}`.toLowerCase().includes(search.toLowerCase()) && (filter === "All" || (filter === "Available" ? available(p.coupons).length > 0 : available(p.coupons).length === 0)));
+  const visible = scope.filter(c => `${c.code} ${c.name}`.toLowerCase().includes(search.toLowerCase()) && (filter === "All" || couponStatus(c) === filter));
+  const chosen = scope.filter(c => selected.includes(c.id));
+  const allSelected = visible.length > 0 && visible.every(c => selected.includes(c.id));
+  const history = redemptions.filter(r => `${r.code} ${r.customer_email} ${r.reference || ""} ${r.campaign}`.toLowerCase().includes(historySearch.toLowerCase()));
+  function openPromotion(p) { setPromotionKey(p.key); setBatchKey(p.batches[0].key); setSearch(""); setFilter("All"); setPage(1); setSelected([]); }
+  function changeView(next) { setView(next); setCreateForm(null); setError(""); setNotice(""); }
+  async function create(form) {
+    if (saving) return; setSaving(true); setError(""); setNotice("");
     try {
-      const res = await fetch("/api/admin/coupons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, quantity, maxRedemptions: shared ? Number(form.maxRedemptions) : 1, code: quantity === 1 ? form.code : "" }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not generate coupons.");
-      setCoupons(current => [...data.coupons, ...current]);
-      setSelected(data.coupons.map(c => c.id)); setSearch("");
-      setNotice(`${data.coupons.length} ${data.coupons.length === 1 ? "code is" : "codes are"} ready. Print or export the selected coupons below.`);
-      setForm(current => ({ ...current, code: "" }));
-    } catch (err) { setError(err.message); }
-    finally { setSaving(false); }
+      const res = await fetch("/api/admin/coupons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const data = await res.json(); if (!res.ok) throw new Error(data.error || "Could not generate coupons.");
+      setCoupons(current => [...data.coupons, ...current]); setSelected(data.coupons.map(c => c.id));
+      setPromotionKey(data.coupons[0].promotionKey); setBatchKey(data.coupons[0].createdAt); setSearch(""); setFilter("All"); setPage(1); setCreateForm(null);
+      setNotice(`${data.coupons.length} ${data.coupons.length === 1 ? "code is" : "codes are"} ready in this batch. Print the unused codes or export them below.`);
+    } catch (err) { setError(err.message); } finally { setSaving(false); }
   }
   async function toggle(coupon) {
     setUpdating(coupon.id); setError("");
@@ -68,55 +70,42 @@ export default function AdminCoupons() {
       const res = await fetch(`/api/admin/coupons/${coupon.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: !coupon.active }) });
       const data = await res.json(); if (!res.ok) throw new Error(data.error || "Could not update coupon.");
       setCoupons(current => current.map(c => c.id === coupon.id ? data.coupon : c));
-    } catch (err) { setError(err.message); }
-    finally { setUpdating(""); }
+    } catch (err) { setError(err.message); } finally { setUpdating(""); }
   }
   async function remove() {
     setDeleting(true); setError(""); setNotice("");
     try {
       const res = await fetch("/api/admin/coupons", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: chosen.map(c => c.id) }) });
       const data = await res.json(); if (!res.ok) throw new Error(data.error || "Could not delete coupons.");
-      const gone = new Set(data.deleted.map(String));
-      setCoupons(current => current.filter(c => !gone.has(c.id)));
-      setSelected(current => current.filter(id => !gone.has(id)));
-      setNotice(`${gone.size} ${gone.size === 1 ? "coupon was" : "coupons were"} deleted.`);
-    } catch (err) { setError(err.message); }
-    finally { setDeleting(false); setConfirmDelete(false); }
+      const gone = new Set(data.deleted.map(String)); setCoupons(current => current.filter(c => !gone.has(c.id))); setSelected([]);
+      setNotice(`${gone.size} unused coupons deleted.`); setPage(1);
+    } catch (err) { setError(err.message); } finally { setDeleting(false); setConfirmDelete(false); }
   }
   function askDelete() {
-    const used = chosen.filter(c => c.redemptionCount > 0);
-    if (used.length) { setNotice(""); setError(`${used.length === 1 ? `${used[0].code} has` : `${used.length} of the selected coupons have`} been used, so ${used.length === 1 ? "it stays" : "they stay"} in your records. Disable ${used.length === 1 ? "it" : "them"} instead, or unselect ${used.length === 1 ? "it" : "them"} to delete the rest.`); return; }
+    if (chosen.some(c => c.redemptionCount > 0)) { setError("Used coupons stay in your records. Unselect them to delete unused codes, or disable them instead."); return; }
     setConfirmDelete(true);
   }
-  const visible = coupons.filter(c => `${c.code} ${c.name}`.toLowerCase().includes(search.toLowerCase()));
-  const chosen = coupons.filter(c => selected.includes(c.id));
-  const allSelected = visible.length > 0 && visible.every(c => selected.includes(c.id));
-  const choose = (id) => setSelected(current => current.includes(id) ? current.filter(i => i !== id) : [...current, id]);
+  function newBatch() {
+    const last = batch?.codes[0]; setCreateForm(last ? { ...INITIAL_COUPON_FORM, name: promotion.name, discountAmount: String(last.discountAmount), minimumSubtotal: String(last.minimumSubtotal), expiresOn: last.expiresOn, quantity: "12", mode: last.maxRedemptions > 1 ? "shared" : "single", maxRedemptions: String(last.maxRedemptions) } : INITIAL_COUPON_FORM);
+  }
   return <div className="coupons-manager">
-    <div className="admin-page-head"><div><p className="admin-kicker">A little extra sweetness</p><h1>Coupons</h1><p>Create event handouts for online checkout or in-person redemption.</p></div><button type="button" className="admin-btn admin-btn-secondary" onClick={load} disabled={loading || saving || Boolean(updating)}><AdminIcon name="refresh"/>Refresh</button></div>
-    {error ? <p className="admin-alert is-error" role="alert">{error}</p> : null}
-    {notice ? <p className="admin-alert" role="status">{notice}</p> : null}
-    <form className="coupon-create" onSubmit={create}>
-      <div className="coupon-create-intro"><span className="coupon-symbol"><AdminIcon name="coupon" width="32" height="32"/></span><h2>Create coupon codes</h2><p>Start with $1 off, or choose any dollar amount. Each code keeps its original terms after printing.</p></div>
-      <div className="coupon-create-fields">
-        <div className="coupon-mode" role="group" aria-label="Coupon type">{[["single", "Single-use codes", "One unique code per physical coupon"], ["shared", "Shared code", "One code with a total redemption limit"]].map(([value, label, hint]) => <label key={value} className={form.mode === value ? "is-selected" : ""}><input type="radio" name="coupon-mode" value={value} checked={form.mode === value} onChange={set("mode")}/><span><b>{label}</b><small>{hint}</small></span></label>)}</div>
-        <div className="admin-field-grid">
-          <label className="admin-field">Campaign name<input value={form.name} onChange={set("name")} placeholder="Fall market handouts" required maxLength={80}/><small>The same name groups codes into one promotion. One use per checkout email across all its codes.</small></label>
-          <label className="admin-field">Discount ($)<input type="number" value={form.discountAmount} onChange={set("discountAmount")} min="0.01" max="500" step="0.01" required/></label>
-          {shared ? <label className="admin-field">Total redemptions allowed<input type="number" value={form.maxRedemptions} onChange={set("maxRedemptions")} min="1" max="1000000" step="1" required/></label> : <label className="admin-field">Number of unique codes<input type="number" value={form.quantity} onChange={set("quantity")} min="1" max="200" step="1" required/></label>}
-          {quantity === 1 ? <label className="admin-field">Custom code (optional)<input value={form.code} onChange={set("code")} placeholder="Auto-generate a code" maxLength={32} autoCapitalize="characters" spellCheck={false}/><small>4–32 letters, numbers or hyphens.</small></label> : <div className="coupon-auto-note">Every printed coupon gets its own short 6-character code, like K7M4QX.</div>}
-          <label className="admin-field">Minimum order ($)<input type="number" value={form.minimumSubtotal} onChange={set("minimumSubtotal")} min="0" max="100000" step="0.01" required/><small>Leave at 0 for no minimum.</small></label>
-          <label className="admin-field">Expiration date (optional)<input type="date" value={form.expiresOn} onChange={set("expiresOn")}/><small>Valid through this date in San Antonio.</small></label>
-        </div>
-        <div className="coupon-create-footer"><p>One coupon per customer per promotion. Redemption is final across online and physical use. Printed $1 coupons use your supplied design, 12 per sheet (3 across × 4 down).</p><button className="admin-btn admin-btn-primary" disabled={saving || loading}>{saving ? "Generating…" : "Generate codes"}<AdminIcon name="plus"/></button></div>
-      </div>
-    </form>
-    <div className="coupon-library-head"><div><h2>Your coupon codes</h2><p>{coupons.length} {coupons.length === 1 ? "code" : "codes"} · {coupons.reduce((sum, c) => sum + c.redemptionCount, 0)} redemptions</p></div><label className="coupon-search"><AdminIcon name="search"/><input aria-label="Search coupon codes" placeholder="Search campaign or code" value={search} onChange={e => setSearch(e.target.value)}/></label></div>
-    <div className="coupon-selection"><span>{chosen.length} selected</span><div><button type="button" className="admin-btn admin-btn-secondary" disabled={!chosen.length} onClick={() => exportCodes(chosen)}>Export CSV</button><a className={`admin-btn admin-btn-secondary${chosen.length ? "" : " is-disabled"}`} aria-disabled={!chosen.length} href={chosen.length ? `/admin/coupons/print?ids=${chosen.map(c => c.id).join(",")}` : undefined} target="_blank" rel="noopener">Print coupons<AdminIcon name="external"/></a><button type="button" className="admin-btn admin-btn-danger" disabled={!chosen.length || deleting || loading || saving} onClick={askDelete}><AdminIcon name="trash"/>Delete</button></div></div>
-    <div className="coupon-table-wrap"><table className="coupon-table"><thead><tr><th><input type="checkbox" aria-label="Select all visible coupons" checked={allSelected} onChange={() => setSelected(current => allSelected ? current.filter(id => !visible.some(c => c.id === id)) : [...new Set([...current, ...visible.map(c => c.id)])])}/></th><th>Code / campaign</th><th>Offer</th><th>Redemptions</th><th>Status</th><th>Availability</th></tr></thead><tbody>{visible.map(c => <tr key={c.id}><td><input type="checkbox" aria-label={`Select ${c.code}`} checked={selected.includes(c.id)} onChange={() => choose(c.id)}/></td><td><code>{c.code}</code><small>{c.name}</small></td><td><b>{money(c.discountAmount)} off</b><small>{c.minimumSubtotal > 0 ? `${money(c.minimumSubtotal)} minimum` : "No minimum"} · {c.expiresOn ? `Through ${c.expiresOn}` : "No expiration"}</small></td><td>{c.redemptionCount} / {c.maxRedemptions}<small>{c.maxRedemptions === 1 ? "Single use" : "Shared code"}</small></td><td><span className={`coupon-status ${couponStatus(c) === "Available" ? "is-available" : ""}`}>{couponStatus(c)}</span></td><td><button type="button" className="admin-btn admin-btn-secondary" onClick={() => toggle(c)} disabled={Boolean(updating) || loading || saving} aria-label={`${c.active ? "Disable" : "Enable"} ${c.code}`}>{updating === c.id ? "Saving…" : c.active ? "Disable" : "Enable"}</button></td></tr>)}</tbody></table>{!visible.length ? <p className="coupon-empty">{loading ? "Loading coupons…" : coupons.length ? "No matching codes." : "Your first coupon campaign starts here. Generate codes above, then print them to hand out."}</p> : null}</div>
-    <ConfirmDialog open={confirmDelete} tone="danger" busy={deleting} title={`Delete ${chosen.length} ${chosen.length === 1 ? "coupon" : "coupons"}?`} message={chosen.length === 1 ? `${chosen[0].code} from ${chosen[0].name}` : `${chosen.length} selected codes`} consequence="Deleted codes stop working right away, including any already printed or handed out. This can't be undone." confirmLabel="Delete" onConfirm={remove} onCancel={() => setConfirmDelete(false)}/>
-    <CouponRedemption admin onRedeemed={load}/>
-    <div className="coupon-library-head"><div><h2>Recent redemptions</h2><p>Latest 200 · Check the code here before honoring a customer&apos;s confirmation.</p></div><label className="coupon-search"><AdminIcon name="search"/><input aria-label="Search redemptions" placeholder="Code, email or reference" value={historySearch} onChange={e => setHistorySearch(e.target.value)}/></label></div>
-    <div className="coupon-table-wrap"><table className="coupon-table"><thead><tr><th>Code / promotion</th><th>Customer</th><th>Redeemed</th><th>Discount</th><th>Method / reference</th></tr></thead><tbody>{redemptions.filter(r => `${r.code} ${r.customer_email} ${r.reference || ""} ${r.campaign}`.toLowerCase().includes(historySearch.toLowerCase())).map(r => <tr key={r.id}><td><code>{r.code}</code><small>{r.campaign}</small></td><td>{r.customer_email}<small>{r.customer_name}</small></td><td>{new Date(r.redeemed_at).toLocaleString("en-US", { timeZone: "America/Chicago" })}<small>San Antonio time</small></td><td>{r.discount_amount == null ? "—" : money(Number(r.discount_amount))}</td><td>{r.channel === "online" ? "Online order" : r.channel === "admin" ? "Staff redemption" : "Customer in person"}<small className="coupon-history-reference">{r.reference || `Order #${r.order_id || "deleted"}`}</small></td></tr>)}</tbody></table>{!redemptions.length ? <p className="coupon-empty">No coupons have been redeemed yet.</p> : null}</div>
+    <div className="admin-page-head"><div><p className="admin-kicker">A little extra sweetness</p><h1>Coupons</h1><p>Promotions, printable batches, and redemption records in one place.</p></div><div className="coupon-head-actions"><button className="admin-btn admin-btn-secondary" onClick={load} disabled={loading || saving}><AdminIcon name="refresh"/>Refresh</button><button className="admin-btn admin-btn-primary" onClick={() => { changeView("promotions"); setCreateForm(INITIAL_COUPON_FORM); }}><AdminIcon name="plus"/>New promotion</button></div></div>
+    <div className="coupon-summary"><div><b>{groups.length}</b><span>Promotions</span></div><div><b>{available(coupons).length}</b><span>Available codes</span></div><div><b>{coupons.reduce((sum, c) => sum + c.redemptionCount, 0)}</b><span>Redemptions</span></div></div>
+    <div className="desk-tabs" role="group" aria-label="Coupon workspace">{[["promotions", "Promotions"], ["redeem", "Redeem a coupon"], ["history", "Redemption history"]].map(([key, label]) => <button key={key} className={view === key ? "is-active" : ""} aria-pressed={view === key} onClick={() => changeView(key)}>{label}</button>)}</div>
+    {error ? <p className="admin-alert is-error" role="alert">{error}</p> : null}{notice ? <p className="admin-alert" role="status">{notice}</p> : null}
+    {createForm ? <CouponCreateForm key={`${createForm.name}-${createForm.mode}`} initial={createForm} busy={saving || loading} onCreate={create} onCancel={() => setCreateForm(null)}/> : null}
+    {view === "promotions" && !createForm ? <>
+      {promotion ? <><div className="coupon-detail-head"><button className="admin-btn admin-btn-secondary" onClick={() => { setPromotionKey(""); setSearch(""); setFilter("All"); setPage(1); setSelected([]); }}>← All promotions</button><div><h2>{promotion.name}</h2><p>{promotion.coupons.length} codes in {promotion.batches.length} {promotion.batches.length === 1 ? "batch" : "batches"} · One use per customer across this promotion</p></div><button className="admin-btn admin-btn-primary" onClick={newBatch}><AdminIcon name="plus"/>Generate another batch</button></div>
+        <div className="coupon-batch-bar"><label className="admin-field">Batch<select value={batch?.key || ""} onChange={e => { setBatchKey(e.target.value); setSelected([]); setPage(1); setSearch(""); }} aria-label="Choose coupon batch">{promotion.batches.map(b => <option value={b.key} key={b.key}>{batchDate(b.key)} · {b.codes.length} codes · {money(b.codes[0].discountAmount)} off</option>)}</select></label><PrintLink codes={available(scope)} label="Print unused batch"/><button className="admin-btn admin-btn-secondary" onClick={() => exportCodes(scope)} disabled={!scope.length}>Export batch CSV</button></div>
+      </> : <div className="coupon-library-head"><div><h2>Your promotions</h2><p>Open a promotion to view its batches and codes.</p></div></div>}
+      <div className="coupon-filter-row"><label className="coupon-search"><AdminIcon name="search"/><input aria-label={promotion ? "Search coupon codes" : "Search promotions"} placeholder={promotion ? "Find a code in this batch" : "Search promotion or code"} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}/></label><select aria-label="Coupon status filter" value={filter} onChange={e => { setFilter(e.target.value); setPage(1); setSelected([]); }}>{(promotion ? ["All", "Available", "Redeemed", "Expired", "Disabled"] : ["All", "Available", "Finished"]).map(value => <option key={value}>{value}</option>)}</select></div>
+      {!promotion ? <><div className="coupon-promotions">{shownGroups.slice((page - 1) * 8, page * 8).map(p => <button className="coupon-promotion-card" key={p.key} onClick={() => openPromotion(p)}><div className="coupon-card-top"><AdminIcon name="coupon"/><span>{available(p.coupons).length ? "Available" : "Finished"}</span></div><h3>{p.name}</h3><p>{p.batches.length} {p.batches.length === 1 ? "batch" : "batches"} · Last generated {new Date(p.latest).toLocaleDateString("en-US", { timeZone: "America/Chicago" })}</p><div className="coupon-card-stats"><span><b>{p.coupons.length}</b>Codes</span><span><b>{available(p.coupons).length}</b>Available</span><span><b>{p.coupons.reduce((sum, c) => sum + c.redemptionCount, 0)}</b>Used</span></div><div className="coupon-card-open">View batches <AdminIcon name="arrow"/></div></button>)}</div>{!shownGroups.length ? <p className="coupon-empty">{loading ? "Loading promotions…" : coupons.length ? "No matching promotions." : "Create your first promotion, then generate batches whenever you need more handouts."}</p> : null}<Pager page={page} total={shownGroups.length} size={8} onChange={setPage}/></> : <>
+        <div className="coupon-selection"><span>{chosen.length} selected in this batch</span><div><PrintLink codes={chosen}/><button className="admin-btn admin-btn-secondary" disabled={!chosen.length} onClick={() => exportCodes(chosen)}>Export selected</button><button className="admin-btn admin-btn-danger" disabled={!chosen.length || deleting || saving || loading} onClick={askDelete}><AdminIcon name="trash"/>Delete unused</button></div></div>
+        <div className="coupon-table-wrap"><table className="coupon-table"><thead><tr><th><input type="checkbox" aria-label="Select all matching codes in this batch" checked={allSelected} onChange={() => setSelected(allSelected ? [] : visible.map(c => c.id))}/></th><th>Code</th><th>Offer / terms</th><th>Uses</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visible.slice((page - 1) * 20, page * 20).map(c => <tr key={c.id}><td><input type="checkbox" aria-label={`Select ${c.code}`} checked={selected.includes(c.id)} onChange={() => setSelected(current => current.includes(c.id) ? current.filter(id => id !== c.id) : [...current, c.id])}/></td><td><code>{c.code}</code></td><td><b>{money(c.discountAmount)} off</b><small>{c.minimumSubtotal > 0 ? `${money(c.minimumSubtotal)} minimum` : "No minimum"} · {c.expiresOn || "No expiration"}</small></td><td>{c.redemptionCount} / {c.maxRedemptions}<small>{c.maxRedemptions === 1 ? "Single use" : "Shared"}</small></td><td><span className={`coupon-status ${couponStatus(c) === "Available" ? "is-available" : ""}`}>{couponStatus(c)}</span></td><td><div className="coupon-row-actions"><button className="admin-btn admin-btn-secondary" disabled={couponStatus(c) !== "Available"} onClick={() => { setRedeemCode(c.code); changeView("redeem"); }}>Redeem</button><button className="admin-btn admin-btn-secondary" disabled={Boolean(updating)} onClick={() => toggle(c)}>{updating === c.id ? "Saving…" : c.active ? "Disable" : "Enable"}</button></div></td></tr>)}</tbody></table>{!visible.length ? <p className="coupon-empty">No codes match this filter.</p> : null}</div><Pager page={page} total={visible.length} size={20} onChange={setPage}/>
+      </>}
+    </> : null}
+    {view === "redeem" ? <CouponRedemption key={redeemCode} admin initialCode={redeemCode} onRedeemed={load}/> : null}
+    {view === "history" ? <><div className="coupon-library-head"><div><h2>Redemption history</h2><p>Latest 200 redemptions · San Antonio time</p></div><label className="coupon-search"><AdminIcon name="search"/><input aria-label="Search redemptions" placeholder="Code, email or reference" value={historySearch} onChange={e => { setHistorySearch(e.target.value); setHistoryPage(1); }}/></label></div><div className="coupon-table-wrap"><table className="coupon-table"><thead><tr><th>Code / promotion</th><th>Customer</th><th>Date</th><th>Discount</th><th>Method / reference</th></tr></thead><tbody>{history.slice((historyPage - 1) * 15, historyPage * 15).map(r => <tr key={r.id}><td><code>{r.code}</code><small>{r.campaign}</small></td><td>{r.customer_email}<small>{r.customer_name}</small></td><td>{new Date(r.redeemed_at).toLocaleString("en-US", { timeZone: "America/Chicago" })}</td><td>{r.discount_amount == null ? "—" : money(Number(r.discount_amount))}</td><td>{r.channel === "online" ? "Online order" : r.channel === "admin" ? "Staff" : "Customer in person"}<small className="coupon-history-reference">{r.reference || `Order #${r.order_id || "deleted"}`}</small></td></tr>)}</tbody></table>{!history.length ? <p className="coupon-empty">No matching redemptions.</p> : null}</div><Pager page={historyPage} total={history.length} size={15} onChange={setHistoryPage}/></> : null}
+    <ConfirmDialog open={confirmDelete} tone="danger" busy={deleting} title={`Delete ${chosen.length} unused coupons?`} message="These selected codes will stop working, including printed copies." consequence="This cannot be undone. Used codes stay in your records." confirmLabel="Delete coupons" onConfirm={remove} onCancel={() => setConfirmDelete(false)}/>
   </div>;
 }

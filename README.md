@@ -224,6 +224,44 @@ headline single-pop price, the four-pack price, and an editable row for every
 flavor. Flavor rows save one at a time, so a typo in one price cannot block the
 rest.
 
+### Local events and email updates
+Open **Events & email updates** in the Shop Desk. Save an event as a draft,
+publish it to `/events`, display a cancellation notice, or archive it. Dates
+and times use San Antonio time. Photos use the existing shop photo uploader.
+
+The homepage and events page offer an explicit email opt-in with reCAPTCHA.
+Customers confirm their address from an email link before joining the audience.
+Confirmation expires after 48 hours. Opening the link alone does not subscribe
+them; they press **Confirm my subscription**. Every update includes an unsubscribe
+link, and admins can unsubscribe addresses in the Subscribers tab. Order emails
+are never subscribed automatically.
+
+In **Email studio**, choose spotlight, digest, or simple announcement; edit the
+subject, headline, message, accent color, photo, and button label. Select up to
+12 published or cancelled events and review the live desktop/phone preview.
+Save the draft, then **Review & send**. Publishing an event does not send email.
+The existing Gmail settings and `NEXT_PUBLIC_SITE_URL` are used; no new secrets
+are needed. Set the site URL to the public website in production so confirmation
+and unsubscribe links reach customers.
+
+Sending records a fixed copy of the design, events, and confirmed audience,
+then processes three recipients per request. Each recipient gets a separate
+message. Closing the page can leave queued messages; reopen the saved email and
+continue them. Sent messages are never automatically retried. For failed or
+stalled attempts, check Gmail's Sent folder before explicitly retrying: SMTP can
+accept a message even if its response or database confirmation is lost.
+
+Apply `supabase/migrations/20261010150303_local_events_and_email_updates.sql`
+and `supabase/migrations/20261010152753_complete_event_subscriber_audience.sql`.
+`tests/events-database.sql` verifies consent, visibility, snapshots, unsubscribe,
+and delivery retry rules in a transaction that rolls back its fixtures.
+Application tests are included in `npm run test:all`; none send real emails.
+
+Coupon browsing now starts with promotion cards. Open a promotion to choose a
+generation batch, print its unused codes, export it, or generate another batch
+with the same terms. Code lists show 20 per page. Redemption and history have
+separate tabs; existing codes and printed designs keep their terms.
+
 ---
 
 ## Emails and documents

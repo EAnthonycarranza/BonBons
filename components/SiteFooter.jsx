@@ -127,6 +127,7 @@ export default async function SiteFooter() {
               <li>
                 <Link href="/faq">How pickup works →</Link>
               </li>
+              <li><Link href="/events">Local events & updates</Link></li>
               <li><Link href="/redeem">Redeem a coupon</Link></li>
             </ul>
             <PaymentMethods />

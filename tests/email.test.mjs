@@ -307,3 +307,18 @@ test("cash intent can never produce a paid invoice", () => {
     /marked as paid/
   );
 });
+
+test("event updates are addressed individually with unsubscribe headers and the inline brand logo", async () => {
+  const capture = {};
+  const mailer = await isolatedMailer(capture);
+  const unsubscribeUrl = "https://bonbonssweets.com/api/updates/unsubscribe?token=test-only";
+  await mailer.sendEventEmail({ recipient: pickupRequest.customer.email, message: { subject: "Local event update", text: "See you at the market", html: `<p>See you at the market</p><img src="cid:${EMAIL_LOGO_CID}">` }, unsubscribeUrl, deliveryId: "test-delivery" });
+  assert.equal(capture.options.to.address, pickupRequest.customer.email);
+  assert.equal(capture.options.bcc, undefined); assert.equal(capture.options.cc, undefined);
+  assert.equal(capture.options.headers["List-Unsubscribe"], `<${unsubscribeUrl}>`);
+  assert.equal(capture.options.headers["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
+  assert.equal(capture.options.attachments.length, 1); assert.equal(capture.options.attachments[0].cid, EMAIL_LOGO_CID);
+  const mime = await nodemailer.createTransport({ streamTransport: true, buffer: true }).sendMail(capture.options);
+  assert.match(mime.message.toString(), /List-Unsubscribe-Post: List-Unsubscribe=One-Click/);
+  assert.match(mime.message.toString(), /Content-Disposition: inline/);
+});

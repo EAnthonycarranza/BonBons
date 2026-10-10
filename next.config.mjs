@@ -12,6 +12,8 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/api/orders": ["./assets/logo-embed-tp.png", "./assets/email-*.png"],
     "/api/admin/email": ["./assets/logo-embed-tp.png", "./assets/email-*.png"],
+    "/api/subscribe": ["./assets/logo-embed-tp.png"],
+    "/api/admin/events/emails/[id]/send": ["./assets/logo-embed-tp.png"],
   },
 };
 

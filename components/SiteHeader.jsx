@@ -25,6 +25,7 @@ const LINKS = [
     note: "Choose four flavors for $10",
   },
   { href: "/about", label: "About", note: "Meet the maker behind Bon Bon's" },
+  { href: "/events", label: "Events", note: "Find us around San Antonio" },
   { href: "/faq", label: "FAQ", note: "Pickup, payment, and lead times" },
 ];
 

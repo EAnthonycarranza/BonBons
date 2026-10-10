@@ -248,7 +248,7 @@ export default async function HomePage() {
             <br />
             <em>More to love tomorrow.</em>
           </h2>
-          <p>Be the first to hear about new flavors and future treats.</p>
+          <p>Find out where Bon Bon&apos;s will be next. Sign up for updates about our local events.</p>
         </div>
         <div className="news">
           <NewsletterForm />

@@ -5,7 +5,7 @@ import Script from "next/script";
 import { RECAPTCHA_SITE_KEY } from "@/lib/recaptcha-client";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha-actions";
 
-export default function RecaptchaCheckbox({ onChange, resetKey, error, action = RECAPTCHA_ACTIONS.order }) {
+export default function RecaptchaCheckbox({ onChange, resetKey, error, action = RECAPTCHA_ACTIONS.order, idPrefix = "c-captcha" }) {
   const containerRef = useRef(null);
   const widgetRef = useRef(null);
   const [scriptReady, setScriptReady] = useState(false);
@@ -94,7 +94,7 @@ export default function RecaptchaCheckbox({ onChange, resetKey, error, action = 
   }, [resetKey, onChange]);
 
   const message = !RECAPTCHA_SITE_KEY
-    ? "Verification is not available yet. Please contact the shop to request your order."
+    ? "Security verification is unavailable. Please try again shortly."
     : state === "error"
       ? "Verification could not load. Check your connection or content blocker, then refresh this page."
       : state === "expired"
@@ -102,8 +102,8 @@ export default function RecaptchaCheckbox({ onChange, resetKey, error, action = 
         : error;
 
   return (
-    <div className="recaptcha-check" id="c-captcha" tabIndex={-1} aria-labelledby="c-captcha-label" aria-describedby={message ? "c-captcha-error" : undefined}>
-      <p className="recaptcha-label" id="c-captcha-label">Security check <span aria-hidden="true">*</span></p>
+    <div className="recaptcha-check" id={idPrefix} tabIndex={-1} aria-labelledby={`${idPrefix}-label`} aria-describedby={message ? `${idPrefix}-error` : undefined}>
+      <p className="recaptcha-label" id={`${idPrefix}-label`}>Security check <span aria-hidden="true">*</span></p>
       {RECAPTCHA_SITE_KEY && (
         <Script
           id="bonbons-recaptcha-enterprise"
@@ -115,7 +115,7 @@ export default function RecaptchaCheckbox({ onChange, resetKey, error, action = 
       )}
       <div ref={containerRef} className="recaptcha-widget" />
       {RECAPTCHA_SITE_KEY && state === "loading" && <p className="recaptcha-help" role="status">Loading security check…</p>}
-      {message && <p className="recaptcha-error" id="c-captcha-error" role="alert">{message}</p>}
+      {message && <p className="recaptcha-error" id={`${idPrefix}-error`} role="alert">{message}</p>}
     </div>
   );
 }
