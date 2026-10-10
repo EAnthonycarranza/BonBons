@@ -228,8 +228,8 @@ rest.
 Open **Events & email updates** in the Shop Desk. Save an event as a draft,
 publish it to `/events`, display a cancellation notice, or archive it. Dates
 and times use San Antonio time. Photos use the existing shop photo uploader.
-Flyers display in full on the calendar and in admin previews, with a link to
-open the original image; event emails also preserve the image's proportions.
+Flyers display in full directly on the calendar and in admin previews;
+event emails also preserve the image's proportions.
 Published and cancelled events automatically move to **Archived** after their
 end time. Without an end time they remain visible until midnight after their
 end date. Multi-day events use the final date. Archived records and images stay
