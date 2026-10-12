@@ -17,6 +17,7 @@ export default function CategoryManager({
 }) {
   const ref = useRef(null);
   const [rows, setRows] = useState(categories);
+  useEffect(() => { setRows(categories); }, [categories]);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyCategory);
   const [busy, setBusy] = useState(false);
