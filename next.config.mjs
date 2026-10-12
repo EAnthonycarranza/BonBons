@@ -10,6 +10,8 @@ const nextConfig = {
     remotePatterns: [{ protocol: "https", hostname: "slerrjoiowaskmvgykxt.supabase.co", pathname: "/storage/v1/object/public/menu-photos/**" }],
   },
   outputFileTracingIncludes: {
+    "/api/internal/order-notifications": ["./assets/logo-embed-tp.png"],
+    "/api/admin/orders/[id]/notification": ["./assets/logo-embed-tp.png"],
     "/api/orders": ["./assets/logo-embed-tp.png", "./assets/email-*.png"],
     "/api/admin/email": ["./assets/logo-embed-tp.png", "./assets/email-*.png"],
     "/api/subscribe": ["./assets/logo-embed-tp.png"],

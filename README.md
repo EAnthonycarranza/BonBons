@@ -311,6 +311,36 @@ separate tabs; existing codes and printed designs keep their terms.
 
 ---
 
+## Pickup schedule and incoming order emails
+
+Checkout offers Tuesdays, Thursdays, and Fridays, 3–8 p.m. in
+`America/Chicago`, with 30-minute slots. An alternate date/time can be requested
+on any future day and is explicitly subject to owner confirmation. JavaScript
+and the database enforce the same rules. Requested details are separate from
+the admin's confirmed pickup date/time.
+
+Every new online order also queues an incoming request email to
+**info@bonbonssweets.com**, with customer contact details, requested time,
+items, estimated total, coupon, payment preference, and notes. Reply-To is the
+customer's email. Imports and old requests are not notified retroactively.
+The stable checkout request ID prevents duplicate orders and coupon uses on a
+retry, and the order plus notification job commit together.
+
+`npm start` and the Heroku start command run `scripts/start-server.mjs`, which
+checks the private notification endpoint every minute and shortly after
+startup. New orders attempt immediate delivery. Rejected sends retry with
+backoff, up to six attempts; interrupted or uncertain SMTP results require
+staff review. The Shop Desk shows delivery status and a retry control. Check
+the inbox before retrying a result marked **needs review**. Jobs persist across
+restarts; processing resumes while the web process is running. No extra worker
+dyno or new environment variable is required; the endpoint uses the existing
+`BONBONS_INTERNAL_API_TOKEN`.
+
+Apply `supabase/migrations/20261012055245_order_notifications_and_pickup_schedule.sql`
+before deploying. Its transactional assertions roll back every fixture.
+`tests/order-notifications-database.sql` reruns the schedule, idempotency,
+coupon, lease, retry, and access checks without sending mail.
+
 ## Emails and documents
 
 Five emails, all built from one responsive template with a plain-text

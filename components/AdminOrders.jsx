@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import ConfirmDialog from "./ConfirmDialog";
 import OrderDataTools from "./OrderDataTools";
 import { DatePicker, TimePicker } from "./DateTimePicker";
+import { pickupTimeLabel } from "@/lib/pickup-schedule";
 import { money } from "@/lib/format";
 import { SITE } from "@/lib/sample-data";
 import { ORDER_STATUSES, PAYMENT_STATUSES, QUOTE_STATUSES, pickupDateState } from "@/lib/order-tracking";
@@ -146,7 +147,7 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
     paymentStatus: record.paymentStatus || "not_arranged",
     confirmedTotal: record.confirmedTotal ?? (kind === "orders" ? record.subtotal ?? "" : ""),
     pickupDate: record.pickupDate || record.wantedDate || record.eventDate || "",
-    pickupTime: record.pickupTime ? String(record.pickupTime).slice(0, 5) : "",
+    pickupTime: record.pickupTime ? String(record.pickupTime).slice(0, 5) : record.wantedTime || "",
     pickupLocation: record.pickupLocation || "",
     paymentInstructions: record.paymentInstructions || SITE.paymentInstructions,
     adminNotes: record.adminNotes || "",
@@ -154,6 +155,22 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
   const [saveState, setSaveState] = useState("idle");
   const [notice, setNotice] = useState("");
   const [emailBusy, setEmailBusy] = useState("");
+  const [notificationBusy, setNotificationBusy] = useState(false);
+  const [pendingNotificationRetry, setPendingNotificationRetry] = useState(false);
+  async function retryIncoming() {
+    setNotificationBusy(true);
+    try {
+      const response = await fetch(`/api/admin/orders/${record._id}/notification`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      onSaved(data.record);
+      setNotice("Incoming email notification checked.");
+    } catch (error) {
+      setNotice(error.message);
+    } finally {
+      setNotificationBusy(false);
+    }
+  }
   const [pendingResend, setPendingResend] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -170,7 +187,7 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
     paymentStatus: record.paymentStatus || "not_arranged",
     confirmedTotal: String(record.confirmedTotal ?? (kind === "orders" ? record.subtotal ?? "" : "")),
     pickupDate: record.pickupDate || record.wantedDate || record.eventDate || "",
-    pickupTime: record.pickupTime ? String(record.pickupTime).slice(0, 5) : "",
+    pickupTime: record.pickupTime ? String(record.pickupTime).slice(0, 5) : record.wantedTime || "",
     pickupLocation: record.pickupLocation || "",
     paymentInstructions: record.paymentInstructions || SITE.paymentInstructions,
     adminNotes: record.adminNotes || "",
@@ -301,7 +318,8 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
         <div><span>Phone</span><b>{customer.phone || "Not supplied"}</b></div>
         <div className={`crm-pickup-cell is-${pickupDateState(record)}`}>
           <span>{kind === "orders" ? "Requested pickup" : "Event date"}</span>
-          <b>{dateLabel(requestedDate(record), { year: true })}</b>
+          <b>{dateLabel(requestedDate(record), { year: true })}{record.wantedTime && !record.pickupTime ? ` · ${pickupTimeLabel(record.wantedTime)}` : ""}</b>
+          {record.pickupRequestType === "custom" && <em>Alternate pickup requested — contact customer to accommodate.</em>}
           {pickupDateState(record) === "overdue" ? <em>{kind === "orders" ? "Pickup date has passed" : "Event date has passed"}</em> : null}
           {pickupDateState(record) === "today" ? <em>{kind === "orders" ? "Pickup is today" : "Event is today"}</em> : null}
         </div>
@@ -387,6 +405,15 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
               onConfirm={() => { const type = pendingResend; setPendingResend(null); sendEmail(type, true); }}
               onCancel={() => setPendingResend(null)}
             />
+            <ConfirmDialog
+              open={pendingNotificationRetry}
+              title="Retry the incoming order email?"
+              message="Delivery could not be confirmed. Check info@bonbonssweets.com first; retrying may deliver a second copy if the original arrived."
+              confirmLabel="Retry after checking inbox"
+              busy={notificationBusy}
+              onConfirm={() => { setPendingNotificationRetry(false); retryIncoming(); }}
+              onCancel={() => setPendingNotificationRetry(false)}
+            />
           </section>
         </div>
 
@@ -455,6 +482,31 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
 
             {dirty ? <p className="crm-email-help">Save your changes before sending so the email contains the latest pickup details.</p> : null}
             {!emailState.connected && !emailState.loading ? <p className="crm-email-error">{emailState.error || "Check the Gmail settings."}</p> : null}
+            {kind === "orders" && record.notificationStatus && (
+              <div className="crm-email-history">
+                <b>Incoming email to info@bonbonssweets.com</b>
+                <p>{({
+                  pending: "Queued — retries automatically",
+                  sending: "Sending",
+                  sent: "Sent",
+                  failed: "Delivery failed — retry needed",
+                  needs_review: "Delivery needs review — check inbox before retrying",
+                })[record.notificationStatus]}
+                  {record.notificationSentAt ? ` · ${timeStamp(record.notificationSentAt)}` : ""}
+                </p>
+                {record.notificationError && <p className="crm-email-error">{record.notificationError}</p>}
+                {["pending", "failed", "needs_review"].includes(record.notificationStatus) && (
+                  <button
+                    className="btn btn-ghost btn-block"
+                    type="button"
+                    disabled={notificationBusy || dirty}
+                    onClick={() => record.notificationStatus === "needs_review" ? setPendingNotificationRetry(true) : retryIncoming()}
+                  >
+                    {notificationBusy ? "Checking…" : "Retry incoming order email"}
+                  </button>
+                )}
+              </div>
+            )}
             {record.receiptSentAt ? <p className="crm-email-history">Request receipt emailed {timeStamp(record.receiptSentAt)}</p> : null}
             {record.receiptEmailError ? <p className="crm-email-error">{record.receiptEmailError}</p> : null}
             {record.confirmationSentAt ? <p className="crm-email-history">Confirmation sent {timeStamp(record.confirmationSentAt)}</p> : null}

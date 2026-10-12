@@ -7,6 +7,7 @@ import { normalizeCouponCode, validateCouponBatch, validatePhysicalRedemption, t
 import { normalizeOrderItems } from "../lib/order-menu.js";
 import { getCartPricing } from "../lib/pricing.js";
 import { isEmail, isPhone } from "../lib/format.js";
+import { validatePickupRequest } from "../lib/pickup-schedule.js";
 import { ordersToRows, ORDER_EXPORT_COLUMNS } from "../lib/order-import.js";
 
 async function isolated(file, imports) {
@@ -77,6 +78,8 @@ async function orderHarness({ replayed = false, rejected = false, captcha = true
     "@/lib/order-tracking": { CASH_AT_PICKUP: "cash_at_pickup" },
     "@/lib/recaptcha-actions": { RECAPTCHA_ACTIONS: { order: "submit_pickup_order" } },
     "@/lib/recaptcha": { verifyRecaptcha: async () => ({ ok: captcha }) },
+    "@/lib/pickup-schedule": { validatePickupRequest },
+    "@/lib/order-notifications": { processOrderNotifications: async () => { calls.push({action: "incoming-notification"}); } },
     "@/lib/pickup-receipt": { sendPickupReceipt: async record => { calls.push({ action: "email", record }); return { sent: true }; } },
     "@/lib/supabase-data": {
       hasSupabaseDatabase: () => true,
@@ -90,7 +93,7 @@ async function orderHarness({ replayed = false, rejected = false, captcha = true
       },
     },
   });
-  const body = { items, customer: { name: "Test Customer", email: "test@example.invalid", phone: "2105550100" }, wantedDate: "2026-10-15", recaptchaToken: "unit-test", couponCode: "save-1", couponRequestId: uuid, paymentChoice: "cash", discountAmount: 999, subtotal: 0 };
+  const body = { items, customer: { name: "Test Customer", email: "test@example.invalid", phone: "2105550100" }, wantedDate: "2030-01-01", wantedTime: "15:00", pickupRequestType: "regular", requestId: uuid, recaptchaToken: "unit-test", couponCode: "save-1", couponRequestId: uuid, paymentChoice: "cash", discountAmount: 999, subtotal: 0 };
   return { route, calls, body };
 }
 
@@ -99,16 +102,16 @@ test("redemption trusts server pricing, saves cash choice atomically, and emails
   const res = await route.POST(request(body)); const data = await res.json();
   assert.equal(res.status, 200); assert.equal(data.subtotal, 7); assert.equal(data.discountAmount, 1);
   assert.equal(data.couponCode, "SAVE-1"); assert.equal(data.cashChoiceSaved, true);
-  assert.equal(calls[0].action, "coupon_order"); assert.equal(calls[0].payload.order.subtotal, 8);
+  assert.equal(calls[0].action, "order_submit"); assert.equal(calls[0].payload.order.subtotal, 8);
   assert.equal(calls[0].payload.request_id, uuid); assert.equal(calls[1].record.subtotal, 7);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
 });
 
 test("retry returns the saved order without sending another receipt", async () => {
   const { route, calls, body } = await orderHarness({ replayed: true });
   const res = await route.POST(request(body)); const data = await res.json();
   assert.equal(res.status, 200); assert.match(data.message, /already received/);
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 2); assert.equal(calls[1].action, "incoming-notification");
 });
 
 test("exhausted coupon cannot create a request or send a receipt", async () => {

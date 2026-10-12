@@ -5,6 +5,8 @@ import path from "node:path";
 import vm from "node:vm";
 import nodemailer from "nodemailer";
 import { buildOrderEmail, EMAIL_LOGO_CID, EMAIL_PAYMENT_CIDS, EMAIL_SOCIAL_CIDS } from "../lib/email-template.js";
+import {buildIncomingOrderEmail,ORDER_NOTIFICATION_RECIPIENT} from "../lib/order-notification-template.js";
+import {validatePickupRequest} from "../lib/pickup-schedule.js";
 import { money, isEmail, isPhone } from "../lib/format.js";
 import { pickupRequest, confirmedOrder } from "./fixtures/email-record.mjs";
 import { normalizeOrderItems } from "../lib/order-menu.js";
@@ -93,7 +95,7 @@ async function isolatedMailer(capture, { documentFails = false } = {}) {
       return { accepted: [pickupRequest.customer.email], messageId: "test-id" };
     } }) } },
     "node:path": { default: path }, "./email-template.js": { buildOrderEmail, EMAIL_LOGO_CID, EMAIL_PAYMENT_CIDS, EMAIL_SOCIAL_CIDS },
-    "./sample-data.js": { SITE },
+    "./sample-data.js": { SITE }, "./order-notification-template.js": {buildIncomingOrderEmail},
     "./order-pdf.js": {
       buildOrderDocument: async () => {
         if (documentFails) throw new Error("Test PDF failure");
@@ -131,7 +133,7 @@ test("SMTP message contains embedded logo, reply address, auto-message header an
   assert.match(raw, /Content-Type: text\/plain/);
 });
 
-async function orderRoute({ mailFails = false, saveFails = false, trackingFails = false, captchaValid = true } = {}) {
+async function orderRoute({ mailFails = false, saveFails = false, trackingFails = false, captchaValid = true, notificationFails = false, pickupChanges = {} } = {}) {
   const calls = [];
   const callSupabaseData = async (action, payload = {}) => {
     calls.push(action);
@@ -161,12 +163,14 @@ async function orderRoute({ mailFails = false, saveFails = false, trackingFails 
     "@/lib/recaptcha-actions": { RECAPTCHA_ACTIONS: { order: "submit_pickup_order" } },
     "@/lib/recaptcha": { verifyRecaptcha: async () => ({ ok: captchaValid }) },
     "@/lib/pickup-receipt": { sendPickupReceipt: receipt.sendPickupReceipt },
+    "@/lib/pickup-schedule": {validatePickupRequest},
+    "@/lib/order-notifications": {processOrderNotifications: async()=>{calls.push("incoming-order-email"); if (notificationFails) throw new Error("Notification worker unavailable");}},
     "@/lib/coupons": { normalizeCouponCode },
-    "@/lib/supabase-data": { callSupabaseData, callBonbonsAdmin: async () => { throw new Error("Unexpected coupon redemption"); }, hasSupabaseDatabase: () => true, orderToRow: (record) => record, toOrder: (record) => record },
+    "@/lib/supabase-data": { callSupabaseData, callBonbonsAdmin: async (action,payload) => {assert.equal(action,"order_submit");return callSupabaseData("create_order",payload);}, hasSupabaseDatabase: () => true, orderToRow: (record) => record, toOrder: (record) => record },
   });
   const response = await route.POST(new Request("http://localhost/api/orders", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items: [{key:"box-2t-preview",qty:2,flavors:[{slug:"chocolate-drizzle-cake-pops",qty:2}]},{key:"chocolate-drizzle-cake-pops",qty:2}], customer: pickupRequest.customer, wantedDate: pickupRequest.wantedDate, recaptchaToken: "unit-test" }),
+    body: JSON.stringify({ items: [{key:"box-2t-preview",qty:2,flavors:[{slug:"chocolate-drizzle-cake-pops",qty:2}]},{key:"chocolate-drizzle-cake-pops",qty:2}], customer: pickupRequest.customer, wantedDate: "2030-01-01", wantedTime: "15:00", pickupRequestType: "regular", requestId: "11111111-1111-4111-8111-111111111111", recaptchaToken: "unit-test", ...pickupChanges }),
   }));
   return { response, body: await response.json(), calls };
 }
@@ -176,7 +180,7 @@ test("valid request saves first, emails once, then logs receipt", async () => {
   assert.equal(response.status, 200);
   assert.equal(body.receiptEmailSent, true);
   assert.equal(body.subtotal, 16);
-  assert.deepEqual(calls, ["create_order", "send-email", "record_email"]);
+  assert.deepEqual(calls, ["create_order", "send-email", "record_email", "incoming-order-email"]);
 });
 
 test("SMTP failure still returns saved success and tracks receipt failure", async () => {
@@ -185,7 +189,7 @@ test("SMTP failure still returns saved success and tracks receipt failure", asyn
   assert.equal(body.stored, true);
   assert.equal(body.receiptEmailSent, false);
   assert.match(body.message, /don't submit it again/);
-  assert.deepEqual(calls, ["create_order", "send-email", "record_receipt_failure"]);
+  assert.deepEqual(calls, ["create_order", "send-email", "record_receipt_failure", "incoming-order-email"]);
 });
 
 test("tracking failure cannot resend email or fail the saved request", async () => {
@@ -205,6 +209,22 @@ test("failed CAPTCHA cannot save a request or send an email", async () => {
   const { response, calls } = await orderRoute({ captchaValid: false });
   assert.equal(response.status, 403);
   assert.deepEqual(calls, []);
+});
+
+test("incoming email worker failure still returns the saved order", async () => {
+  const { response, body, calls } = await orderRoute({ notificationFails: true });
+  assert.equal(response.status, 200);
+  assert.equal(body.stored, true);
+  assert.equal(calls.filter(action => action === "create_order").length, 1);
+});
+
+test("regular Wednesday requests are rejected; alternate Wednesday times are allowed", async () => {
+  const invalid = await orderRoute({ pickupChanges: { wantedDate: "2030-01-02", wantedTime: "10:17" } });
+  assert.equal(invalid.response.status, 400);
+  assert.deepEqual(invalid.calls, []);
+  const alternate = await orderRoute({ pickupChanges: { wantedDate: "2030-01-02", wantedTime: "10:17", pickupRequestType: "custom" } });
+  assert.equal(alternate.response.status, 200);
+  assert.equal(alternate.body.stored, true);
 });
 
 test("confirmations and paid invoices carry a PDF; other emails do not", async () => {
@@ -321,4 +341,18 @@ test("event updates are addressed individually with unsubscribe headers and the 
   const mime = await nodemailer.createTransport({ streamTransport: true, buffer: true }).sendMail(capture.options);
   assert.match(mime.message.toString(), /List-Unsubscribe-Post: List-Unsubscribe=One-Click/);
   assert.match(mime.message.toString(), /Content-Disposition: inline/);
+});
+
+test("incoming order notifications go only to the shop and reply to the customer",async()=>{
+ const capture={},mail=await isolatedMailer(capture);
+ const record={...pickupRequest,wantedTime:"16:30",pickupRequestType:"custom",notes:"<script>test</script>\nNo substitutions"};
+ await mail.sendIncomingOrderNotification(record);
+ assert.equal(capture.options.to.address,ORDER_NOTIFICATION_RECIPIENT);
+ assert.equal(capture.options.replyTo,pickupRequest.customer.email);
+ assert.match(capture.options.subject,/Incoming order request/);
+ assert.match(capture.options.text,/4:30 PM/);
+ assert.match(capture.options.text,/Alternate pickup requested/);
+ assert.doesNotMatch(capture.options.html,/<script>/);
+ assert.match(capture.options.html,/&lt;script&gt;/);
+ assert.equal(capture.options.headers["Auto-Submitted"],"auto-generated");
 });

@@ -12,6 +12,8 @@ import { hasRecaptchaClientConfig } from "@/lib/recaptcha-client";
 import RecaptchaDisclosure from "@/components/RecaptchaDisclosure";
 import RecaptchaCheckbox from "@/components/RecaptchaCheckbox";
 import CouponEntry from "@/components/CouponEntry";
+import PickupSchedulePicker from "@/components/PickupSchedulePicker";
+import { validatePickupRequest } from "@/lib/pickup-schedule";
 import { SITE } from "@/lib/sample-data";
 
 export default function CartPage() {
@@ -33,6 +35,8 @@ export default function CartPage() {
     email: "",
     phone: "",
     wantedDate: "",
+    wantedTime: "",
+    pickupRequestType: "regular",
     notes: "",
     paymentChoice: "online",
   });
@@ -71,7 +75,11 @@ export default function CartPage() {
     if (!isEmail(form.email)) errs.email = "Please enter a valid email.";
     if (!isPhone(form.phone))
       errs.phone = "Please enter a phone number with at least 10 digits.";
-    if (!form.wantedDate) errs.wantedDate = "When do you need it?";
+    try {
+      validatePickupRequest(form);
+    } catch (error) {
+      errs.wantedDate = error.message;
+    }
     if (couponDraft.trim() && !coupon) errs.coupon = "Please apply your coupon or remove the code before sending your request.";
     if (!recaptchaToken)
       errs.captcha =
@@ -88,7 +96,7 @@ export default function CartPage() {
       // Keep the ID on a retry after a lost response. Changing the request
       // produces a new ID so it cannot silently replay an earlier order.
       const attemptKey = JSON.stringify({ items, form, couponCode: coupon?.code });
-      if (coupon && couponAttempt.current?.key !== attemptKey) {
+      if (couponAttempt.current?.key !== attemptKey) {
         couponAttempt.current = { key: attemptKey, id: crypto.randomUUID() };
       }
       const res = await fetch("/api/orders", {
@@ -98,6 +106,9 @@ export default function CartPage() {
           items,
           customer: { name: form.name, email: form.email, phone: form.phone },
           wantedDate: form.wantedDate,
+          wantedTime: form.wantedTime,
+          pickupRequestType: form.pickupRequestType,
+          requestId: couponAttempt.current.id,
           notes: form.notes,
           paymentChoice: form.paymentChoice,
           couponCode: coupon?.code || "",
@@ -135,7 +146,7 @@ export default function CartPage() {
             ) : null}
             <div style={{ marginTop: 16 }}>
               <Link className="btn btn-dark btn-sm" href="/shop">
-                Browse more cake pops
+                Browse more treats
               </Link>
             </div>
           </div>
@@ -320,26 +331,15 @@ export default function CartPage() {
                   />
                   <div className="err" id="c-phone-error">{errors.phone}</div>
                 </div>
-                <div className={`field${errors.wantedDate ? " bad" : ""}`}>
-                  <label
-                    htmlFor="c-wantedDate"
-                    style={{ color: "var(--cream)" }}
-                  >
-                    Preferred pickup date <span className="req">*</span>
-                  </label>
-                  <input
-                    id="c-wantedDate"
-                    name="wantedDate"
-                    type="date"
-                    required
-                    aria-invalid={Boolean(errors.wantedDate)}
-                    aria-describedby={errors.wantedDate ? "c-date-error" : "c-date-help"}
-                    value={form.wantedDate}
-                    onChange={set("wantedDate")}
-                  />
-                  <div className="err" id="c-date-error">{errors.wantedDate}</div>
-                  <p className="help" id="c-date-help">We’ll confirm the exact time with you.</p>
-                </div>
+                <PickupSchedulePicker
+                  value={form}
+                  disabled={status === "sending"}
+                  error={errors.wantedDate}
+                  onChange={(next) => {
+                    setForm(next);
+                    setErrors((current) => ({ ...current, wantedDate: "" }));
+                  }}
+                />
                 <div className="pickup-notice">
                   <Icon name="i-check" />
                   <div>

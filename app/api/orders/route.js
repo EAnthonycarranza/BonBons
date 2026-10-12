@@ -8,6 +8,8 @@ import { getFeaturedWeeklyBox, getShopSettings } from "@/lib/weekly-box-data";
 import { getCartPricing } from "@/lib/pricing";
 import { RECAPTCHA_ACTIONS } from "@/lib/recaptcha-actions";
 import { verifyRecaptcha } from "@/lib/recaptcha";
+import { validatePickupRequest } from "@/lib/pickup-schedule";
+import { processOrderNotifications } from "@/lib/order-notifications";
 import { sendPickupReceipt } from "@/lib/pickup-receipt";
 import { normalizeCouponCode } from "@/lib/coupons";
 import {
@@ -26,21 +28,40 @@ export async function POST(request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body." },
+      { status: 400 },
+    );
   }
 
   const items = Array.isArray(body?.items) ? body.items : [];
   if (!items.length) {
-    return NextResponse.json({ error: "Your pickup request is empty." }, { status: 400 });
-  }
-  if (!body.customer?.name || !isEmail(body.customer?.email) || !isPhone(body.customer?.phone)) {
     return NextResponse.json(
-      { error: "Name, a valid email, and a phone number are required." },
-      { status: 400 }
+      { error: "Your pickup request is empty." },
+      { status: 400 },
     );
   }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(body.wantedDate || ""))) {
-    return NextResponse.json({ error: "Please choose a valid pickup date." }, { status: 400 });
+  if (
+    !body.customer?.name ||
+    !isEmail(body.customer?.email) ||
+    !isPhone(body.customer?.phone)
+  ) {
+    return NextResponse.json(
+      { error: "Name, a valid email, and a phone number are required." },
+      { status: 400 },
+    );
+  }
+  let pickup;
+  try {
+    pickup = validatePickupRequest(body);
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        String(body.requestId || ""),
+      )
+    )
+      throw new Error("Reload checkout before sending your request.");
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
   const captcha = await verifyRecaptcha({
@@ -50,10 +71,12 @@ export async function POST(request) {
   });
   if (!captcha.ok) {
     return NextResponse.json(
-      { error: captcha.unavailable
-        ? "The security check is temporarily unavailable. Please try again shortly."
-        : "We could not verify this request. Please complete the reCAPTCHA check again and retry." },
-      { status: captcha.unavailable ? 503 : 403 }
+      {
+        error: captcha.unavailable
+          ? "The security check is temporarily unavailable. Please try again shortly."
+          : "We could not verify this request. Please complete the reCAPTCHA check again and retry.",
+      },
+      { status: captcha.unavailable ? 503 : 403 },
     );
   }
 
@@ -85,53 +108,61 @@ export async function POST(request) {
       phone: String(body.customer.phone || "").trim(),
     },
     fulfilment: "Pickup",
-    wantedDate: String(body.wantedDate || ""),
+    ...pickup,
     notes: String(body.notes || "").trim(),
   };
 
   if (!hasSupabaseDatabase()) {
     return NextResponse.json(
-      { error: "Online requests are temporarily unavailable. Please call or text the owner instead." },
-      { status: 503 }
+      {
+        error:
+          "Online requests are temporarily unavailable. Please call or text the owner instead.",
+      },
+      { status: 503 },
     );
   }
 
-  // The customer may say up front that they'll pay cash at pickup. The deployed
-  // create_order whitelists its columns and drops payment_status, so the intent
-  // is written with a second call once the row exists. If that second call
-  // fails the request is still saved — the customer is told to mention cash
-  // when the owner confirms, rather than being asked to submit again.
+  // Save the request, coupon redemption, cash choice, and incoming email job
+  // together. A stable request ID prevents duplicates if the response is lost.
   const wantsCash = body.paymentChoice === "cash";
   let couponCode = "";
   if (body.couponCode) {
     try {
       couponCode = normalizeCouponCode(body.couponCode);
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(body.couponRequestId || ""))) {
-        throw new Error("Please apply your coupon again before sending the request.");
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          String(body.couponRequestId || ""),
+        )
+      ) {
+        throw new Error(
+          "Please apply your coupon again before sending the request.",
+        );
       }
-    } catch (error) { return NextResponse.json({ error: error.message }, { status: 400 }); }
+    } catch (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
   }
 
   try {
-    const { data, replayed = false } = couponCode
-      ? await callBonbonsAdmin("coupon_order", { code: couponCode, request_id: body.couponRequestId, order: orderToRow(doc), payment_choice: wantsCash ? "cash" : "online" })
-      : await callSupabaseData("create_order", { order: orderToRow(doc) });
-    let row = data;
-    let cashSaved = row.payment_status === CASH_AT_PICKUP;
-    if (wantsCash && !cashSaved && !replayed) {
-      try {
-        const updated = await callSupabaseData("update_order", {
-          id: String(data.id),
-          update: { payment_status: CASH_AT_PICKUP },
-        });
-        row = updated.data || row;
-        cashSaved = row.payment_status === CASH_AT_PICKUP;
-      } catch (err) {
-        console.error("Could not record cash-at-pickup choice:", err.message);
-      }
-    }
+    const { data, replayed = false } = await callBonbonsAdmin("order_submit", {
+      request_id: body.requestId,
+      code: couponCode,
+      order: orderToRow(doc),
+      payment_choice: wantsCash ? "cash" : "online",
+    });
+    const row = data;
+    const cashSaved = row.payment_status === CASH_AT_PICKUP;
     const savedOrder = toOrder(row);
-    const receipt = replayed ? { sent: false } : await sendPickupReceipt(savedOrder);
+    const receipt = replayed
+      ? { sent: false }
+      : await sendPickupReceipt(savedOrder);
+    try {
+      await processOrderNotifications({ orderId: String(data.id) });
+    } catch {
+      console.error(
+        "Incoming order notification remains queued for review or retry.",
+      );
+    }
     return NextResponse.json({
       ok: true,
       stored: true,
@@ -145,21 +176,27 @@ export async function POST(request) {
       cashChoiceSaved: cashSaved,
       message:
         "Your pickup request is saved. " +
-        (replayed ? "This request was already received; please don't send it again. " : receipt.sent ? "We've emailed you a receipt; check your inbox or spam folder. "
-          : "We couldn't send the email receipt, but your request is safely saved—please don't submit it again. ") +
+        (replayed
+          ? "This request was already received; please don't send it again. "
+          : receipt.sent
+            ? "We've emailed you a receipt; check your inbox or spam folder. "
+            : "We couldn't send the email receipt, but your request is safely saved—please don't submit it again. ") +
         (wantsCash
-          ? (cashSaved
-              ? "You've chosen to pay cash at pickup, so there's nothing to send. The owner will contact you to confirm the details, pickup time and total."
-              : "We couldn't save your cash-at-pickup choice, so please mention it when the owner contacts you to confirm the details, pickup time and total.")
+          ? cashSaved
+            ? "You've chosen to pay cash at pickup, so there's nothing to send. The owner will contact you to confirm the details, pickup time and total."
+            : "We couldn't save your cash-at-pickup choice, so please mention it when the owner contacts you to confirm the details, pickup time and total."
           : "The owner will contact you to confirm the details, " +
             "pickup time, total, and how to pay through Bon Bon’s payment options."),
     });
   } catch (err) {
     console.error("Order save failed:", err.message);
-    if (couponCode && err.status && err.status < 500) {
+    if (err.status && err.status < 500) {
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
-    return NextResponse.json({ error: "Could not save your order." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Could not save your order." },
+      { status: 500 },
+    );
   }
 }
 
@@ -173,6 +210,9 @@ export async function GET() {
     return NextResponse.json({ orders: data.map(toOrder) });
   } catch (err) {
     console.error("Order list failed:", err.message);
-    return NextResponse.json({ error: "Could not load orders." }, { status: 503 });
+    return NextResponse.json(
+      { error: "Could not load orders." },
+      { status: 503 },
+    );
   }
 }
