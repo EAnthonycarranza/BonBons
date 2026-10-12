@@ -18,6 +18,7 @@ export function useCart() {
 export function CartProvider({ children }) {
   // PricesProvider wraps this in the root layout, so live prices are available.
   const prices = usePrices();
+  const initialPrices = useRef(prices);
   const [items, setItems] = useState([]);
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
@@ -30,7 +31,7 @@ export function CartProvider({ children }) {
     async function load() {
       let saved=[];
       try { const parsed=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");if(Array.isArray(parsed))saved=parsed; }catch{}
-      try { const response=await fetch("/api/products",{cache:"no-store"});if(response.ok){const data=await response.json();saved=hydrateCartItems(saved,data.products||[],prices);} }catch{}
+      try { const response=await fetch("/api/products",{cache:"no-store"});if(response.ok){const data=await response.json();saved=hydrateCartItems(saved,data.products||[],initialPrices.current);} }catch{}
       if(!cancelled){setItems(saved);setReady(true);}
     }
     load();return()=>{cancelled=true;};
