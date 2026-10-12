@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { validateMenuProduct, menuSlug, isMenuImageUrl } from "../supabase/functions/_shared/menu.js";
 import { normalizeOrderItems } from "../lib/order-menu.js";
-import { buildFourPacksFromSingles, getCartPricing, isFourPackEligible } from "../lib/pricing.js";
+import { buildFourPacksFromSingles, buildBundlesFromSingles, getCartPricing, isFourPackEligible } from "../lib/pricing.js";
 import { buildOrderEmail } from "../lib/email-template.js";
 import { pickupRequest, confirmedOrder } from "./fixtures/email-record.mjs";
 import { SITE } from "../lib/sample-data.js";
@@ -50,7 +50,7 @@ test("single prices and descriptions cannot be altered in the cart", () => {
 });
 test("10 singles become five two-treat packs only on explicit conversion ($25)", () => {
   const singles = [{ key: "cookie-monster", name: "Cookie Monster", qty: 10, price: 3, bundleEligible: true }];
-  const converted = buildFourPacksFromSingles(singles);
+  const converted = buildBundlesFromSingles(singles,{},"cakepop");
   assert.equal(singles[0].qty, 10);
   assert.equal(converted.packCount, 5);
   assert.equal(getCartPricing(normalizeOrderItems(converted.items, menu)).subtotal, 25);
@@ -91,4 +91,10 @@ test("payment links appear only when an unpaid order has a confirmed positive to
     const result = buildOrderEmail({ record, kind: "orders", emailType: record === pickupRequest ? "request_received" : "status_update" });
     assert.ok(!result.html.includes("Open payment options"));
   }
+});
+
+test("ingredients are optional plain text with preserved paragraphs and a length limit",()=>{
+ assert.equal(validateMenuProduct({...draft,ingredients:" Flour, sugar.\nChocolate coating. "}).ingredients,"Flour, sugar.\nChocolate coating.");
+ assert.equal(validateMenuProduct(draft).ingredients,"");
+ for(const ingredients of [42,[],{},"x".repeat(5001)])assert.throws(()=>validateMenuProduct({...draft,ingredients}));
 });

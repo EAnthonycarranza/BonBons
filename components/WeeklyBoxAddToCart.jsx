@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useCart } from "./CartProvider";
 
 export default function WeeklyBoxAddToCart({ box, cartKey, remaining }) {
-  const { add, setOpen, items } = useCart();
+  const { add, setOpen, items, ready } = useCart();
   const [qty, setQty] = useState(1);
   const alreadyAdded = items.find(item => item.key === cartKey)?.qty || 0;
   const max = Math.max(0, Math.min(50, remaining) - alreadyAdded);
@@ -19,7 +19,7 @@ export default function WeeklyBoxAddToCart({ box, cartKey, remaining }) {
       <button
         className="btn btn-pink wb-add-btn"
         type="button"
-        disabled={max === 0}
+        disabled={max === 0 || !ready}
         onClick={() => {
           if (max === 0) return;
           add({

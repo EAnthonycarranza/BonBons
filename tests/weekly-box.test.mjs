@@ -9,7 +9,7 @@ import {
   boxPopCount,
 } from "../supabase/functions/_shared/menu.js";
 import { normalizeOrderItems } from "../lib/order-menu.js";
-import { getCartPricing, buildFourPacksFromSingles } from "../lib/pricing.js";
+import { getCartPricing, buildBundlesFromSingles } from "../lib/pricing.js";
 import { stockLabel, weeklyBoxCartKey, isWeeklyBoxKey } from "../lib/weekly-box.js";
 
 const boxDraft = {
@@ -89,9 +89,9 @@ test("box validation strips unknown and privileged fields", () => {
 });
 
 test("shop prices must both be positive money", () => {
-  assert.deepEqual(validateShopSettings({ single_pop_price: 3, treat_pair_price: 5 }), { single_pop_price: 3, treat_pair_price: 5 });
+  assert.deepEqual(validateShopSettings({ single_pop_price: 3, treat_pair_price: 5, four_pack_price: 10 }), { single_pop_price: 3, treat_pair_price: 5, four_pack_price: 10 });
   for (const change of [{ single_pop_price: 0 }, { treat_pair_price: -1 }, { treat_pair_price: "5" }]) {
-    assert.throws(() => validateShopSettings({ single_pop_price: 3, treat_pair_price: 5, ...change }), MenuValidationError);
+    assert.throws(() => validateShopSettings({ single_pop_price: 3, treat_pair_price: 5, four_pack_price: 10, ...change }), MenuValidationError);
   }
 });
 
@@ -168,12 +168,12 @@ test("savings follow the owner's prices instead of a baked-in number", () => {
   assert.equal(getCartPricing(singles, { singlePopPrice: 3, treatPairPrice: 5 }).potentialSavings, 2);
   assert.equal(getCartPricing(singles, { singlePopPrice: 4, treatPairPrice: 5 }).potentialSavings, 2);
   // A pack that costs more than four singles must never advertise a negative saving.
-  assert.equal(getCartPricing(singles, { singlePopPrice: 2, treatPairPrice: 8 }).potentialSavings, 0);
+  assert.equal(getCartPricing(singles, { singlePopPrice: 2, treatPairPrice: 8, fourPackPrice: 15 }).potentialSavings, 0);
 });
 
 test("converted two-treat packs carry the configured pack price", () => {
   const singles = [{ key: "cookie-monster", name: "Cookie Monster", qty: 4, price: 3, bundleEligible: true }];
-  const { items } = buildFourPacksFromSingles(singles, { singlePopPrice: 3, treatPairPrice: 6 });
-  const pack = items.find((item) => item.key.startsWith("box-2t-"));
+  const { items } = buildBundlesFromSingles(singles, { singlePopPrice: 3, treatPairPrice: 6 }, "cakepop");
+  const pack = items.find((item) => item.key.startsWith("box-2c-"));
   assert.equal(pack.price, 6);
 });

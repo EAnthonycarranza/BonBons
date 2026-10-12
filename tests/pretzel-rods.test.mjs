@@ -1,74 +1,70 @@
-import test from "node:test";
-import assert from "node:assert/strict";
-import { getCartPricing, buildBundlesFromSingles } from "../lib/pricing.js";
-import { normalizeOrderItems } from "../lib/order-menu.js";
-import { bundleGroupForCategory,bundlePrices,assertBoxItemsAreCakePops } from "../lib/bundles.js";
-
-const PRICES={singlePopPrice:3,treatPairPrice:5};
-const MENU=[
-  {slug:"pop",name:"Cake Pop",category:"everyday",price:3,active:true,bundleEligible:true,stockQuantity:null},
-  {slug:"rod",name:"Pretzel Rod",category:"pretzel-rods",price:3,active:true,bundleEligible:true,stockQuantity:3},
-  {slug:"rice",name:"Rice Crispy Treat",category:"rice-crispy-treats",price:3,active:true,bundleEligible:true,stockQuantity:2},
-  {slug:"oreo",name:"Dipped Oreo",category:"dipped-oreos",price:3,active:true,bundleEligible:true,stockQuantity:null},
-  {slug:"special",name:"Specialty Cake Pop",category:"everyday",price:4,active:true,bundleEligible:true,stockQuantity:null},
-];
-const single=(slug,qty=1)=>({key:slug,name:MENU.find(p=>p.slug===slug).name,price:MENU.find(p=>p.slug===slug).price,qty,bundleEligible:MENU.find(p=>p.slug===slug).bundleEligible,bundleGroup:bundleGroupForCategory(MENU.find(p=>p.slug===slug).category)});
-const pair=(a,b,qty=1)=>({key:"box-2t-mixed",qty,price:0.01,flavors:a===b?[{slug:a,qty:2}]:[{slug:a,qty:1},{slug:b,qty:1}]});
-
-test("all regular categories share the two-treat offer",()=>{
-  for(const p of MENU)assert.equal(bundleGroupForCategory(p.category),"treat");
-  assert.deepEqual(bundlePrices("treat",{}),{single:3,pack:5});
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {getCartPricing,buildBundlesFromSingles,hydrateCartItems} from '../lib/pricing.js';
+import {normalizeOrderItems} from '../lib/order-menu.js';
+import {assertBundleSelection,assertBoxItemsAreCakePops} from '../lib/bundles.js';
+const PRICES={singlePopPrice:3,treatPairPrice:5,fourPackPrice:10};
+const MENU=[['pop','everyday'],['pop-two','custom'],['rod','pretzel-rods'],['rice','rice-crispy-treats'],['rice-two','rice-crispy-treats'],['oreo','dipped-oreos'],['oreo-two','dipped-oreos']].map(([slug,category])=>({slug,name:slug,category,price:3,active:true,stockQuantity:null}));
+const single=(slug,qty=1)=>({...MENU.find(p=>p.slug===slug),key:slug,qty});
+function pack(slugs,group='mixed',qty=1){return {key:group==='mixed'?'box-4m-test':'box-2c-test',qty,price:0.01,flavors:[...new Set(slugs)].map(slug=>({slug,qty:slugs.filter(s=>s===slug).length}))};}
+test('cake-pop pairs cost $5 and reject every other product category',()=>{
+ for(const a of ['pop','pop-two'])for(const b of ['pop','pop-two'])assert.equal(normalizeOrderItems([pack([a,b],'cakepop')],MENU,PRICES)[0].price,5);
+ for(const slug of ['rod','rice','oreo'])assert.throws(()=>normalizeOrderItems([pack(['pop',slug],'cakepop')],MENU,PRICES),/cake pops only/);
 });
-test("customers can mix every combination of regular product types",()=>{
-  for(const a of MENU.filter(p=>p.bundleEligible))for(const b of MENU.filter(p=>p.bundleEligible)){
-    const [item]=normalizeOrderItems([pair(a.slug,b.slug)],MENU,PRICES);
-    assert.equal(item.price,5);assert.equal(item.name,"Mix & Match Two-Treat Pack (2 pc)");
-    assert.equal(item.flavors.reduce((n,p)=>n+p.qty,0),2);
-  }
+test('all four-piece combinations follow category limits across different flavors',()=>{
+ for(const a of MENU)for(const b of MENU)for(const c of MENU)for(const d of MENU){
+  const selection=[a,b,c,d],valid=selection.filter(p=>p.category==='rice-crispy-treats').length<=1&&selection.filter(p=>p.category==='dipped-oreos').length<=2;
+  const order=pack(selection.map(p=>p.slug));
+  if(valid)assert.equal(normalizeOrderItems([order],MENU,PRICES)[0].price,10);
+  else assert.throws(()=>normalizeOrderItems([order],MENU,PRICES),/at most/);
+ }
 });
-test("loose singles stay as selected until an explicit conversion",()=>{
-  const cart=[single("pop"),single("rod"),single("special")];
-  assert.equal(getCartPricing(cart,PRICES).subtotal,10);
-  assert.equal(getCartPricing(cart,PRICES).potentialSavings,1);
-  const converted=buildBundlesFromSingles(cart,PRICES);
-  assert.equal(converted.packCount,1);assert.equal(cart.length,3);
-  assert.equal(converted.items.find(item=>item.key==="special").price,4);
-  assert.equal(getCartPricing(normalizeOrderItems(converted.items,MENU,PRICES),PRICES).subtotal,9);
+test('limits apply to each pack rather than the whole order',()=>{
+ const [line]=normalizeOrderItems([pack(['rice','oreo','oreo-two','pop'],'mixed',3)],MENU,PRICES);
+ assert.equal(line.qty,3);assert.equal(getCartPricing([line],PRICES).subtotal,30);
 });
-test("odd quantities keep the leftover regular treat as a single",()=>{
-  const converted=buildBundlesFromSingles([single("oreo",3)],PRICES);
-  assert.equal(converted.packCount,1);
-  assert.equal(converted.items.find(item=>item.key==="oreo").qty,1);
-  assert.equal(getCartPricing(converted.items,PRICES).subtotal,8);
+test('forged browser categories and prices cannot bypass limits or current prices',()=>{
+ const bad=pack(['rice','rice-two','pop','rod']);bad.flavors=bad.flavors.map(f=>({...f,category:'everyday'}));
+ assert.throws(()=>normalizeOrderItems([bad],MENU,PRICES),/at most 1/);
+ assert.equal(normalizeOrderItems([pack(['pop','rod','oreo','rice'])],MENU,{...PRICES,fourPackPrice:11})[0].price,11);
 });
-test("every flavor can join the offer while individual prices come from the live menu",()=>{
-  const [mix]=normalizeOrderItems([pair("special","pop")],MENU,PRICES);
-  assert.equal(mix.price,5);
-  const [item]=normalizeOrderItems([{key:"special",qty:2,price:3,bundleEligible:true}],MENU,PRICES);
-  assert.equal(item.price,4);assert.equal(item.bundleEligible,true);
-  assert.equal(getCartPricing([item],PRICES).potentialSavings,3);
+test('mixed requests validate piece counts, duplicate slots and unavailable flavors',()=>{
+ for(const flavors of [undefined,[],[{slug:'pop',qty:3}],[{slug:'missing',qty:4}],[{slug:'pop',qty:2},{slug:'pop',qty:2}]])assert.throws(()=>normalizeOrderItems([{key:'box-4m-test',qty:1,flavors}],MENU,PRICES));
+ assert.throws(()=>normalizeOrderItems([pack(['pop','rod','rice','oreo'])],MENU.map(p=>({...p,active:false})),PRICES));
 });
-test("pair quantity, unique slots, and availability are enforced",()=>{
-  const variants=[undefined,[],[{slug:"pop",qty:3}],[{slug:"missing",qty:2}],[{slug:"pop",qty:1},{slug:"pop",qty:1}]];
-  for(const flavors of variants)assert.throws(()=>normalizeOrderItems([{key:"box-2t-invalid",qty:1,flavors}],MENU,PRICES));
-  assert.throws(()=>normalizeOrderItems([pair("rice","rice",2)],MENU,PRICES),/Only 2/);
+test('stock is aggregated across packs and singles',()=>{
+ const menu=MENU.map(p=>p.slug==='rice'?{...p,stockQuantity:2}:p);
+ assert.throws(()=>normalizeOrderItems([pack(['rice','pop','rod','oreo'],'mixed',2),{key:'rice',qty:1}],menu,PRICES),/Only 2/);
 });
-test("stock checks combine singles and packs across the whole request",()=>{
-  assert.throws(()=>normalizeOrderItems([{key:"rice",qty:2},pair("rice","pop")],MENU,PRICES),/Only 2/);
-  assert.throws(()=>normalizeOrderItems([pair("rice","pop"),pair("rice","oreo"),{key:"rice",qty:1}],MENU,PRICES),/Only 2/);
+test('cart conversion packs restricted categories together without exceeding their limits',()=>{
+ const cart=[single('rice',3),single('rice-two',2),single('oreo',6),single('pop',7)];
+ const converted=buildBundlesFromSingles(cart,PRICES,'mixed');
+ assert.equal(converted.packCount,4);
+ const normalized=normalizeOrderItems(converted.items,MENU,PRICES);
+ assert.equal(getCartPricing(normalized,PRICES).subtotal,46);
+ for(const item of converted.items.filter(p=>p.flavors))assertBundleSelection('mixed',item.flavors.map(f=>({...f,category:MENU.find(p=>p.slug===f.slug).category})));
+ assert.equal(cart.reduce((n,p)=>n+p.qty,0),18);
 });
-test("the retired four-pack cannot be submitted from a stale saved cart",()=>{
-  assert.throws(()=>normalizeOrderItems([{key:"box-4-old",qty:1,flavors:[{slug:"pop",qty:4}]}],MENU,PRICES),/replaced by the two-treat offer/);
+test('restricted-only leftovers stay as singles and never create an invalid pack',()=>{
+ for(const slug of ['rice','oreo']){
+  const cart=[single(slug,8)],converted=buildBundlesFromSingles(cart,PRICES,'mixed');
+  assert.equal(converted.packCount,0);assert.equal(getCartPricing(cart,PRICES).potentialSavings,0);
+ }
 });
-test("old pretzel pair cart keys now use the current shared offer",()=>{
-  const [item]=normalizeOrderItems([{...pair("rod","pop"),key:"box-2p-old"}],MENU,{...PRICES,treatPairPrice:5.5});
-  assert.equal(item.price,5.5);
+test('cake-pop conversion leaves other products alone and overlapping savings are not added',()=>{
+ const cart=[single('pop',4),single('rod',1)];
+ const converted=buildBundlesFromSingles(cart,PRICES,'cakepop');assert.equal(converted.packCount,2);
+ assert.equal(converted.items.find(p=>p.key==='rod').qty,1);
+ assert.equal(getCartPricing([single('pop',4)],PRICES).bundleSavings,2);
 });
-test("saved cake-pop and pretzel singles can be combined in one offer",()=>{
-  const old=[{...single("pop"),bundleGroup:"cakepop"},{...single("rod"),bundleGroup:"pretzel"}];
-  assert.equal(buildBundlesFromSingles(old,PRICES).packCount,1);
+test('old carts are refreshed from current menu categories and obsolete mixed pairs are flagged',()=>{
+ const old=[{key:'rice',qty:2,category:'everyday',price:0.1},pack(['rice','pop'],'cakepop'),{...pack(['pop','rod','rice','oreo']),key:'box-4-old'}];
+ const hydrated=hydrateCartItems(old,MENU,PRICES);
+ assert.equal(hydrated[0].category,'rice-crispy-treats');assert.equal(hydrated[0].price,3);
+ assert.equal(hydrated[1].invalidBundle,true);assert.equal(hydrated[2].invalidBundle,false);assert.equal(hydrated[2].price,10);
+ assert.throws(()=>normalizeOrderItems([{...pack(['rod','rod'],'cakepop'),key:'box-2p-old'}],MENU,PRICES),/no longer an offer/);
 });
-test("the separately priced weekly box stays a curated cake-pop box",()=>{
-  assert.doesNotThrow(()=>assertBoxItemsAreCakePops([{slug:"pop"}],MENU));
-  for(const slug of ["rod","rice","oreo"])assert.throws(()=>assertBoxItemsAreCakePops([{slug}],MENU),/cake pops only/);
+test('the separately priced weekly box remains cake-pop only',()=>{
+ assert.doesNotThrow(()=>assertBoxItemsAreCakePops([{slug:'pop'}],MENU));
+ for(const slug of ['rice','oreo','rod'])assert.throws(()=>assertBoxItemsAreCakePops([{slug}],MENU),/cake pops only/);
 });

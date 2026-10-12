@@ -33,15 +33,15 @@ const sans = DM_Sans({
 export async function generateMetadata() {
   // The headline prices come from the shop settings so the title and
   // description cannot drift from what the shop actually charges.
-  const { singlePopPrice, treatPairPrice } = await getShopSettings();
-  const headline = `${SITE.name} — Handmade Treats ${money(singlePopPrice)} Each or 2 for ${money(treatPairPrice)}`;
+  const { singlePopPrice, treatPairPrice, fourPackPrice } = await getShopSettings();
+  const headline = `${SITE.name} — Cake Pops ${money(singlePopPrice)} Each or 2 for ${money(treatPairPrice)} · Mix 4 for ${money(fourPackPrice)}`;
   return {
     metadataBase: new URL(
       process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
     ),
     title: { default: headline, template: `%s · ${SITE.name}` },
     description:
-      `Cake pops, pretzel rods, dipped rice crispy treats, and dipped Oreos. Regular treats ${money(singlePopPrice)} each or mix and match 2 for ${money(treatPairPrice)}. Pickup only.`,
+      `Cake pops, pretzel rods, dipped rice crispy treats, and dipped Oreos. Cake pops ${money(singlePopPrice)} each or 2 for ${money(treatPairPrice)}. Mix four treats for ${money(fourPackPrice)}, with at most one rice crispy treat and two Oreos. Pickup only.`,
     icons: { icon: "/favicon.png", apple: "/apple-touch-icon.png" },
     openGraph: { title: headline, description: SITE.tagline, type: "website" },
   };

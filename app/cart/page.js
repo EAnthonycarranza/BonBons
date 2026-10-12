@@ -15,7 +15,7 @@ import CouponEntry from "@/components/CouponEntry";
 import { SITE } from "@/lib/sample-data";
 
 export default function CartPage() {
-  const { singleLabel, packLabel } = usePrices();
+  const { singleLabel, packLabel, mixedLabel } = usePrices();
   const {
     items,
     remove,
@@ -64,6 +64,7 @@ export default function CartPage() {
   };
   async function submit(e) {
     e.preventDefault();
+    if(items.some(item=>item.invalidBundle)){setStatus("error");setResult({error:"Remove the saved packs that no longer match the current offers."});return;}
     if (status === "sending" || couponBusy) return;
     const errs = {};
     if (!form.name.trim()) errs.name = "Please tell us your name.";
@@ -177,22 +178,22 @@ export default function CartPage() {
               Your request list is empty
             </h3>
             <p style={{ color: "var(--muted)", marginTop: 8 }}>
-              Add a regular treat for {singleLabel}, or mix and match two for {packLabel}.
+              Choose cake pops for {singleLabel} each or 2 for {packLabel}, or mix four treats for {mixedLabel}.
             </p>
             <div className="hero-cta" style={{ justifyContent: "center" }}>
               <Link className="btn btn-pink" href="/shop">
                 Shop all treats
               </Link>
               <Link className="btn btn-ghost" href="/build-a-box">
-                Mix 2 for {packLabel}
+                Mix 4 for {mixedLabel}
               </Link>
             </div>
           </div>
         ) : (
           <div className="form-wrap checkout-layout">
             <div className="checkout-summary rv-anim">
-              <div className="checkout-card-heading"><span className="checkout-step">01</span><div><h2>Your treats</h2><p>Singles and two-treat mixes, just as you chose.</p></div></div>
-              {items.some(item => item.key?.startsWith("box-4-")) && <p role="status" className="form-msg error">Four-packs have been replaced. Remove saved four-packs and choose a two-treat mix.</p>}
+              <div className="checkout-card-heading"><span className="checkout-step">01</span><div><h2>Your treats</h2><p>Singles, cake-pop pairs, and mixed four-packs, just as you chose.</p></div></div>
+              {items.some(item => item.invalidBundle) && <p role="status" className="form-msg error">Some saved packs no longer match the current offers. Remove them and choose cake-pop pairs or a mixed four-pack with at most 1 rice crispy treat and 2 Oreos.</p>}
               <div className="tile" style={{ padding: 8 }}>
                 {items.map((i) => (
                   <div
@@ -408,7 +409,7 @@ export default function CartPage() {
                 <button
                   className="btn btn-pink btn-block"
                   type="submit"
-                  disabled={status === "sending" || couponBusy || !hasRecaptchaClientConfig()}
+                  disabled={items.some(item=>item.invalidBundle) || status === "sending" || couponBusy || !hasRecaptchaClientConfig()}
                 >
                   {status === "sending"
                     ? "Sending your request…"

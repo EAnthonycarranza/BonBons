@@ -5,7 +5,7 @@ import { stockState } from "@/supabase/functions/_shared/menu";
 import { bundleGroupForCategory } from "@/lib/bundles";
 
 export default function AddToCart({ product }) {
-  const { add, setOpen } = useCart();
+  const { add, setOpen, ready } = useCart();
   const [qty, setQty] = useState(1);
   const availability = stockState(product.stockQuantity, product.lowStockThreshold);
   const maxQty = Math.min(50, availability.remaining ?? 50);
@@ -20,14 +20,14 @@ export default function AddToCart({ product }) {
       </div>
       <button
         className="btn btn-pink"
-        disabled={soldOut}
+        disabled={soldOut || !ready}
         onClick={() => {
           add({
             key: product.slug, name: product.name, desc: product.blurb,
             price: product.price, qty, icon: product.icon,
             color: product.color, tint: product.tint,
             bundleEligible: product.bundleEligible,
-            bundleGroup: bundleGroupForCategory(product.category),
+            bundleGroup: bundleGroupForCategory(product.category), category: product.category,
             image: product.image,
           });
           setOpen(true);

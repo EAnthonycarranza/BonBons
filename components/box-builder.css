@@ -3,3 +3,5 @@
 .builder-category-tabs button[aria-pressed=true]{border-color:var(--pink-2);color:var(--cream);background:#332034}
 .builder-category-tabs button:focus-visible{outline:2px solid var(--pink-2);outline-offset:3px}
 .pack-preview{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pack-preview.pack-preview-four{grid-template-columns:repeat(4,minmax(0,1fr))}.builder-limits{color:var(--cream);font-size:12px;line-height:1.8;padding:12px;border:1px solid var(--stroke-2);border-radius:8px}.builder-ingredient-link{display:block;color:var(--pink-2);font-size:11px;margin:5px 0}.builder .sizes{grid-template-columns:repeat(2,minmax(0,1fr))}@media(max-width:600px){.builder .sizes{grid-template-columns:1fr}}
+.builder-ingredients{font-size:11px;margin:6px 0;color:var(--pink-2)}.builder-ingredients summary{cursor:pointer;padding:5px 0}.builder-ingredients p{color:var(--muted);white-space:pre-line;line-height:1.7;overflow-wrap:anywhere;margin-top:4px}

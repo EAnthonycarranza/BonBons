@@ -313,7 +313,7 @@ export default function WeeklyBoxManager() {
     {notice ? <p className="admin-alert" role="status">{notice}<button type="button" onClick={() => setNotice("")} aria-label="Dismiss"><AdminIcon name="close"/></button></p> : null}
     {error ? <p className="admin-alert is-error" role="alert">{error}</p> : null}
 
-    <p className="admin-footnote wbm-prices-note">Treat and two-treat prices live in <b>Shop settings → Prices</b>.</p>
+    <p className="admin-footnote wbm-prices-note">Cake-pop and mixed-pack prices live in <b>Shop settings → Prices</b>.</p>
 
 
     {loading ? <div className="menu-loading"><span className="admin-spinner" aria-hidden="true"/>Loading boxes…</div> : boxes.length === 0 ? (

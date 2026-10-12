@@ -22,7 +22,7 @@ const LINKS = [
   {
     href: "/build-a-box",
     label: "Mix & Match",
-    note: "Choose any two flavors",
+    note: "Choose a mixed four-pack",
   },
   { href: "/about", label: "About", note: "Meet the maker behind Bon Bon's" },
   { href: "/events", label: "Events", note: "Find us around San Antonio" },
@@ -31,7 +31,7 @@ const LINKS = [
 
 export default function SiteHeader() {
   const { count, setOpen } = useCart();
-  const { singleLabel, packLabel } = usePrices();
+  const { singleLabel, packLabel, mixedLabel } = usePrices();
   const [menu, setMenu] = useState(false);
   const [stuck, setStuck] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -87,11 +87,11 @@ export default function SiteHeader() {
       {announceReady && !dismissed && (
         <div className="announce">
           <div className="announce-in">
-            <span>Regular treats {singleLabel} each</span>
+            <span>Cake pops {singleLabel} each</span>
             <span className="dot" aria-hidden="true">
               ·
             </span>
-            <span className="hide-sm">2 for {packLabel}</span>
+            <span className="hide-sm">Cake pops 2 for {packLabel} · Mix 4 for {mixedLabel}</span>
             <span className="dot hide-sm" aria-hidden="true">
               ·
             </span>
@@ -168,7 +168,7 @@ export default function SiteHeader() {
               </span>
             </button>
             <Link className="btn btn-pink btn-sm" href="/build-a-box">
-              2 for {packLabel}
+              4 for {mixedLabel}
             </Link>
             <button
               ref={menuButtonRef}
@@ -196,7 +196,7 @@ export default function SiteHeader() {
           <div className="wrap mobile-menu-inner">
             <div className="mobile-menu-heading">
               <span>Menu</span>
-              <small>{singleLabel} singles · 2 for {packLabel}</small>
+              <small>Cake pops {singleLabel} each · 2 for {packLabel} · Mix 4 for {mixedLabel}</small>
             </div>
             <div className="mobile-menu-links">
               {LINKS.map((link, index) => (

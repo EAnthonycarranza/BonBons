@@ -4,25 +4,25 @@ import { useCart } from "./CartProvider";
 import Image from "next/image";
 import { money } from "@/lib/format";
 import { BOX_SIZES } from "@/lib/sample-data";
-import { CATEGORY_LABELS } from "@/lib/bundles";
+import { CATEGORY_LABELS, getBundleGroup, isCakePopCategory, MIXED_PACK_LIMITS, MIXED_PACK_RULE, assertBundleSelection } from "@/lib/bundles";
 import { stockState } from "@/supabase/functions/_shared/menu";
 import { usePrices } from "./PricesProvider";
 import "./box-builder.css";
 
-export default function BoxBuilder({ products = [] }) {
-  const { singlePopPrice, treatPairPrice, packLabel } = usePrices();
-  const packSaving = money(Math.max(0, singlePopPrice * 2 - treatPairPrice));
-  const treats = products.map((p) => ({ id: p.slug, name: p.name, note: p.blurb, image: p.image || "/logo-transparent.png", category: p.category, stock: stockState(p.stockQuantity,p.lowStockThreshold) }));
+export default function BoxBuilder({ products = [], initialOffer = "mixed" }) {
+  const { singlePopPrice, treatPairPrice, fourPackPrice } = usePrices();
+  const treats = products.map((p) => ({ id: p.slug, name: p.name, note: p.blurb, image: p.image || "/logo-transparent.png", category: p.category, ingredients: p.ingredients, stock: stockState(p.stockQuantity,p.lowStockThreshold) }));
   const emptyCounts = () => Object.fromEntries(treats.map((t) => [t.id, 0]));
-  const { add, setOpen } = useCart();
-  const [sizeId, setSizeId] = useState(BOX_SIZES[0].id);
+  const { add, setOpen, ready } = useCart();
+  const [sizeId, setSizeId] = useState(initialOffer);
   const [counts, setCounts] = useState(emptyCounts);
   const [category, setCategory] = useState("all");
-  const categories = Object.keys(CATEGORY_LABELS).filter(key=>treats.some(treat=>treat.category===key));
+  const allowedTreats = treats.filter(treat=>sizeId!=="cakepop" || isCakePopCategory(treat.category));
+  const categories = Object.keys(CATEGORY_LABELS).filter(key=>allowedTreats.some(treat=>treat.category===key));
 
   const size = useMemo(
-    () => ({ ...(BOX_SIZES.find((s) => s.id === sizeId) || BOX_SIZES[0]), price: treatPairPrice }),
-    [sizeId, treatPairPrice],
+    () => ({ ...(BOX_SIZES.find((s) => s.id === sizeId) || BOX_SIZES[0]), price: sizeId === "cakepop" ? treatPairPrice : fourPackPrice }),
+    [sizeId, treatPairPrice, fourPackPrice],
   );
   const picked = useMemo(
     () => Object.values(counts).reduce((n, v) => n + v, 0),
@@ -31,9 +31,14 @@ export default function BoxBuilder({ products = [] }) {
 
   const remaining = size.pieces - picked;
   const full = remaining === 0;
+  const packLabel = money(size.price);
+  const categoryCount = (cat, values=counts) => treats.filter(t=>t.category===cat).reduce((n,t)=>n+(values[t.id]||0),0);
+  const atCategoryLimit = (t, values=counts) => sizeId === "mixed" && MIXED_PACK_LIMITS[t.category] && categoryCount(t.category,values)>=MIXED_PACK_LIMITS[t.category];
 
   function step(id, delta) {
     setCounts((prev) => {
+      const treat = treats.find(treat=>treat.id===id);
+      if(delta>0 && (atCategoryLimit(treat,prev) || (sizeId==="cakepop" && !isCakePopCategory(treat.category))))return prev;
       const next = prev[id] + delta;
       if (next < 0 || next > (treats.find(treat=>treat.id===id)?.stock.remaining ?? 50)) return prev;
       const total = Object.values(prev).reduce((n, v) => n + v, 0);
@@ -42,36 +47,20 @@ export default function BoxBuilder({ products = [] }) {
     });
   }
 
-  /**
-   * Shrinking the box can leave more pieces selected than it holds. Trim from
-   * the largest pile down until it fits, rather than clearing the whole build.
-   */
   function changeSize(nextId) {
-    const nextSize = BOX_SIZES.find((s) => s.id === nextId) || BOX_SIZES[0];
-    setSizeId(nextId);
-    setCounts((prev) => {
-      let total = Object.values(prev).reduce((n, v) => n + v, 0);
-      if (total <= nextSize.pieces) return prev;
-      const next = { ...prev };
-      while (total > nextSize.pieces) {
-        const biggest = Object.keys(next).reduce((a, b) =>
-          next[b] > next[a] ? b : a,
-        );
-        if (!next[biggest]) break;
-        next[biggest] -= 1;
-        total -= 1;
-      }
-      return next;
-    });
+    setSizeId(nextId);setCategory("all");setCounts(emptyCounts());
   }
 
   function addBox() {
+    if(!full)return;
+    assertBundleSelection(sizeId,treats.filter(t=>counts[t.id]>0).map(t=>({category:t.category,qty:counts[t.id]})));
+    const group=getBundleGroup(sizeId);
     const contents = treats.filter((t) => counts[t.id] > 0)
       .map((t) => `${t.name} x${counts[t.id]}`)
       .join(", ");
     add({
-      key: `box-2t-${treats.filter(t=>counts[t.id]>0).map(t=>`${t.id}:${counts[t.id]}`).sort().join("+")}`,
-      name: `Mix & Match Two-Treat Pack (${size.pieces} pc)`,
+      key: `${group.cartPrefix}${treats.filter(t=>counts[t.id]>0).map(t=>`${t.id}:${counts[t.id]}`).sort().join("+")}`,
+      name: group.orderName,
       desc: contents,
       price: size.price,
       qty: 1,
@@ -96,9 +85,9 @@ export default function BoxBuilder({ products = [] }) {
     <div className="builder">
       <div>
         <div className="b-card rv-anim" style={{ marginBottom: 18 }}>
-          <h3>1. Your two-treat mix</h3>
+          <h3>1. Choose your offer</h3>
           <p className="hint">
-            Any two available flavors for {packLabel}. Save {packSaving} compared with two regular singles.
+            Cake pops: {money(singlePopPrice)} each or two for {money(treatPairPrice)}. Mix four treats for {money(fourPackPrice)}. Changing offers starts a new pack.
           </p>
           <div
             className={`sizes${BOX_SIZES.length === 1 ? " sizes-single" : ""}`}
@@ -115,7 +104,7 @@ export default function BoxBuilder({ products = [] }) {
                 <label htmlFor={`sz-${s.id}`}>
                   <b>{s.label}</b>
                   <span>{s.pieces} pieces</span>
-                  <em>{packLabel}</em>
+                  <em>{money(s.id==="cakepop"?treatPairPrice:fourPackPrice)}</em>
                 </label>
               </div>
             ))}
@@ -123,14 +112,15 @@ export default function BoxBuilder({ products = [] }) {
         </div>
 
         <div className="b-card rv-anim">
-          <h3>2. Pick your two treats</h3>
+          <h3>2. Pick your {size.pieces} treats</h3>
           <p className="hint">
             Choose {size.pieces} pieces total — {picked} picked,{" "}
             {Math.max(0, remaining)} to go.
           </p>
+          {sizeId==="mixed" && <p className="builder-limits" role="status">{MIXED_PACK_RULE}<br/>Rice crispy treats: {categoryCount("rice-crispy-treats")}/1 · Oreos: {categoryCount("dipped-oreos")}/2</p>}
           <div className="builder-category-tabs" role="group" aria-label="Filter treat types">{[["all","All treats"],...categories.map(key=>[key,CATEGORY_LABELS[key]])].map(([key,label])=><button type="button" key={key} aria-pressed={category===key} onClick={()=>setCategory(key)}>{label}</button>)}</div>
           <div className="treats">
-            {treats.filter(treat=>category=== "all" || treat.category===category).map((t) => (
+            {allowedTreats.filter(treat=>category=== "all" || treat.category===category).map((t) => (
               <div className={`treat${counts[t.id] ? " is-picked" : ""}`} key={t.id}>
                 <Image
                   className="treat-photo"
@@ -141,6 +131,7 @@ export default function BoxBuilder({ products = [] }) {
                 />
                 <div className="tn">
                   <b>{t.name}</b>
+                  <details className="builder-ingredients"><summary>Ingredients</summary><p>{t.ingredients || "Ingredients have not been listed yet. Please ask Bonnie for this product’s ingredients."}</p></details>
                   <span>{CATEGORY_LABELS[t.category]}{t.stock.state==="sold_out"?" · Sold out":t.stock.tracked?` · ${t.stock.remaining} left`:""}</span>
                 </div>
                 <div className="stepper">
@@ -158,7 +149,7 @@ export default function BoxBuilder({ products = [] }) {
                   <button
                     type="button"
                     onClick={() => step(t.id, 1)}
-                    disabled={full || t.stock.state === "sold_out" || counts[t.id] >= (t.stock.remaining ?? 50)}
+                    disabled={full || atCategoryLimit(t) || t.stock.state === "sold_out" || counts[t.id] >= (t.stock.remaining ?? 50)}
                     aria-label={`One more ${t.name}`}
                   >
                     +
@@ -173,8 +164,8 @@ export default function BoxBuilder({ products = [] }) {
       <aside className="summary" aria-label="Box summary">
         <h3>Your box</h3>
         <div
-          className="pack-preview"
-          aria-label={`${picked} of two treats selected`}
+          className={`pack-preview${size.pieces===4?" pack-preview-four":""}`}
+          aria-label={`${picked} of ${size.pieces} treats selected`}
         >
           {Array.from({ length: size.pieces }, (_, index) => (
             <div className={`pack-slot${selectedPhotos[index] ? " is-filled" : ""}`} key={index}>
@@ -219,10 +210,10 @@ export default function BoxBuilder({ products = [] }) {
         <div style={{ marginTop: 18 }}>
           <button
             className="btn btn-pink btn-block"
-            disabled={!full}
+            disabled={!full || !ready}
             onClick={addBox}
           >
-            Add two treats for {packLabel} to request
+            {`Add ${size.pieces} ${sizeId==="cakepop"?"cake pops":"treats"} for ${packLabel} to request`}
           </button>
         </div>
         <p className="sum-note">

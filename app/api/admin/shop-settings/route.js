@@ -24,7 +24,7 @@ export async function PATCH(request) {
     const body = await request.json();
     const settings = validateShopSettings({
       single_pop_price: body.singlePopPrice,
-      treat_pair_price: body.treatPairPrice,
+      treat_pair_price: body.treatPairPrice, four_pack_price: body.fourPackPrice,
     });
     const data = await callBonbonsAdmin("update_treat_settings", settings);
     refreshMenu();

@@ -102,7 +102,7 @@ export function validateMenuProduct(input) {
   const category = input.category ?? "everyday";
   if (!MENU_CATEGORIES.includes(category)) throw new MenuValidationError("Choose a category from the provided list.");
   return {
-    name, slug, price, unit: "each", blurb: text("blurb", 160), description: text("description", 2000),
+    name, slug, price, unit: "each", blurb: text("blurb", 160), description: text("description", 2000), ingredients: text("ingredients", 5000),
     image, active: input.active, bundle_eligible: true, category, sort_order: sortOrder,
     allergens: [...new Set(allergens)], badge: text("badge", 32), source_url: source,
     stock_quantity: assertStock(input.stock_quantity), low_stock_threshold: assertThreshold(input.low_stock_threshold),
@@ -176,8 +176,8 @@ export function validateWeeklyBox(input) {
 
 export function validateShopSettings(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new MenuValidationError("Enter the shop prices.");
-  const single = assertPrice(input.single_pop_price, "The regular treat price");
-  const pair = assertPrice(input.treat_pair_price, "The two-treat price");
-  if (pair > single * 2) throw new MenuValidationError("The two-treat offer cannot cost more than two regular singles.");
-  return { single_pop_price: single, treat_pair_price: pair };
+  const single = assertPrice(input.single_pop_price, "The cake-pop price");
+  const pair = assertPrice(input.treat_pair_price, "The cake-pop pair price");
+  if (pair > single * 2) throw new MenuValidationError("The cake-pop pair cannot cost more than two cake-pop singles.");
+  return { single_pop_price: single, treat_pair_price: pair, four_pack_price: assertPrice(input.four_pack_price, "The mixed four-pack price") };
 }

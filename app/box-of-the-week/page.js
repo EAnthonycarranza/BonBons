@@ -83,7 +83,7 @@ export default async function BoxOfTheWeekPage() {
               </li>
             ))}
           </ol>
-          <div className="weekly-lineup-footnote"><p>Flavors and quantities shown are this week’s fixed selection. Prefer to pick your own? <Link href="/build-a-box">Mix two treats.</Link></p></div>
+          <div className="weekly-lineup-footnote"><p>Flavors and quantities shown are this week’s fixed selection. Prefer to pick your own? <Link href="/build-a-box">Mix four treats.</Link></p></div>
         </div>
       </section>
 

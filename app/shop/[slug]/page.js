@@ -1,8 +1,10 @@
+import "../shop.css";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getProduct, getProducts } from "@/lib/products";
 import { Icon } from "@/components/Icons";
+import { isCakePopCategory } from "@/lib/bundles";
 import AddToCart from "@/components/AddToCart";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +24,7 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function ProductPage({ params }) {
-  const { singlePopPrice, treatPairPrice } = await getShopSettings();
+  const { singlePopPrice, treatPairPrice, fourPackPrice } = await getShopSettings();
   const singleLabel = money(singlePopPrice);
   const packLabel = money(treatPairPrice);
 
@@ -97,6 +99,7 @@ export default async function ProductPage({ params }) {
                 <span className="product-detail-unit">{product.unit}</span>
               </div>
 
+              <section id="ingredients" className="product-ingredients"><h2>Ingredients</h2><p style={{whiteSpace:"pre-line"}}>{product.ingredients || "Ingredients have not been listed yet. Please contact Bonnie for this product’s ingredients."}</p></section>
               <AddToCart product={product} />
               <p
                 style={{
@@ -106,7 +109,7 @@ export default async function ProductPage({ params }) {
                   fontWeight: 700,
                 }}
               >
-                Mix this with any other available flavor for {packLabel}. Choose your two-treat mix or accept the cart suggestion.
+                {isCakePopCategory(product.category) ? `Choose two cake pops for ${packLabel}, or mix four treats for ${money(fourPackPrice)}.` : `Mix four treats for ${money(fourPackPrice)}.`} Maximum 1 rice crispy treat and 2 Oreos per mixed pack.
               </p>
 
               <ul className="checks" style={{ marginTop: 28 }}>
@@ -114,7 +117,7 @@ export default async function ProductPage({ params }) {
                   <Icon name="i-check" /> This treat is {money(product.price)} each
                 </li>
                 <li>
-                  <Icon name="i-check" /> Mix & match any two flavors for {packLabel}
+                  <Icon name="i-check" /> Mix & match four treats for {money(fourPackPrice)}
                 </li>
                 <li>
                   <Icon name="i-check" /> No event or large order required

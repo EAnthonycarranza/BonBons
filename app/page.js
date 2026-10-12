@@ -8,7 +8,7 @@ import HomeContent from "@/components/HomeContent";
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
   const [content, settings] = await Promise.all([getPublishedPage("home"),getShopSettings()]);
-  return { title: content.title, description: pageText(content.description,{singlePrice:money(settings.singlePopPrice),pairPrice:money(settings.treatPairPrice)}) };
+  return { title: content.title, description: pageText(content.description,{singlePrice:money(settings.singlePopPrice),pairPrice:money(settings.treatPairPrice),mixedPrice:money(settings.fourPackPrice)}) };
 }
 export default async function HomePage() {
   const [products, weeklyBox, settings, content] = await Promise.all([getProducts(),getFeaturedWeeklyBox(),getShopSettings(),getPublishedPage("home")]);

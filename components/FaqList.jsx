@@ -7,7 +7,7 @@ import { FAQS } from "@/lib/sample-data";
 
 export default function FaqList({ items = FAQS, defaultOpenFirst = true }) {
   const groupId = useId();
-  const { singleLabel, packLabel } = usePrices();
+  const { singleLabel, packLabel, mixedLabel } = usePrices();
   const [openItems, setOpenItems] = useState(() => new Set(defaultOpenFirst ? [0] : []));
 
   const toggleItem = (index) => {
@@ -47,7 +47,7 @@ export default function FaqList({ items = FAQS, defaultOpenFirst = true }) {
               inert={!isOpen}
             >
               <div className="faq-answer-inner">
-                <div className="a">{pageText(f.a, { singlePrice: singleLabel, pairPrice: packLabel })}</div>
+                <div className="a">{pageText(f.a, { singlePrice: singleLabel, pairPrice: packLabel, mixedPrice: mixedLabel })}</div>
               </div>
             </div>
           </div>

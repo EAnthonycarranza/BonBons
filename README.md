@@ -2,7 +2,7 @@
 
 The website and back office for a handmade treat business in San Antonio, Texas.
 
-Customers browse cake pops, pretzel rods, dipped rice crispy treats, and dipped Oreos, build a mix-and-match two-treat pack, or claim a limited Box of the
+Customers browse cake pops, pretzel rods, dipped rice crispy treats, and dipped Oreos, choose a cake-pop pair or mix-and-match four-pack, or claim a limited Box of the
 Week, then send a pickup request — or ask to rent the cake-pop cart for an event. The owner runs everything else — menu,
 prices, stock, orders, emails and invoices — from a password-protected
 dashboard called **the Shop Desk**. There is no online checkout: pickup is
@@ -219,24 +219,29 @@ token-guarded admin RPC. No extra environment variables are needed. Run
 `tests/coupons-database.sql` for database assertions that roll back all fixtures.
 
 ### Shop settings
-Pickup addresses, customer contact, the Gmail connection, and **Prices** — the
-regular treat price, the two-treat offer price, and an editable row for every
-product. Saving the regular price updates the menu prices together. Individual
-product rows save one at a time and can have their own single-item prices.
+Pickup addresses, customer contact, the Gmail connection, and **Prices**.
+Cake pops are **$3 each or 2 for $5**. Mix and match four treats for **$10**,
+with at most **one rice crispy treat and two Oreos per four-pack**, counting
+all flavors in each category together. Other product single prices remain
+editable. Saving the cake-pop price updates cake pops only.
 
-Regular treats start at **$3 each or mix and match any two available flavors for
-$5**. The four-pack offer is retired. Saved four-packs must be removed before
-submitting a new request; past orders and invoices keep their original details.
-All flavors can be mixed in the pair offer, including individually priced
-specialty treats. New product photos use the existing authenticated uploader.
-The flyer’s temporary availability counts are not imported as permanent stock.
+Admin **Treat menu → Edit → Ingredients** stores up to 5,000 characters per
+product. Customers can open **View ingredients** on a menu card or in the
+builder. Ingredients are also displayed on the product detail page. Empty
+recipes ask the shopper to contact Bonnie; no ingredients are guessed.
+Existing allergen selections remain separate. **Preview packs** opens an admin-only
+builder that includes Hidden products, so offers can be checked before publishing.
+
+Old saved mixed two-packs must be rebuilt; valid cake-pop pairs and valid
+four-packs use current prices and menu categories. Past orders are unchanged.
+Apply `supabase/migrations/20261012043133_cake_pop_pairs_mixed_packs_and_ingredients.sql` before deploying.
 
 ### Home and About page editor
 Open **Home & About pages** in the Shop Desk. Edit headings, paragraphs, photos,
 photo descriptions, button text and destinations, gallery items, featured
 products, page metadata, and every supporting section. Sections can be
 reordered or hidden. Use `{singlePrice}`, `{pairPrice}`, and `{saving}` in copy
-to keep promotional text aligned with shop prices.
+and `{mixedPrice}` to keep promotional text aligned with shop prices.
 
 **Save draft** preserves edits without changing the public page. **Preview
 saved draft** opens an admin-only page. **Publish changes** updates the website.

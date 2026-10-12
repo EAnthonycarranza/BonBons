@@ -23,7 +23,7 @@ export function PricesProvider({ singlePopPrice, fourPackPrice, pretzelRodPrice,
       pretzelRodPrice: rod,
       pretzelPairPrice: pair,
       singleLabel: money(single),
-      packLabel: money(pack),
+      packLabel: money(pack), mixedLabel: money(Number(fourPackPrice)||10),
       rodLabel: money(rod),
       pairLabel: money(pair),
     };
@@ -39,7 +39,7 @@ export function usePrices() {
     pretzelRodPrice: DEFAULT_PRETZEL_ROD_PRICE,
     pretzelPairPrice: DEFAULT_PRETZEL_PAIR_PRICE,
     singleLabel: money(DEFAULT_SINGLE_POP_PRICE),
-    packLabel: money(DEFAULT_PRETZEL_PAIR_PRICE),
+    packLabel: money(DEFAULT_PRETZEL_PAIR_PRICE), mixedLabel: money(DEFAULT_FOUR_PACK_PRICE),
     rodLabel: money(DEFAULT_PRETZEL_ROD_PRICE),
     pairLabel: money(DEFAULT_PRETZEL_PAIR_PRICE),
   };

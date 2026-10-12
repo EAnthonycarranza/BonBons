@@ -1,5 +1,6 @@
 "use client";
 
+import { MIXED_PACK_RULE } from "@/lib/bundles";
 import { money } from "@/lib/format";
 import { useCart } from "./CartProvider";
 
@@ -39,7 +40,7 @@ export default function BundleNudge({ compact = false }) {
             >
               Switch to {packLabel} · save {money(group.potentialSavings)}
             </button>
-            <small>Nothing changes unless you choose this option.</small>
+            <small>{group.key==="mixed"?MIXED_PACK_RULE+" ":"Cake pops only. "}Nothing changes unless you choose this option.</small>
           </div>
         );
       })}

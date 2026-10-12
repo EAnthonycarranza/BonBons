@@ -1,12 +1,12 @@
 "use client";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { buildBundlesFromSingles, getCartPricing } from "@/lib/pricing";
+import { buildBundlesFromSingles, getCartPricing, hydrateCartItems } from "@/lib/pricing";
 import { getBundleGroup } from "@/lib/bundles";
 import { usePrices } from "./PricesProvider";
 
 const CartContext = createContext(null);
-// Keep saved requests. Retired four-packs must be removed explicitly; the
-// server rejects them and the cart points shoppers to the current pair offer.
+// Keep saved requests and refresh them against current menu categories and
+// pack rules. Invalid old packs are shown so customers can remove them.
 const STORAGE_KEY = "bb_cart_v2";
 
 export function useCart() {
@@ -26,14 +26,14 @@ export function CartProvider({ children }) {
 
   // Load after mount — reading localStorage during render would break SSR.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setItems(parsed);
-      }
-    } catch {}
-    setReady(true);
+    let cancelled=false;
+    async function load() {
+      let saved=[];
+      try { const parsed=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");if(Array.isArray(parsed))saved=parsed; }catch{}
+      try { const response=await fetch("/api/products",{cache:"no-store"});if(response.ok){const data=await response.json();saved=hydrateCartItems(saved,data.products||[],prices);} }catch{}
+      if(!cancelled){setItems(saved);setReady(true);}
+    }
+    load();return()=>{cancelled=true;};
   }, []);
 
   // Don't write until the initial read finished, or we'd clobber saved carts.
@@ -68,8 +68,8 @@ export function CartProvider({ children }) {
   }, []);
   const clear = useCallback(() => setItems([]), []);
 
-  // Regular products across all categories share one mix-and-match pair offer.
-  const convertSinglesToBundles = useCallback((groupKey = "treat") => {
+  // Customers choose cake-pop pairs or mixed four-packs.
+  const convertSinglesToBundles = useCallback((groupKey = "mixed") => {
     const group = getBundleGroup(groupKey);
     const { packCount, convertedUnits } = buildBundlesFromSingles(items, prices, groupKey);
     if (!packCount) return;
@@ -79,7 +79,7 @@ export function CartProvider({ children }) {
     say(`Switched ${convertedUnits} singles to ${packCount} ${packLabel}`);
   }, [items, prices, say]);
 
-  const convertSinglesToFourPacks = useCallback(() => convertSinglesToBundles("treat"), [convertSinglesToBundles]);
+  const convertSinglesToFourPacks = useCallback(() => convertSinglesToBundles("mixed"), [convertSinglesToBundles]);
 
   const count = useMemo(() => items.reduce((n, i) => n + i.qty, 0), [items]);
   const pricing = useMemo(() => getCartPricing(items, prices), [items, prices]);

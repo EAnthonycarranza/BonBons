@@ -11,7 +11,7 @@ import { stockState } from "@/supabase/functions/_shared/menu";
 import { bundleGroupForCategory } from "@/lib/bundles";
 
 export default function ProductCard({ product }) {
-  const { add } = useCart();
+  const { add, ready } = useCart();
   const [added, setAdded] = useState(false);
   const availability = stockState(product.stockQuantity, product.lowStockThreshold);
   const soldOut = availability.state === "sold_out";
@@ -19,7 +19,7 @@ export default function ProductCard({ product }) {
   function onAdd(e) {
     e.preventDefault();
     e.stopPropagation();
-    if (soldOut) return;
+    if (soldOut || !ready) return;
     add({
       key: product.slug,
       name: product.name,
@@ -27,7 +27,7 @@ export default function ProductCard({ product }) {
       price: product.price,
       qty: 1,
       bundleEligible: product.bundleEligible,
-      bundleGroup: bundleGroupForCategory(product.category),
+      bundleGroup: bundleGroupForCategory(product.category), category: product.category,
       image: product.image,
       icon: product.icon,
       color: product.color,
@@ -62,6 +62,7 @@ export default function ProductCard({ product }) {
       <div className="meta">
         <h3><Link href={`/shop/${product.slug}`}>{product.name}</Link></h3>
         <div className="d">{product.blurb}</div>
+        <Link href={`/shop/${product.slug}#ingredients`} className="product-ingredients-link">View ingredients →</Link>
         {availability.state === "low" ? (
           <p className="stock-line is-low">{stockLabel(availability)}</p>
         ) : null}
@@ -70,7 +71,7 @@ export default function ProductCard({ product }) {
           <button
             className={`add${added ? " added" : ""}`}
             onClick={onAdd}
-            disabled={soldOut}
+            disabled={soldOut || !ready}
             aria-label={soldOut ? `${product.name} is sold out` : `Add ${product.name} to pickup request`}
           >
             <Icon name={added ? "i-check" : "i-plus"} />
