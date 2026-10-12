@@ -16,13 +16,13 @@ const LINKS = [
   },
   {
     href: "/shop",
-    label: "Shop Cake Pops",
+    label: "Shop Treats",
     note: "Everyday favorites",
   },
   {
     href: "/build-a-box",
-    label: "Build a Four-Pack",
-    note: "Choose four flavors for $10",
+    label: "Mix & Match",
+    note: "Choose any two flavors",
   },
   { href: "/about", label: "About", note: "Meet the maker behind Bon Bon's" },
   { href: "/events", label: "Events", note: "Find us around San Antonio" },
@@ -87,11 +87,11 @@ export default function SiteHeader() {
       {announceReady && !dismissed && (
         <div className="announce">
           <div className="announce-in">
-            <span>Cake pops {singleLabel} each</span>
+            <span>Regular treats {singleLabel} each</span>
             <span className="dot" aria-hidden="true">
               ·
             </span>
-            <span className="hide-sm">Four-pack {packLabel}</span>
+            <span className="hide-sm">2 for {packLabel}</span>
             <span className="dot hide-sm" aria-hidden="true">
               ·
             </span>
@@ -168,7 +168,7 @@ export default function SiteHeader() {
               </span>
             </button>
             <Link className="btn btn-pink btn-sm" href="/build-a-box">
-              4 for {packLabel}
+              2 for {packLabel}
             </Link>
             <button
               ref={menuButtonRef}
@@ -196,7 +196,7 @@ export default function SiteHeader() {
           <div className="wrap mobile-menu-inner">
             <div className="mobile-menu-heading">
               <span>Menu</span>
-              <small>{singleLabel} singles · {packLabel} four-packs</small>
+              <small>{singleLabel} singles · 2 for {packLabel}</small>
             </div>
             <div className="mobile-menu-links">
               {LINKS.map((link, index) => (

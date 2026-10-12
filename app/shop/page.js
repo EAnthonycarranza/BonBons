@@ -4,97 +4,23 @@ import { getProducts } from "@/lib/products";
 import ProductCard from "@/components/ProductCard";
 import { getShopSettings } from "@/lib/weekly-box-data";
 import { money } from "@/lib/format";
-
-export async function generateMetadata() {
-  const { singlePopPrice, fourPackPrice } = await getShopSettings();
-  return {
-    title: "Shop cake pops",
-    description: `Shop ${money(singlePopPrice)} individual cake pops or choose a four-pack for ${money(fourPackPrice)}. Custom and event orders are also available.`,
-  };
-}
+import { CATEGORY_LABELS } from "@/lib/bundles";
+import "./shop.css";
 
 export const dynamic = "force-dynamic";
-
-const CATEGORY_LABELS = {
-  everyday: "The everyday favorites",
-  custom: "For something a little special",
-  "pretzel-rods": "Pretzel rods",
-};
-
-// Categories come back in whatever order the menu is sorted; keep the cake pops
-// first so the shop still opens on what it is known for.
-const CATEGORY_ORDER = ["everyday", "pretzel-rods", "custom"];
-
+export async function generateMetadata() {
+  const { singlePopPrice, treatPairPrice } = await getShopSettings();
+  return { title: "Shop handmade treats", description: `Cake pops, pretzel rods, dipped rice crispy treats, and dipped Oreos. Regular treats ${money(singlePopPrice)} each or mix and match 2 for ${money(treatPairPrice)}.` };
+}
+const CATEGORY_ORDER = ["everyday", "pretzel-rods", "rice-crispy-treats", "dipped-oreos", "custom"];
 export default async function ShopPage() {
-  const { singlePopPrice, fourPackPrice, pretzelRodPrice, pretzelPairPrice } = await getShopSettings();
-  const singleLabel = money(singlePopPrice);
-  const packLabel = money(fourPackPrice);
-  const rodLabel = money(pretzelRodPrice);
-  const pairLabel = money(pretzelPairPrice);
-
-  const products = await getProducts();
-  const categories = [...new Set(products.map((p) => p.category))].sort((a, b) => {
-    const rank = (c) => (CATEGORY_ORDER.indexOf(c) === -1 ? CATEGORY_ORDER.length : CATEGORY_ORDER.indexOf(c));
-    return rank(a) - rank(b);
-  });
-
-  const categoryNote = (cat) => {
-    if (cat === "everyday") return `${singleLabel} each · selected four-pack ${packLabel}`;
-    if (cat === "pretzel-rods") return `${rodLabel} each · 2 for ${pairLabel}`;
-    return "Custom colors & event orders, by request";
-  };
-
-  return (
-    <section className="sec">
-      <div className="wrap">
-        <div className="page-masthead rv-anim">
-          <div>
-            <div className="eyebrow">Shop</div>
-            <h1>
-              Good things come
-              <br />
-              on <em>little sticks.</em>
-            </h1>
-            <p>
-              Cake pops are what we do. Pick a {singleLabel} single for yourself, or choose
-              a {packLabel} four-pack to mix your favorites. Chocolate-dipped pretzel
-              rods are here too, {rodLabel} each or 2 for {pairLabel}. No special
-              occasion necessary.
-            </p>
-            <Link className="text-link" href="/build-a-box">
-              Build a {packLabel} four-pack <span aria-hidden="true">↗</span>
-            </Link>
-          </div>
-          <div className="page-masthead-photo">
-            <Image
-              src="/products/bonbons-assortment-styled.webp"
-              alt="Styled image of a marble plate of Bon Bon’s wrapped cake pops in sprinkle, cookie-crumb, strawberry, and cookies-and-cream finishes"
-              fill
-              priority
-              sizes="280px"
-            />
-          </div>
-        </div>
-
-        {!products.length && <div className="b-card"><h2>The next batch is on its way.</h2><p>Check back for available cake pops, or contact Bonnie to ask what’s baking.</p></div>}
-        {categories.map((cat) => (
-          <div key={cat} style={{ marginBottom: 46 }}>
-            <div className="category-heading">
-              <h2>{CATEGORY_LABELS[cat] || cat}</h2>
-              <span>{categoryNote(cat)}</span>
-            </div>
-            <div
-              className="grid live-menu-grid"
-            >
-              {products
-                .filter((p) => p.category === cat)
-                .map((p) => (
-                  <ProductCard key={p.slug} product={p} />
-                ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+  const [products, settings] = await Promise.all([getProducts(),getShopSettings()]);
+  const singleLabel=money(settings.singlePopPrice),pairLabel=money(settings.treatPairPrice);
+  const categories=CATEGORY_ORDER.filter(category=>products.some(product=>product.category===category));
+  return <section className="sec"><div className="wrap">
+    <div className="page-masthead rv-anim"><div><div className="eyebrow">The treat shop</div><h1>A little crunch.<br/>A lot of <em>sweet.</em></h1><p>Cake Pops, Pretzel Rods, Dipped Rice Crispy Treats, and Dipped Oreos. Choose a regular treat for {singleLabel}, or mix any two available flavors for {pairLabel}. All available flavors are included in the two-treat offer.</p><Link className="text-link" href="/build-a-box">Mix & match 2 for {pairLabel} <span aria-hidden="true">↗</span></Link></div><div className="page-masthead-photo"><Image src="/products/bonbons-assortment-styled.webp" alt="Styled assortment of Bon Bon's wrapped cake pops" fill priority sizes="280px"/></div></div>
+    <nav className="treat-category-nav" aria-label="Treat categories">{categories.map(category=><a key={category} href={`#${category}`}>{CATEGORY_LABELS[category]}</a>)}</nav>
+    {!products.length && <div className="b-card"><h2>The next batch is on its way.</h2><p>Check back for available treats, or contact Bonnie to ask what’s baking.</p></div>}
+    {categories.map(category=><section className="treat-category" id={category} key={category} aria-labelledby={`${category}-heading`}><div className="category-heading"><h2 id={`${category}-heading`}>{CATEGORY_LABELS[category]}</h2><span>{category==="custom"?`Individual prices below · mix & match 2 for ${pairLabel}`:`${singleLabel} regular treats · mix & match 2 for ${pairLabel}`}</span></div><div className="grid live-menu-grid">{products.filter(product=>product.category===category).map(product=><ProductCard key={product.slug} product={product}/>)}</div></section>)}
+  </div></section>;
 }

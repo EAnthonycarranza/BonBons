@@ -13,7 +13,7 @@ export default function MobileBar() {
         {singleLabel} Singles
       </Link>
       <Link className="btn btn-pink" href="/build-a-box">
-        4 for {packLabel}
+        2 for {packLabel}
       </Link>
     </div>
   );

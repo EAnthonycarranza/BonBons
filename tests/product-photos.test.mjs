@@ -27,11 +27,11 @@ test("all six original customer photos are preserved in the project", () => {
   }
 });
 
-test("each starter flavor has its own matching photo with pricing unchanged", () => {
+test("each starter flavor has its matching photo and the current regular price", () => {
   assert.equal(SAMPLE_PRODUCTS.length, 3);
   for (const product of SAMPLE_PRODUCTS) {
     assert.equal(product.image, STYLED_PRODUCT_PHOTOS[product.slug]);
-    assert.equal(product.price, 4);
+    assert.equal(product.price, 3);
     assert.equal(product.bundleEligible, true);
   }
 });

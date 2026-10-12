@@ -33,15 +33,15 @@ const sans = DM_Sans({
 export async function generateMetadata() {
   // The headline prices come from the shop settings so the title and
   // description cannot drift from what the shop actually charges.
-  const { singlePopPrice, fourPackPrice } = await getShopSettings();
-  const headline = `${SITE.name} — Cake Pops ${money(singlePopPrice)} Each or 4 for ${money(fourPackPrice)}`;
+  const { singlePopPrice, treatPairPrice } = await getShopSettings();
+  const headline = `${SITE.name} — Handmade Treats ${money(singlePopPrice)} Each or 2 for ${money(treatPairPrice)}`;
   return {
     metadataBase: new URL(
       process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
     ),
     title: { default: headline, template: `%s · ${SITE.name}` },
     description:
-      `Hand-rolled, hand-dipped cake pops sold as ${money(singlePopPrice)} singles or selected four-packs for ${money(fourPackPrice)}. Pickup only, with custom and event orders available.`,
+      `Cake pops, pretzel rods, dipped rice crispy treats, and dipped Oreos. Regular treats ${money(singlePopPrice)} each or mix and match 2 for ${money(treatPairPrice)}. Pickup only.`,
     icons: { icon: "/favicon.png", apple: "/apple-touch-icon.png" },
     openGraph: { title: headline, description: SITE.tagline, type: "website" },
   };
@@ -52,7 +52,7 @@ export const viewport = {
 };
 
 export default async function RootLayout({ children }) {
-  const { singlePopPrice, fourPackPrice, pretzelRodPrice, pretzelPairPrice } = await getShopSettings();
+  const { singlePopPrice, fourPackPrice, pretzelRodPrice, pretzelPairPrice, treatPairPrice } = await getShopSettings();
   return (
     <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body>
@@ -60,7 +60,7 @@ export default async function RootLayout({ children }) {
           Skip to main content
         </a>
         <IconSprite />
-        <PricesProvider singlePopPrice={singlePopPrice} fourPackPrice={fourPackPrice} pretzelRodPrice={pretzelRodPrice} pretzelPairPrice={pretzelPairPrice}>
+        <PricesProvider singlePopPrice={singlePopPrice} fourPackPrice={fourPackPrice} pretzelRodPrice={pretzelRodPrice} pretzelPairPrice={pretzelPairPrice} treatPairPrice={treatPairPrice}>
         <CartProvider>
           <StorefrontOnly><SiteHeader /></StorefrontOnly>
           <main id="main">{children}</main>

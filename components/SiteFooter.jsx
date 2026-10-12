@@ -7,9 +7,9 @@ import { SITE } from "@/lib/sample-data";
 import { PaymentMethods } from "./PaymentMarks";
 
 export default async function SiteFooter() {
-  const { singlePopPrice, fourPackPrice } = await getShopSettings();
+  const { singlePopPrice, treatPairPrice } = await getShopSettings();
   const singleLabel = money(singlePopPrice);
-  const packLabel = money(fourPackPrice);
+  const packLabel = money(treatPairPrice);
 
   return (
     <footer className="foot">
@@ -77,20 +77,20 @@ export default async function SiteFooter() {
           </div>
 
           <div>
-            <h4>Cake Pops</h4>
+            <h4>Our Treats</h4>
             <ul>
               <li>
-                <Link href="/shop">Shop all cake pops</Link>
+                <Link href="/shop">Shop all treats</Link>
               </li>
               <li>
                 <Link href="/shop">Singles · {singleLabel} each</Link>
               </li>
               <li>
-                <Link href="/build-a-box">Build a four-pack · {packLabel}</Link>
+                <Link href="/build-a-box">Mix & match two · {packLabel}</Link>
               </li>
               <li>
                 <Link href="/shop">
-                  Current flavors
+                  Current products
                 </Link>
               </li>
             </ul>

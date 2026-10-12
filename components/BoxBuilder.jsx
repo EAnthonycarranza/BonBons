@@ -4,20 +4,25 @@ import { useCart } from "./CartProvider";
 import Image from "next/image";
 import { money } from "@/lib/format";
 import { BOX_SIZES } from "@/lib/sample-data";
+import { CATEGORY_LABELS } from "@/lib/bundles";
+import { stockState } from "@/supabase/functions/_shared/menu";
 import { usePrices } from "./PricesProvider";
+import "./box-builder.css";
 
 export default function BoxBuilder({ products = [] }) {
-  const { singlePopPrice, fourPackPrice, packLabel } = usePrices();
-  const packSaving = money(Math.max(0, singlePopPrice * 4 - fourPackPrice));
-  const treats = products.map((p) => ({ id: p.slug, name: p.name, note: p.blurb, image: p.image || "/logo-transparent.png" }));
+  const { singlePopPrice, treatPairPrice, packLabel } = usePrices();
+  const packSaving = money(Math.max(0, singlePopPrice * 2 - treatPairPrice));
+  const treats = products.map((p) => ({ id: p.slug, name: p.name, note: p.blurb, image: p.image || "/logo-transparent.png", category: p.category, stock: stockState(p.stockQuantity,p.lowStockThreshold) }));
   const emptyCounts = () => Object.fromEntries(treats.map((t) => [t.id, 0]));
   const { add, setOpen } = useCart();
   const [sizeId, setSizeId] = useState(BOX_SIZES[0].id);
   const [counts, setCounts] = useState(emptyCounts);
+  const [category, setCategory] = useState("all");
+  const categories = Object.keys(CATEGORY_LABELS).filter(key=>treats.some(treat=>treat.category===key));
 
   const size = useMemo(
-    () => BOX_SIZES.find((s) => s.id === sizeId) || BOX_SIZES[0],
-    [sizeId],
+    () => ({ ...(BOX_SIZES.find((s) => s.id === sizeId) || BOX_SIZES[0]), price: treatPairPrice }),
+    [sizeId, treatPairPrice],
   );
   const picked = useMemo(
     () => Object.values(counts).reduce((n, v) => n + v, 0),
@@ -30,7 +35,7 @@ export default function BoxBuilder({ products = [] }) {
   function step(id, delta) {
     setCounts((prev) => {
       const next = prev[id] + delta;
-      if (next < 0) return prev;
+      if (next < 0 || next > (treats.find(treat=>treat.id===id)?.stock.remaining ?? 50)) return prev;
       const total = Object.values(prev).reduce((n, v) => n + v, 0);
       if (delta > 0 && total >= size.pieces) return prev; // never overfill
       return { ...prev, [id]: next };
@@ -65,8 +70,8 @@ export default function BoxBuilder({ products = [] }) {
       .map((t) => `${t.name} x${counts[t.id]}`)
       .join(", ");
     add({
-      key: `box-${size.pieces}-${contents}`,
-      name: `Cake Pop Four-Pack (${size.pieces} pc)`,
+      key: `box-2t-${treats.filter(t=>counts[t.id]>0).map(t=>`${t.id}:${counts[t.id]}`).sort().join("+")}`,
+      name: `Mix & Match Two-Treat Pack (${size.pieces} pc)`,
       desc: contents,
       price: size.price,
       qty: 1,
@@ -85,15 +90,15 @@ export default function BoxBuilder({ products = [] }) {
     Array.from({ length: counts[t.id] }, () => t),
   );
 
-  if (!treats.length) return <div className="b-card"><h2>The next batch is on its way.</h2><p>Please check back for available four-pack flavors, or contact Bonnie to ask what’s baking.</p></div>;
+  if (!treats.length) return <div className="b-card"><h2>The next batch is on its way.</h2><p>Please check back for available treats, or contact Bonnie to ask what’s baking.</p></div>;
 
   return (
     <div className="builder">
       <div>
         <div className="b-card rv-anim" style={{ marginBottom: 18 }}>
-          <h3>1. Your four-pack</h3>
+          <h3>1. Your two-treat mix</h3>
           <p className="hint">
-            Four cake pops for {packLabel}—a {packSaving} savings compared with buying singles.
+            Any two available flavors for {packLabel}. Save {packSaving} compared with two regular singles.
           </p>
           <div
             className={`sizes${BOX_SIZES.length === 1 ? " sizes-single" : ""}`}
@@ -110,7 +115,7 @@ export default function BoxBuilder({ products = [] }) {
                 <label htmlFor={`sz-${s.id}`}>
                   <b>{s.label}</b>
                   <span>{s.pieces} pieces</span>
-                  <em>{money(s.price)}</em>
+                  <em>{packLabel}</em>
                 </label>
               </div>
             ))}
@@ -118,13 +123,14 @@ export default function BoxBuilder({ products = [] }) {
         </div>
 
         <div className="b-card rv-anim">
-          <h3>2. Pick your four flavors</h3>
+          <h3>2. Pick your two treats</h3>
           <p className="hint">
             Choose {size.pieces} pieces total — {picked} picked,{" "}
             {Math.max(0, remaining)} to go.
           </p>
+          <div className="builder-category-tabs" role="group" aria-label="Filter treat types">{[["all","All treats"],...categories.map(key=>[key,CATEGORY_LABELS[key]])].map(([key,label])=><button type="button" key={key} aria-pressed={category===key} onClick={()=>setCategory(key)}>{label}</button>)}</div>
           <div className="treats">
-            {treats.map((t) => (
+            {treats.filter(treat=>category=== "all" || treat.category===category).map((t) => (
               <div className={`treat${counts[t.id] ? " is-picked" : ""}`} key={t.id}>
                 <Image
                   className="treat-photo"
@@ -135,7 +141,7 @@ export default function BoxBuilder({ products = [] }) {
                 />
                 <div className="tn">
                   <b>{t.name}</b>
-                  <span>{t.note}</span>
+                  <span>{CATEGORY_LABELS[t.category]}{t.stock.state==="sold_out"?" · Sold out":t.stock.tracked?` · ${t.stock.remaining} left`:""}</span>
                 </div>
                 <div className="stepper">
                   <button
@@ -152,7 +158,7 @@ export default function BoxBuilder({ products = [] }) {
                   <button
                     type="button"
                     onClick={() => step(t.id, 1)}
-                    disabled={full}
+                    disabled={full || t.stock.state === "sold_out" || counts[t.id] >= (t.stock.remaining ?? 50)}
                     aria-label={`One more ${t.name}`}
                   >
                     +
@@ -168,7 +174,7 @@ export default function BoxBuilder({ products = [] }) {
         <h3>Your box</h3>
         <div
           className="pack-preview"
-          aria-label={`${picked} of four cake pops selected`}
+          aria-label={`${picked} of two treats selected`}
         >
           {Array.from({ length: size.pieces }, (_, index) => (
             <div className={`pack-slot${selectedPhotos[index] ? " is-filled" : ""}`} key={index}>
@@ -216,7 +222,7 @@ export default function BoxBuilder({ products = [] }) {
             disabled={!full}
             onClick={addBox}
           >
-            Add {packLabel} four-pack to request
+            Add two treats for {packLabel} to request
           </button>
         </div>
         <p className="sum-note">

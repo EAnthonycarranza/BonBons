@@ -13,7 +13,7 @@ import { bundlePrices } from "@/lib/bundles";
 export default function BundleNudge({ compact = false }) {
   const prices = usePrices();
   const { bundleGroups = [], convertSinglesToBundles } = useCart();
-  const offers = bundleGroups.filter((group) => group.suggestedPacks > 0);
+  const offers = bundleGroups.filter((group) => group.suggestedPacks > 0 && group.potentialSavings > 0);
   if (!offers.length) return null;
 
   return (

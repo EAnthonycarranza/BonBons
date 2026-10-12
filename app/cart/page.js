@@ -177,21 +177,22 @@ export default function CartPage() {
               Your request list is empty
             </h3>
             <p style={{ color: "var(--muted)", marginTop: 8 }}>
-              Add one cake pop for {singleLabel}, or build your own four-pack for {packLabel}.
+              Add a regular treat for {singleLabel}, or mix and match two for {packLabel}.
             </p>
             <div className="hero-cta" style={{ justifyContent: "center" }}>
               <Link className="btn btn-pink" href="/shop">
-                Shop cake pops
+                Shop all treats
               </Link>
               <Link className="btn btn-ghost" href="/build-a-box">
-                Build 4 for {packLabel}
+                Mix 2 for {packLabel}
               </Link>
             </div>
           </div>
         ) : (
           <div className="form-wrap checkout-layout">
             <div className="checkout-summary rv-anim">
-              <div className="checkout-card-heading"><span className="checkout-step">01</span><div><h2>Your cake pops</h2><p>Singles and four-packs, just as you chose.</p></div></div>
+              <div className="checkout-card-heading"><span className="checkout-step">01</span><div><h2>Your treats</h2><p>Singles and two-treat mixes, just as you chose.</p></div></div>
+              {items.some(item => item.key?.startsWith("box-4-")) && <p role="status" className="form-msg error">Four-packs have been replaced. Remove saved four-packs and choose a two-treat mix.</p>}
               <div className="tile" style={{ padding: 8 }}>
                 {items.map((i) => (
                   <div

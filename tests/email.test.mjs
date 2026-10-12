@@ -133,11 +133,11 @@ test("SMTP message contains embedded logo, reply address, auto-message header an
 
 async function orderRoute({ mailFails = false, saveFails = false, trackingFails = false, captchaValid = true } = {}) {
   const calls = [];
-  const callSupabaseData = async (action) => {
+  const callSupabaseData = async (action, payload = {}) => {
     calls.push(action);
     if (action === "create_order" && saveFails) throw new Error("Test save failure");
     if (action === "record_email" && trackingFails) throw new Error("Test tracking failure");
-    return { data: { ...pickupRequest, id: pickupRequest._id } };
+    return { data: { ...pickupRequest, ...(action === "create_order" ? payload.order : {}), id: pickupRequest._id } };
   };
   const receipt = await isolated("lib/pickup-receipt.js", {
     "./email": { sendOrderEmail: async () => {
@@ -151,10 +151,10 @@ async function orderRoute({ mailFails = false, saveFails = false, trackingFails 
     "next/server": { NextResponse: Response }, "@/lib/auth": { isAdmin: async () => false },
     "@/lib/order-tracking": { CASH_AT_PICKUP: "cash_at_pickup" },
     "@/lib/format": { money, isEmail, isPhone },
-    "@/lib/products": { getProducts: async () => [{ slug: "chocolate-drizzle-cake-pops", name: "Chocolate Drizzle Pop", price: 4, bundleEligible: true }] },
+    "@/lib/products": { getProducts: async () => [{ slug: "chocolate-drizzle-cake-pops", name: "Chocolate Drizzle Pop", price: 3, bundleEligible: true }] },
     "@/lib/order-menu": { normalizeOrderItems },
     "@/lib/weekly-box-data": {
-      getShopSettings: async () => ({ singlePopPrice: 4, fourPackPrice: 10 }),
+      getShopSettings: async () => ({ singlePopPrice: 3, treatPairPrice: 5 }),
       getFeaturedWeeklyBox: async () => null,
     },
     "@/lib/pricing": { getCartPricing: (items) => ({ subtotal: items.reduce((sum, item) => sum + item.qty * item.price, 0) }) },
@@ -166,7 +166,7 @@ async function orderRoute({ mailFails = false, saveFails = false, trackingFails 
   });
   const response = await route.POST(new Request("http://localhost/api/orders", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items: pickupRequest.items, customer: pickupRequest.customer, wantedDate: pickupRequest.wantedDate, recaptchaToken: "unit-test" }),
+    body: JSON.stringify({ items: [{key:"box-2t-preview",qty:2,flavors:[{slug:"chocolate-drizzle-cake-pops",qty:2}]},{key:"chocolate-drizzle-cake-pops",qty:2}], customer: pickupRequest.customer, wantedDate: pickupRequest.wantedDate, recaptchaToken: "unit-test" }),
   }));
   return { response, body: await response.json(), calls };
 }
@@ -175,7 +175,7 @@ test("valid request saves first, emails once, then logs receipt", async () => {
   const { response, body, calls } = await orderRoute();
   assert.equal(response.status, 200);
   assert.equal(body.receiptEmailSent, true);
-  assert.equal(body.subtotal, 28);
+  assert.equal(body.subtotal, 16);
   assert.deepEqual(calls, ["create_order", "send-email", "record_email"]);
 });
 

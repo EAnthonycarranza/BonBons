@@ -89,9 +89,9 @@ test("box validation strips unknown and privileged fields", () => {
 });
 
 test("shop prices must both be positive money", () => {
-  assert.deepEqual(validateShopSettings({ single_pop_price: 5, four_pack_price: 12 }), { single_pop_price: 5, four_pack_price: 12 });
-  for (const change of [{ single_pop_price: 0 }, { four_pack_price: -1 }, { four_pack_price: "10" }]) {
-    assert.throws(() => validateShopSettings({ single_pop_price: 4, four_pack_price: 10, ...change }), MenuValidationError);
+  assert.deepEqual(validateShopSettings({ single_pop_price: 3, treat_pair_price: 5 }), { single_pop_price: 3, treat_pair_price: 5 });
+  for (const change of [{ single_pop_price: 0 }, { treat_pair_price: -1 }, { treat_pair_price: "5" }]) {
+    assert.throws(() => validateShopSettings({ single_pop_price: 3, treat_pair_price: 5, ...change }), MenuValidationError);
   }
 });
 
@@ -109,13 +109,13 @@ test("a tracked flavor cannot be over-ordered past what is left", () => {
   assert.equal(normalizeOrderItems([{ key: "cookie-monster", qty: 50 }], menu)[0].qty, 50);
 });
 
-test("four-packs use the configured pack price and respect flavor stock", () => {
-  const pack = [{ key: "box-4-mixed", qty: 1, flavors: [{ slug: "cookie-monster", qty: 2 }, { slug: "biscoff", qty: 2 }] }];
-  assert.equal(normalizeOrderItems(pack, menu)[0].price, 10);
-  assert.equal(normalizeOrderItems(pack, menu, { fourPackPrice: 12 })[0].price, 12);
+test("two-treat packs use the configured pair price and respect flavor stock", () => {
+  const pack = [{ key: "box-2t-mixed", qty: 1, flavors: [{ slug: "cookie-monster", qty: 1 }, { slug: "biscoff", qty: 1 }] }];
+  assert.equal(normalizeOrderItems(pack, menu)[0].price, 5);
+  assert.equal(normalizeOrderItems(pack, menu, { treatPairPrice: 6 })[0].price, 6);
   // Two packs need 4 Biscoff; six are left, so three packs (6) is the ceiling.
-  assert.equal(normalizeOrderItems([{ ...pack[0], qty: 3 }], menu, {})[0].qty, 3);
-  assert.throws(() => normalizeOrderItems([{ ...pack[0], qty: 4 }], menu, {}), /Only 6 .* left/i);
+  assert.equal(normalizeOrderItems([{ ...pack[0], qty: 6 }], menu, {})[0].qty, 6);
+  assert.throws(() => normalizeOrderItems([{ ...pack[0], qty: 7 }], menu, {}), /Only 6 .* left/i);
 });
 
 test("the weekly box is priced from the server and only while it is live", () => {
@@ -165,15 +165,15 @@ test("box cart lines describe their multiples", () => {
 test("savings follow the owner's prices instead of a baked-in number", () => {
   const singles = [{ key: "cookie-monster", name: "Cookie Monster", qty: 4, price: 3, bundleEligible: true }];
   // Four $3 singles against a $10 pack saves $2, not the launch-price $6.
-  assert.equal(getCartPricing(singles, { singlePopPrice: 3, fourPackPrice: 10 }).potentialSavings, 2);
-  assert.equal(getCartPricing(singles, { singlePopPrice: 4, fourPackPrice: 10 }).potentialSavings, 6);
+  assert.equal(getCartPricing(singles, { singlePopPrice: 3, treatPairPrice: 5 }).potentialSavings, 2);
+  assert.equal(getCartPricing(singles, { singlePopPrice: 4, treatPairPrice: 5 }).potentialSavings, 2);
   // A pack that costs more than four singles must never advertise a negative saving.
-  assert.equal(getCartPricing(singles, { singlePopPrice: 2, fourPackPrice: 10 }).potentialSavings, 0);
+  assert.equal(getCartPricing(singles, { singlePopPrice: 2, treatPairPrice: 8 }).potentialSavings, 0);
 });
 
-test("converted four-packs carry the configured pack price", () => {
+test("converted two-treat packs carry the configured pack price", () => {
   const singles = [{ key: "cookie-monster", name: "Cookie Monster", qty: 4, price: 3, bundleEligible: true }];
-  const { items } = buildFourPacksFromSingles(singles, { singlePopPrice: 3, fourPackPrice: 12 });
-  const pack = items.find((item) => item.key.startsWith("box-4-"));
-  assert.equal(pack.price, 12);
+  const { items } = buildFourPacksFromSingles(singles, { singlePopPrice: 3, treatPairPrice: 6 });
+  const pack = items.find((item) => item.key.startsWith("box-2t-"));
+  assert.equal(pack.price, 6);
 });

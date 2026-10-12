@@ -22,9 +22,9 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function ProductPage({ params }) {
-  const { singlePopPrice, fourPackPrice } = await getShopSettings();
+  const { singlePopPrice, treatPairPrice } = await getShopSettings();
   const singleLabel = money(singlePopPrice);
-  const packLabel = money(fourPackPrice);
+  const packLabel = money(treatPairPrice);
 
   const { slug } = await params;
   const product = await getProduct(slug);
@@ -61,7 +61,7 @@ export default async function ProductPage({ params }) {
                   sizes="(max-width: 980px) 100vw, 50vw"
                 />
               ) : (
-                <div className="flavor-photo-pending"><Image src="/logo-transparent.png" alt="Bon Bon's Sweets & More" width={180} height={180} /><span>Flavor photo coming soon</span></div>
+                <div className="flavor-photo-pending"><Image src="/logo-transparent.png" alt="Bon Bon's Sweets & More" width={180} height={180} /><span>Product photo coming soon</span></div>
               )}
             </div>
 
@@ -106,16 +106,15 @@ export default async function ProductPage({ params }) {
                   fontWeight: 700,
                 }}
               >
-                Singles stay {singleLabel} each. For four at {packLabel}, choose the four-pack or
-                accept the cart suggestion.
+                Mix this with any other available flavor for {packLabel}. Choose your two-treat mix or accept the cart suggestion.
               </p>
 
               <ul className="checks" style={{ marginTop: 28 }}>
                 <li>
-                  <Icon name="i-check" /> Singles are always {singleLabel} each
+                  <Icon name="i-check" /> This treat is {money(product.price)} each
                 </li>
                 <li>
-                  <Icon name="i-check" /> Four-packs are {packLabel} when selected
+                  <Icon name="i-check" /> Mix & match any two flavors for {packLabel}
                 </li>
                 <li>
                   <Icon name="i-check" /> No event or large order required

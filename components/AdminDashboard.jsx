@@ -9,14 +9,16 @@ import AdminOrders from "./AdminOrders";
 import AdminSettings from "./AdminSettings";
 import AdminCoupons from "./AdminCoupons";
 import AdminEvents from "./AdminEvents";
+import PageContentManager from "./PageContentManager";
 import AdminIcon from "./AdminIcon";
 
 const SECTIONS = [
-  { id: "menu", label: "Cake-pop menu", icon: "menu", note: "Flavors & availability" },
+  { id: "menu", label: "Treat menu", icon: "menu", note: "Products, flavors & availability" },
   { id: "weeklyBox", label: "Box of the week", icon: "photo", note: "Limited box & prices" },
   { id: "orders", label: "Orders & cart rentals", icon: "orders", note: "Pickup orders and event requests" },
   { id: "coupons", label: "Coupons", icon: "coupon", note: "Print codes & track redemptions" },
   { id: "events", label: "Events & email updates", icon: "pin", note: "Local calendar & subscribers" },
+  { id: "pages", label: "Home & About pages", icon: "edit", note: "Content, photos & publishing" },
   { id: "settings", label: "Shop settings", icon: "settings", note: "Pickup, contact & payment" },
 ];
 
@@ -52,6 +54,7 @@ export default function AdminDashboard({ dbReady }) {
         {visited.orders?<div hidden={section!=="orders"}><AdminOrders dbReady={dbReady}/></div>:null}
         {visited.coupons?<div hidden={section!=="coupons"}><AdminCoupons/></div>:null}
         {visited.events?<div hidden={section!=="events"}><AdminEvents/></div>:null}
+        {visited.pages?<div hidden={section!=="pages"}><PageContentManager/></div>:null}
         {visited.settings?<div hidden={section!=="settings"}><AdminSettings/></div>:null}
       </div>
       <footer className="admin-bottomline"><span>Bon Bon&apos;s Sweets &amp; More</span><span>San Antonio, Texas · Pickup only</span></footer>

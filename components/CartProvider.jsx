@@ -5,8 +5,8 @@ import { getBundleGroup } from "@/lib/bundles";
 import { usePrices } from "./PricesProvider";
 
 const CartContext = createContext(null);
-// A new key keeps outdated dozen-priced items from older visits out of the
-// current $4-single / $10-four-pack request flow.
+// Keep saved requests. Retired four-packs must be removed explicitly; the
+// server rejects them and the cart points shoppers to the current pair offer.
 const STORAGE_KEY = "bb_cart_v2";
 
 export function useCart() {
@@ -68,9 +68,8 @@ export function CartProvider({ children }) {
   }, []);
   const clear = useCallback(() => setItems([]), []);
 
-  // One converter for every bundle group, so switching cake pops into
-  // four-packs leaves any pretzel rods in the cart exactly as they were.
-  const convertSinglesToBundles = useCallback((groupKey = "cakepop") => {
+  // Regular products across all categories share one mix-and-match pair offer.
+  const convertSinglesToBundles = useCallback((groupKey = "treat") => {
     const group = getBundleGroup(groupKey);
     const { packCount, convertedUnits } = buildBundlesFromSingles(items, prices, groupKey);
     if (!packCount) return;
@@ -80,7 +79,7 @@ export function CartProvider({ children }) {
     say(`Switched ${convertedUnits} singles to ${packCount} ${packLabel}`);
   }, [items, prices, say]);
 
-  const convertSinglesToFourPacks = useCallback(() => convertSinglesToBundles("cakepop"), [convertSinglesToBundles]);
+  const convertSinglesToFourPacks = useCallback(() => convertSinglesToBundles("treat"), [convertSinglesToBundles]);
 
   const count = useMemo(() => items.reduce((n, i) => n + i.qty, 0), [items]);
   const pricing = useMemo(() => getCartPricing(items, prices), [items, prices]);

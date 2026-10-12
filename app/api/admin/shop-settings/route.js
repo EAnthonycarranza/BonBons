@@ -24,11 +24,9 @@ export async function PATCH(request) {
     const body = await request.json();
     const settings = validateShopSettings({
       single_pop_price: body.singlePopPrice,
-      four_pack_price: body.fourPackPrice,
-      pretzel_rod_price: body.pretzelRodPrice,
-      pretzel_pair_price: body.pretzelPairPrice,
+      treat_pair_price: body.treatPairPrice,
     });
-    const data = await callBonbonsAdmin("update_shop_settings", settings);
+    const data = await callBonbonsAdmin("update_treat_settings", settings);
     refreshMenu();
     return NextResponse.json({ settings: toShopSettings(data) });
   } catch (error) { return menuError(error); }

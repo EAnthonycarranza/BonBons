@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "./Icons";
 import TikTokCreatorFeed from "./TikTokCreatorFeed";
+import { PAGE_DEFAULTS } from "@/lib/page-content";
 import { SITE } from "@/lib/sample-data";
 
 const facebookPluginUrl = new URL("https://www.facebook.com/plugins/page.php");
@@ -86,7 +87,7 @@ function PlatformActions({ platform, profileUrl, liveUrl }) {
   );
 }
 
-export default function SocialFeedAccordion() {
+export default function SocialFeedAccordion({ content = PAGE_DEFAULTS.home.sections.find(section=>section.id === "social").fields }) {
   const [openPlatform, setOpenPlatform] = useState("tiktok");
 
   const togglePlatform = (platform) => {
@@ -97,14 +98,13 @@ export default function SocialFeedAccordion() {
     <div className="social-hub rv-anim" id="social">
       <div className="social-hub-heading">
         <div>
-          <div className="eyebrow">Fresh from social</div>
+          <div className="eyebrow">{content.eyebrow}</div>
           <h2>
-            A peek behind <em>the pops.</em>
+            {content.heading} <em>{content.highlight}</em>
           </h2>
         </div>
         <p>
-          Kitchen moments, fresh designs, and a little fun along the way. Catch
-          up with Bonnie on your favorite channel.
+          {content.body}
         </p>
       </div>
 
@@ -120,7 +120,7 @@ export default function SocialFeedAccordion() {
             tone="tiktok"
             platform="TikTok"
             handle={SITE.tiktokHandle}
-            description="Behind the scenes, giveaways, and live broadcasts"
+            description={content.tiktokSummary}
             isOpen={openPlatform === "tiktok"}
             onToggle={() => togglePlatform("tiktok")}
           />
@@ -135,11 +135,10 @@ export default function SocialFeedAccordion() {
                   <div className="tiktok-icon">
                     <Icon name="i-tt" />
                   </div>
-                  <div className="eyebrow">Come behind the scenes</div>
-                  <h2>See what&apos;s popping on TikTok.</h2>
+                  <div className="eyebrow">{content.tiktokEyebrow}</div>
+                  <h2>{content.tiktokHeading}</h2>
                   <p>
-                    Watch the latest videos, join live giveaways, and get a
-                    closer look at how every sweet detail comes together.
+                    {content.tiktokBody}
                   </p>
                   <div className="tiktok-actions">
                     <a
@@ -161,8 +160,7 @@ export default function SocialFeedAccordion() {
                     </a>
                   </div>
                   <p className="tiktok-live-note">
-                    TikTok opens the livestream when the account is live and the
-                    profile when it isn&apos;t.
+                    {content.tiktokLiveNote}
                   </p>
                 </div>
                 <div className="tiktok-feed-shell">
@@ -197,7 +195,7 @@ export default function SocialFeedAccordion() {
             tone="instagram"
             platform="Instagram"
             handle={SITE.instagramHandle}
-            description="Finished sets, color ideas, photos, and reels"
+            description={content.instagramSummary}
             isOpen={openPlatform === "instagram"}
             onToggle={() => togglePlatform("instagram")}
           />
@@ -240,7 +238,7 @@ export default function SocialFeedAccordion() {
             tone="facebook"
             platform="Facebook"
             handle={SITE.facebookHandle}
-            description="Community updates, videos, and recent Page posts"
+            description={content.facebookSummary}
             isOpen={openPlatform === "facebook"}
             onToggle={() => togglePlatform("facebook")}
           />
@@ -275,8 +273,7 @@ export default function SocialFeedAccordion() {
 
       <p className="social-live-disclosure">
         <span className="live-dot" aria-hidden="true" />
-        Live availability is controlled by each platform. Instagram may ask
-        viewers to sign in.
+        {content.disclosure}
       </p>
     </div>
   );

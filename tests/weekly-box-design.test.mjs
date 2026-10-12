@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { pageDefault } from "../lib/page-content.js";
 import { weeklyBoxPresentation } from "../lib/weekly-box-presentation.js";
 import { FOUR_PACK_PHOTO, STYLED_PRODUCT_PHOTOS } from "../lib/product-photos.js";
 
@@ -50,9 +51,10 @@ test("no weekly box yields an empty, safe presentation", () => {
   assert.deepEqual(data.items, []);
   assert.equal(data.hasStyledPhotos, false);
 });
-test("the homepage advertises the live box before the everyday menu", () => {
+test("the default homepage advertises the live box before the treat menu", () => {
   const source = readFileSync(new URL("../app/page.js", import.meta.url), "utf8");
-  assert.ok(source.indexOf("<WeeklyBoxTeaser") < source.indexOf('className="sec menu-section"'));
+  const sections=pageDefault("home").sections.map(section=>section.id);
+  assert.ok(sections.indexOf("weekly") < sections.indexOf("collection"));
   assert.ok(source.includes("products={products}"));
 });
 test("new page has one main landmark and no fixed price or invented flavor claims", () => {

@@ -3,7 +3,7 @@
 export class MenuValidationError extends Error {}
 
 // Kept as the default for new flavors; the owner can now price each item.
-export const MENU_PRICE = 4;
+export const MENU_PRICE = 3;
 export const MAX_ITEM_PRICE = 500;
 export const MAX_STOCK = 100000;
 export const DEFAULT_LOW_STOCK_THRESHOLD = 3;
@@ -71,10 +71,10 @@ export function isMenuImageUrl(value) {
 // A product's category decides which shelf it sits on in the shop and which
 // bundle it counts toward. Kept to a known list so a typo cannot strand a
 // flavor in a category of its own.
-export const MENU_CATEGORIES = ["everyday", "pretzel-rods", "custom"];
+export const MENU_CATEGORIES = ["everyday", "pretzel-rods", "rice-crispy-treats", "dipped-oreos", "custom"];
 
 export function validateMenuProduct(input) {
-  if (!input || typeof input !== "object" || Array.isArray(input)) throw new MenuValidationError("Enter the cake-pop details.");
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new MenuValidationError("Enter the treat details.");
   function text(key, limit, required = false) {
     const value = input[key] ?? "";
     if (typeof value !== "string" || value.trim().length > limit || (required && !value.trim())) {
@@ -85,8 +85,8 @@ export function validateMenuProduct(input) {
   const name = text("name", 80, true);
   const slug = text("slug", 100, true);
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new MenuValidationError("Use only lowercase letters, numbers, and single hyphens in the menu link.");
-  const price = assertPrice(input.price, "The cake-pop price");
-  if (typeof input.active !== "boolean" || typeof input.bundle_eligible !== "boolean") throw new MenuValidationError("Choose the menu visibility and four-pack availability.");
+  const price = assertPrice(input.price, "The treat price");
+  if (typeof input.active !== "boolean" || typeof input.bundle_eligible !== "boolean") throw new MenuValidationError("Choose the menu visibility and two-treat offer availability.");
   const image = text("image", 1000);
   if (!isMenuImageUrl(image)) throw new MenuValidationError("Upload a JPG, PNG, or WebP photo using the photo picker.");
   const sortOrder = input.sort_order ?? 0;
@@ -103,7 +103,7 @@ export function validateMenuProduct(input) {
   if (!MENU_CATEGORIES.includes(category)) throw new MenuValidationError("Choose a category from the provided list.");
   return {
     name, slug, price, unit: "each", blurb: text("blurb", 160), description: text("description", 2000),
-    image, active: input.active, bundle_eligible: input.bundle_eligible, category, sort_order: sortOrder,
+    image, active: input.active, bundle_eligible: true, category, sort_order: sortOrder,
     allergens: [...new Set(allergens)], badge: text("badge", 32), source_url: source,
     stock_quantity: assertStock(input.stock_quantity), low_stock_threshold: assertThreshold(input.low_stock_threshold),
     icon: "i-cakepop", color: "#F285B5", tint: "242,133,181", badge_class: "", lead_time_hours: 72,
@@ -176,12 +176,8 @@ export function validateWeeklyBox(input) {
 
 export function validateShopSettings(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new MenuValidationError("Enter the shop prices.");
-  return {
-    single_pop_price: assertPrice(input.single_pop_price, "The single cake-pop price"),
-    four_pack_price: assertPrice(input.four_pack_price, "The four-pack price"),
-    ...(input.pretzel_rod_price === undefined ? {} :
-      { pretzel_rod_price: assertPrice(input.pretzel_rod_price, "The pretzel-rod price") }),
-    ...(input.pretzel_pair_price === undefined ? {} :
-      { pretzel_pair_price: assertPrice(input.pretzel_pair_price, "The two-pretzel-rod price") }),
-  };
+  const single = assertPrice(input.single_pop_price, "The regular treat price");
+  const pair = assertPrice(input.treat_pair_price, "The two-treat price");
+  if (pair > single * 2) throw new MenuValidationError("The two-treat offer cannot cost more than two regular singles.");
+  return { single_pop_price: single, treat_pair_price: pair };
 }

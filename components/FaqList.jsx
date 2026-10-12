@@ -1,10 +1,13 @@
 "use client";
 
 import { useId, useState } from "react";
+import { usePrices } from "./PricesProvider";
+import { pageText } from "@/lib/page-content";
 import { FAQS } from "@/lib/sample-data";
 
 export default function FaqList({ items = FAQS, defaultOpenFirst = true }) {
   const groupId = useId();
+  const { singleLabel, packLabel } = usePrices();
   const [openItems, setOpenItems] = useState(() => new Set(defaultOpenFirst ? [0] : []));
 
   const toggleItem = (index) => {
@@ -44,7 +47,7 @@ export default function FaqList({ items = FAQS, defaultOpenFirst = true }) {
               inert={!isOpen}
             >
               <div className="faq-answer-inner">
-                <div className="a">{f.a}</div>
+                <div className="a">{pageText(f.a, { singlePrice: singleLabel, pairPrice: packLabel })}</div>
               </div>
             </div>
           </div>

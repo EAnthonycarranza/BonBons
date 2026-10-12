@@ -51,7 +51,7 @@ export default function ProductCard({ product }) {
               fill
               sizes="(max-width: 560px) 100vw, (max-width: 1080px) 50vw, 25vw"
             />
-          ) : <div className="flavor-photo-pending"><Image src="/logo-transparent.png" alt="Bon Bon's Sweets & More" width={150} height={150} /><span>Flavor photo coming soon</span></div>}
+          ) : <div className="flavor-photo-pending"><Image src="/logo-transparent.png" alt="Bon Bon's Sweets & More" width={150} height={150} /><span>Product photo coming soon</span></div>}
           {product.badge ? (
             <span className={`badge ${product.badgeClass || ""}`}>{product.badge}</span>
           ) : null}

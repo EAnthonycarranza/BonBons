@@ -77,6 +77,7 @@ export default function CartDrawer() {
         </div>
 
         <div className="drawer-body">
+          {items.some(item => item.key?.startsWith("box-4-")) && <p className="form-msg error" role="status">Four-packs have been replaced. Remove saved four-packs and choose a two-treat mix.</p>}
           {items.length === 0 ? (
             <div className="drawer-empty">
               <Image
@@ -88,7 +89,7 @@ export default function CartDrawer() {
               />
               <p>Your request list is empty.</p>
               <p style={{ fontSize: "13.5px", marginTop: 6 }}>
-                Add one cake pop, or mix a four-pack for $10.
+                Add a handmade treat or build a mix of any two flavors.
               </p>
             </div>
           ) : (

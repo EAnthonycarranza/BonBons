@@ -5,7 +5,7 @@ import { SITE } from "@/lib/sample-data";
 export const metadata = {
   title: "FAQ",
   description:
-    "Everything to know about cake pop pricing, pickup, allergies, payment arrangements, and changes.",
+    "Everything to know about treat pricing, pickup, allergies, payment arrangements, and changes.",
 };
 
 export default function FaqPage() {
@@ -20,7 +20,7 @@ export default function FaqPage() {
             <em>Sweet answers.</em>
           </h1>
           <p>
-            From your first cake pop to pickup day, here is what you need to
+            From your first sweet treat to pickup day, here is what you need to
             know.
           </p>
           <a className="text-link" href={`mailto:${SITE.email}`}>

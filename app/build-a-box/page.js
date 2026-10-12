@@ -1,57 +1,12 @@
 import BoxBuilder from "@/components/BoxBuilder";
-import Image from "next/image";
 import { getProducts } from "@/lib/products";
 import { getShopSettings } from "@/lib/weekly-box-data";
 import { money } from "@/lib/format";
-import { bundleGroupForCategory } from "@/lib/bundles";
 
-export const metadata = {
-  title: "Build a four-pack",
-  description:
-    "Choose a four-pack and mix four cake pop flavors for arranged pickup.",
-};
-
-export const dynamic = "force-dynamic";
-
+export const metadata={title:"Mix & match two treats",description:"Choose any two available flavors across cake pops, pretzel rods, rice crispy treats, and dipped Oreos."};
+export const dynamic="force-dynamic";
 export default async function BuildABoxPage() {
-  const { singlePopPrice, fourPackPrice } = await getShopSettings();
-  const singleLabel = money(singlePopPrice);
-  const packLabel = money(fourPackPrice);
-
-  // Cake pops only. A pretzel rod is bundle-eligible too, but it bundles in
-  // twos on its own shelf - it must never land inside a four-pack.
-  const products = (await getProducts()).filter(
-    (product) => product.bundleEligible && bundleGroupForCategory(product.category) === "cakepop"
-  );
-  return (
-    <section className="light flat sec">
-      <div className="wrap">
-        <div className="page-masthead rv-anim">
-          <div>
-            <div className="eyebrow">Any 4 for {packLabel}</div>
-            <h1>
-              Four little pops.
-              <br />
-              <em>Made your way.</em>
-            </h1>
-            <p>
-              Choose four cake pops in any mix of flavors. All one favorite or
-              one of each—it is up to you.
-            </p>
-            <small className="photo-disclosure">AI-styled photos based on our real cake pops. Handmade finishes may vary.</small>
-          </div>
-          <div className="page-masthead-photo">
-            <Image
-              src="/products/bonbons-four-pack-styled.png"
-              alt="Styled four-pack based on Bon Bon’s Cookie Monster, Strawberry Shortcake, and Biscoff cake pops"
-              fill
-              priority
-              sizes="280px"
-            />
-          </div>
-        </div>
-        <BoxBuilder key={products.map((p) => p.slug).join(",")} products={products} />
-      </div>
-    </section>
-  );
+  const [all,settings]=await Promise.all([getProducts(),getShopSettings()]);
+  const products=all;
+  return <section className="light flat sec"><div className="wrap"><div className="page-masthead rv-anim"><div><div className="eyebrow">Any 2 flavors for {money(settings.treatPairPrice)}</div><h1>Two little treats.<br/><em>Made your way.</em></h1><p>Mix Cake Pops, Pretzel Rods, Dipped Rice Crispy Treats, and Dipped Oreos. Pick two of the same favorite, or try a little of each. Every available flavor can go in your two-treat mix.</p></div></div><BoxBuilder key={products.map(product=>`${product.slug}:${product.stockQuantity}`).join(",")} products={products}/></div></section>;
 }
