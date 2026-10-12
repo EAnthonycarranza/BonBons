@@ -29,7 +29,7 @@ Desktop/mobile browser checks could not be completed: the Mac was locked and com
 
 - Upload actual individual flavor photos. Branded placeholders are intentional; no unverified cake-pop photos or ingredients were invented.
 - Review hidden flavors and allergen information before publishing.
-- Public contact and email reply-to are `bonbonssweets.sa@gmail.com` and `(210) 721-3983`. SMTP still uses the previously authenticated sender; switching the actual sending mailbox requires its credentials.
+- Public contact and email reply-to are `bonbonssweets.sa@gmail.com` and `(726) 225-4990`. SMTP still uses the previously authenticated sender; switching the actual sending mailbox requires its credentials.
 - Payments link to the supplied dot.cards profile after confirmation and are manually recorded by staff; no automatic payment verification is claimed.
 
 Sources checked: [Cookie Monster / Strawberry Shortcake](https://www.instagram.com/p/Dc1HQZ3y5On/), [rotating flavor menu](https://www.instagram.com/p/DcjwPNXTs4b/), [earlier flavor menu](https://www.instagram.com/p/DcO--umDxWh/), [payment profile](https://dot.cards/bonbonssweetssa?utm_source=nfc&e=ZGV2aWNlLXhQTnBTNUwyUmVoLXcyLXBr). Current $4 / four-for-$10 pricing follows the owner's instructions, not historical Instagram pricing.

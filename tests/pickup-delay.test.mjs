@@ -56,9 +56,9 @@ test("a delay update names the new date and offers the phone number", () => {
   assert.match(email.subject, /pickup date has changed/i);
   assert.match(email.html, /rescheduled/i);
   assert.match(email.html, /October 12, 2026/);
-  assert.ok(email.html.includes("(210) 721-3983"));
+  assert.ok(email.html.includes("(726) 225-4990"));
   assert.match(email.text, /YOUR PICKUP HAS BEEN RESCHEDULED/);
-  assert.ok(email.text.includes("(210) 721-3983"));
+  assert.ok(email.text.includes("(726) 225-4990"));
 });
 
 test("with no new date the delay update asks them to call instead", () => {
@@ -67,8 +67,8 @@ test("with no new date the delay update asks them to call instead", () => {
     kind: "orders", emailType: "status_update", delayNotice: true,
   });
   assert.match(email.html, /agree a new pickup date/i);
-  assert.ok(email.html.includes("(210) 721-3983"));
-  assert.match(email.text, /call or text \(210\) 721-3983/);
+  assert.ok(email.html.includes("(726) 225-4990"));
+  assert.match(email.text, /call or text \(726\) 225-4990/);
 });
 
 test("an ordinary update is unchanged and never mentions a reschedule", () => {
