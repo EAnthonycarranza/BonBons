@@ -2318,3 +2318,5 @@ body:not(:has(.mbar)) {
     padding-top: 6px;
   }
 }
+
+.product-batch-size{font-size:11px;line-height:1.7;color:var(--pink-2);margin:9px 0}

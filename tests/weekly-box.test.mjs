@@ -73,7 +73,7 @@ test("a box needs a real count, a real price, and named items", () => {
   const clean = validateWeeklyBox(boxDraft);
   assert.equal(clean.price, 25);
   assert.equal(clean.stock_quantity, 12);
-  assert.deepEqual(clean.items, [{ slug: "cookie-monster", name: "Cookie Monster", qty: 2, note: "Top seller" }]);
+  assert.deepEqual(clean.items, [{ slug: "cookie-monster", name: "Cookie Monster", qty: 2, note: "Top seller", unit_count: 1, unit_label: "treats" }]);
   // A limited run must state its count, so stock is required here.
   for (const change of [{ stock_quantity: undefined }, { stock_quantity: null }, { stock_quantity: -1 }, { stock_quantity: 1.5 },
                         { price: 0 }, { title: "" }, { slug: "../escape" }, { featured: "yes" }, { active: 1 },
@@ -159,7 +159,7 @@ test("a box holds several of the same pop, chosen from the menu", () => {
 test("box cart lines describe their multiples", () => {
   const key = weeklyBoxCartKey(liveBox);
   const [line] = normalizeOrderItems([{ key, qty: 1 }], menu, { weeklyBox: liveBox });
-  assert.equal(line.description, "Cookie Monster x3");
+  assert.equal(line.description, "Cookie Monster ×3");
 });
 
 test("savings follow the owner's prices instead of a baked-in number", () => {

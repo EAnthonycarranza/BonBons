@@ -74,14 +74,14 @@ test("two-treat packs reject unavailable flavors, duplicate slots, incorrect cou
 test("only integer quantities within the limit are accepted", () => {
   for (const qty of [0, -1, 51, 0.5, "2", null, NaN]) assert.throws(() => normalizeOrderItems([{ key: "cookie-monster", qty }], menu));
 });
-test("old flavor exclusions no longer block pairs; existing packs stay separate", () => {
-  assert.equal(isFourPackEligible({ key: "special", price: 4, bundleEligible: false }), true);
-  assert.equal(getCartPricing([{ key: "special", qty: 2, price: 4, bundleEligible: false }]).potentialSavings, 3);
+test("explicit offer exclusions are respected; existing packs stay separate", () => {
+  assert.equal(isFourPackEligible({ key: "special", price: 4, bundleEligible: false }), false);
+  assert.equal(getCartPricing([{ key: "special", qty: 2, price: 4, bundleEligible: false }]).potentialSavings, 0);
   for (const key of ["box-2t-mix", "box-4-old", "weekly-box-current"]) {
     assert.equal(isFourPackEligible({key,price:3,bundleEligible:true}), false);
     assert.equal(getCartPricing([{key,qty:2,price:3,bundleEligible:true}]).potentialSavings, 0);
   }
-  assert.equal(validateMenuProduct({...draft,bundle_eligible:false}).bundle_eligible, true);
+  assert.equal(validateMenuProduct({...draft,bundle_eligible:false}).bundle_eligible, false);
 });
 test("payment links appear only when an unpaid order has a confirmed positive total", () => {
   const email = buildOrderEmail({ record: confirmedOrder, kind: "orders", emailType: "confirmation" });

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {getCartPricing,buildBundlesFromSingles,hydrateCartItems} from '../lib/pricing.js';
 import {normalizeOrderItems} from '../lib/order-menu.js';
-import {assertBundleSelection,assertBoxItemsAreCakePops} from '../lib/bundles.js';
+import {assertBundleSelection,canonicalBoxItems} from '../lib/bundles.js';
 const PRICES={singlePopPrice:3,treatPairPrice:5,fourPackPrice:10};
 const MENU=[['pop','everyday'],['pop-two','custom'],['rod','pretzel-rods'],['rice','rice-crispy-treats'],['rice-two','rice-crispy-treats'],['oreo','dipped-oreos'],['oreo-two','dipped-oreos']].map(([slug,category])=>({slug,name:slug,category,price:3,active:true,stockQuantity:null}));
 const single=(slug,qty=1)=>({...MENU.find(p=>p.slug===slug),key:slug,qty});
@@ -64,7 +64,8 @@ test('old carts are refreshed from current menu categories and obsolete mixed pa
  assert.equal(hydrated[1].invalidBundle,true);assert.equal(hydrated[2].invalidBundle,false);assert.equal(hydrated[2].price,10);
  assert.throws(()=>normalizeOrderItems([{...pack(['rod','rod'],'cakepop'),key:'box-2p-old'}],MENU,PRICES),/no longer an offer/);
 });
-test('the separately priced weekly box remains cake-pop only',()=>{
- assert.doesNotThrow(()=>assertBoxItemsAreCakePops([{slug:'pop'}],MENU));
- for(const slug of ['rice','oreo','rod'])assert.throws(()=>assertBoxItemsAreCakePops([{slug}],MENU),/cake pops only/);
+test('the separately priced weekly box accepts all saved treat types',()=>{
+ assert.doesNotThrow(()=>canonicalBoxItems([{slug:'pop'}],MENU));
+ for(const slug of ['rice','oreo','rod'])assert.doesNotThrow(()=>canonicalBoxItems([{slug}],MENU));
+ assert.throws(()=>canonicalBoxItems([{slug:'missing'}],MENU),/no longer on the menu/);
 });

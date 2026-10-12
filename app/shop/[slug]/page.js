@@ -4,7 +4,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getProduct, getProducts } from "@/lib/products";
 import { Icon } from "@/components/Icons";
-import { isCakePopCategory } from "@/lib/bundles";
+import { isCakePopProduct } from "@/lib/bundles";
 import AddToCart from "@/components/AddToCart";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,8 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function ProductPage({ params }) {
-  const { singlePopPrice, treatPairPrice, fourPackPrice } = await getShopSettings();
+  const { singlePopPrice, treatPairPrice, fourPackPrice } =
+    await getShopSettings();
   const singleLabel = money(singlePopPrice);
   const packLabel = money(treatPairPrice);
 
@@ -63,7 +64,15 @@ export default async function ProductPage({ params }) {
                   sizes="(max-width: 980px) 100vw, 50vw"
                 />
               ) : (
-                <div className="flavor-photo-pending"><Image src="/logo-transparent.png" alt="Bon Bon's Sweets & More" width={180} height={180} /><span>Product photo coming soon</span></div>
+                <div className="flavor-photo-pending">
+                  <Image
+                    src="/logo-transparent.png"
+                    alt="Bon Bon's Sweets & More"
+                    width={180}
+                    height={180}
+                  />
+                  <span>Product photo coming soon</span>
+                </div>
               )}
             </div>
 
@@ -77,7 +86,13 @@ export default async function ProductPage({ params }) {
               <p className="product-detail-description">
                 {product.description || product.blurb}
               </p>
-              {isStyledProductPhoto(product.image) && <p className="photo-disclosure">AI-styled image based on Bon Bon’s real cake-pop photos. Handmade finishes may vary. <Link href="/#from-the-kitchen">See our bakery photos</Link>.</p>}
+              {isStyledProductPhoto(product.image) && (
+                <p className="photo-disclosure">
+                  AI-styled image based on Bon Bon’s real cake-pop photos.
+                  Handmade finishes may vary.{" "}
+                  <Link href="/#from-the-kitchen">See our bakery photos</Link>.
+                </p>
+              )}
 
               <div
                 style={{
@@ -99,7 +114,13 @@ export default async function ProductPage({ params }) {
                 <span className="product-detail-unit">{product.unit}</span>
               </div>
 
-              <section id="ingredients" className="product-ingredients"><h2>Ingredients</h2><p style={{whiteSpace:"pre-line"}}>{product.ingredients || "Ingredients have not been listed yet. Please contact Bonnie for this product’s ingredients."}</p></section>
+              <section id="ingredients" className="product-ingredients">
+                <h2>Ingredients</h2>
+                <p style={{ whiteSpace: "pre-line" }}>
+                  {product.ingredients ||
+                    "Ingredients have not been listed yet. Please contact Bonnie for this product’s ingredients."}
+                </p>
+              </section>
               <AddToCart product={product} />
               <p
                 style={{
@@ -109,15 +130,28 @@ export default async function ProductPage({ params }) {
                   fontWeight: 700,
                 }}
               >
-                {isCakePopCategory(product.category) ? `Choose two cake pops for ${packLabel}, or mix four treats for ${money(fourPackPrice)}.` : `Mix four treats for ${money(fourPackPrice)}.`} Maximum 1 rice crispy treat and 2 Oreos per mixed pack.
+                {product.unitCount > 1 || !product.bundleEligible
+                  ? `Sold as ${product.unitCount > 1 ? `a batch of ${product.unitCount} ${product.unitLabel}` : "an individual item"} at the price above.`
+                  : isCakePopProduct(product)
+                    ? `Choose two cake pops for ${packLabel}, or mix four treats for ${money(fourPackPrice)}.`
+                    : `Mix four treats for ${money(fourPackPrice)}.`}
+                {product.unitCount === 1 && product.bundleEligible
+                  ? " Maximum 1 rice crispy treat and 2 Oreos per mixed pack."
+                  : ""}
               </p>
 
               <ul className="checks" style={{ marginTop: 28 }}>
                 <li>
-                  <Icon name="i-check" /> This treat is {money(product.price)} each
+                  <Icon name="i-check" /> {money(product.price)}{" "}
+                  {product.unit || "each"}
                 </li>
                 <li>
-                  <Icon name="i-check" /> Mix & match four treats for {money(fourPackPrice)}
+                  <Icon name="i-check" />{" "}
+                  {product.unitCount > 1
+                    ? `${product.unitCount} ${product.unitLabel} in every batch`
+                    : product.bundleEligible
+                      ? `Mix four eligible treats for ${money(fourPackPrice)}`
+                      : "Priced individually"}
                 </li>
                 <li>
                   <Icon name="i-check" /> No event or large order required
@@ -138,7 +172,13 @@ export default async function ProductPage({ params }) {
                   Made in a kitchen that also handles nuts, dairy, eggs, wheat
                   and soy.
                 </p>
-              ) : <p className="product-allergens">Please contact Bonnie about ingredients and allergens before ordering. Our kitchen handles milk, eggs, wheat, soy, and nuts; no flavor is guaranteed allergen-free.</p>}
+              ) : (
+                <p className="product-allergens">
+                  Please contact Bonnie about ingredients and allergens before
+                  ordering. Our kitchen handles milk, eggs, wheat, soy, and
+                  nuts; no flavor is guaranteed allergen-free.
+                </p>
+              )}
             </div>
           </div>
         </div>

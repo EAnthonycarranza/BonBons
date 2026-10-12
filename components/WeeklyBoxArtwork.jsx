@@ -17,7 +17,7 @@ export default function WeeklyBoxArtwork({ box, presentation, priority = false }
         <div className={`weekly-photo-mosaic has-${photos.length}`}>
           {photos.map((item, index) => (
             <div className="weekly-photo-cell" key={`${item.slug || item.name}-${index}`}>
-              <Image src={item.image} alt={`${item.name} cake pop`} fill priority={priority && index === 0} sizes="(max-width:760px) 60vw, 32vw" />
+              <Image src={item.image} alt={item.name} fill priority={priority && index === 0} sizes="(max-width:760px) 60vw, 32vw" />
               <span>{item.name}</span>
             </div>
           ))}
@@ -25,10 +25,10 @@ export default function WeeklyBoxArtwork({ box, presentation, priority = false }
       ) : (
         <div className="weekly-box-photo weekly-photo-pending">
           <Image src="/logo-transparent.png" alt="Bon Bon’s Sweets & More" width={220} height={220} />
-          <p>A little sweetness is on its way.<br />Box photo coming soon.</p>
+          <p>{presentation.isMystery ? "A sweet surprise awaits." : "A little sweetness is on its way."}<br />{presentation.isMystery ? "Contents chosen by Bon Bon." : "Box photo coming soon."}</p>
         </div>
       )}
-      {!presentation.boxImage && <figcaption><span>A taste of what’s inside</span></figcaption>}
+      {!presentation.boxImage && <figcaption><span>{presentation.isMystery ? "The joy is in the surprise" : "A taste of what’s inside"}</span></figcaption>}
     </figure>
   );
 }

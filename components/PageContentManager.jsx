@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import AdminIcon from "./AdminIcon";
 import { PAGE_DEFAULTS, isPageImage, validatePageContent } from "@/lib/page-content";
-import { CATEGORY_LABELS } from "@/lib/bundles";
+import { categoryName } from "@/lib/menu-categories";
 import { MENU_IMAGE_MAX_BYTES } from "@/supabase/functions/_shared/menu";
 import "./page-editor.css";
 
@@ -19,7 +19,7 @@ function ContentField({name,value,onChange,disabled,onBusy,onError,products=[]})
   }
   if(name === "featuredProducts") {
     const selected=value.split(",").map(slug=>slug.trim()).filter(Boolean);
-    return <div className="page-editor-featured"><h3>Featured products</h3><p className="admin-footnote">Choose up to four products, or leave blank to show a favorite from each available treat category. Hidden products appear once published on the menu.</p><div>{products.map(product=><label key={product.slug}><input type="checkbox" checked={selected.includes(product.slug)} disabled={disabled || (!selected.includes(product.slug) && selected.length>=4)} onChange={event=>onChange((event.target.checked?[...selected,product.slug]:selected.filter(slug=>slug!==product.slug)).join(","))}/><span>{product.name}<small>{CATEGORY_LABELS[product.category]}</small></span></label>)}</div></div>;
+    return <div className="page-editor-featured"><h3>Featured products</h3><p className="admin-footnote">Choose up to four products, or leave blank to show a favorite from each available treat category. Hidden products appear once published on the menu.</p><div>{products.map(product=><label key={product.slug}><input type="checkbox" checked={selected.includes(product.slug)} disabled={disabled || (!selected.includes(product.slug) && selected.length>=4)} onChange={event=>onChange((event.target.checked?[...selected,product.slug]:selected.filter(slug=>slug!==product.slug)).join(","))}/><span>{product.name}<small>{categoryName(product)}</small></span></label>)}</div></div>;
   }
   if(name==="image")return <div className="page-editor-image"><span>{labelFor(name)}</span>{value && isPageImage(value) && <div className="page-editor-photo"><Image src={value} alt="Selected website photo" fill sizes="220px"/></div>}<label className="admin-btn admin-btn-secondary">{uploading?"Uploading…":"Upload / change photo"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled||uploading} onChange={upload} aria-label="Upload website photo"/></label><label className="admin-field">Existing website photo path<input value={value} disabled={disabled||uploading} onChange={event=>onChange(event.target.value)} placeholder="/products/photo.jpg"/></label>{value && <button className="admin-text-btn" type="button" disabled={disabled||uploading} onClick={()=>onChange("")}>Remove photo</button>}</div>;
   const multi=name==="body"||name.endsWith("Note")||name==="description"||name==="disclosure";

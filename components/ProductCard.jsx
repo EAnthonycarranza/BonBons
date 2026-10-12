@@ -9,6 +9,7 @@ import { isStyledProductPhoto } from "@/lib/product-photos";
 import { stockLabel } from "@/lib/weekly-box";
 import { stockState } from "@/supabase/functions/_shared/menu";
 import { bundleGroupForCategory } from "@/lib/bundles";
+import { saleDescription } from "@/lib/menu-categories";
 
 export default function ProductCard({ product }) {
   const { add, ready } = useCart();
@@ -23,11 +24,11 @@ export default function ProductCard({ product }) {
     add({
       key: product.slug,
       name: product.name,
-      desc: product.blurb,
+      desc: saleDescription(product),
       price: product.price,
       qty: 1,
       bundleEligible: product.bundleEligible,
-      bundleGroup: bundleGroupForCategory(product.category), category: product.category,
+      bundleGroup: bundleGroupForCategory(product.category,product.treatType), category: product.category, treatType:product.treatType, unitCount:product.unitCount, unitLabel:product.unitLabel,
       image: product.image,
       icon: product.icon,
       color: product.color,
@@ -62,12 +63,13 @@ export default function ProductCard({ product }) {
       <div className="meta">
         <h3><Link href={`/shop/${product.slug}`}>{product.name}</Link></h3>
         <div className="d">{product.blurb}</div>
+        {product.unitCount > 1 && <p className="product-batch-size">{product.unitCount} {product.unitLabel} per batch</p>}
         <Link href={`/shop/${product.slug}#ingredients`} className="product-ingredients-link">View ingredients →</Link>
         {availability.state === "low" ? (
           <p className="stock-line is-low">{stockLabel(availability)}</p>
         ) : null}
         <div className="bot">
-          <span className="p">{money(product.price)} <small>{product.unit}</small></span>
+          <span className="p">{money(product.price)} <small>{product.unitCount > 1 ? "per batch" : product.unit}</small></span>
           <button
             className={`add${added ? " added" : ""}`}
             onClick={onAdd}

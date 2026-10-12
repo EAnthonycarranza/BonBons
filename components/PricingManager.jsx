@@ -82,7 +82,7 @@ export default function PricingManager() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: product.name, slug: product.slug, price: next, unit: "each", category: product.category,
+          name: product.name, slug: product.slug, price: next, unit: product.unit, unit_count: product.unitCount, unit_label: product.unitLabel, category: product.category,
           blurb: product.blurb, description: product.description, ingredients: product.ingredients, image: product.image,
           active: product.active, bundle_eligible: product.bundleEligible,
           allergens: product.allergens, badge: product.badge,
@@ -135,7 +135,7 @@ export default function PricingManager() {
 
       <h3 className="pricing-subhead">Every product</h3>
       <p className="admin-footnote pricing-intro">
-        Set an individual price for every product. All products can join a mixed four-pack within its category limits.
+        Set the price for each selling quantity. Batch products keep their own price; eligible individual treats can join treat-pack offers.
       </p>
 
       {loading ? (
@@ -148,6 +148,7 @@ export default function PricingManager() {
             <li key={product.id} className={product.active ? "" : "is-hidden"}>
               <div className="pricing-name">
                 <b>{product.name}</b>
+                <small>{product.unitCount > 1 ? `${product.unitCount} ${product.unitLabel} per batch` : "Each"}</small>
                 {!product.active ? <span className="menu-status">Hidden</span> : null}
               </div>
               <div className="pricing-input">

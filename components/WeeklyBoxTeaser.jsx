@@ -21,7 +21,7 @@ export default function WeeklyBoxTeaser({ box, products = [], content = PAGE_DEF
           <div className="weekly-home-copy">
             <span className="weekly-home-overline">{content.overline}</span>
             <h2 id="weekly-home-title">{content.heading}<br /><em>{content.highlight}</em></h2>
-            <p>{pageText(content.body,{boxTitle:box.title,popCount:presentation.popCount,flavorCount:presentation.flavorCount})}</p>
+            <p>{presentation.isMystery ? `Meet the ${box.title}: ${presentation.treatCount} handmade treats, chosen by Bon Bon. The assortment is a surprise.` : pageText(content.body,{boxTitle:box.title,popCount:presentation.popCount,treatCount:presentation.treatCount,flavorCount:presentation.flavorCount})}</p>
             <div className="weekly-home-offer"><b>{money(box.price)}</b><span>per box<span className={`weekly-home-stock is-${availability.state}`}>{soldOut ? "Sold out this week" : stockLabel(availability) || "Available this week"}</span></span></div>
             <Link className="btn btn-pink" href="/box-of-the-week">{soldOut ? content.soldOutLabel : content.actionLabel}<Icon name="i-arrow" width={19} height={19} /></Link>
             <small>{content.pickupNote}</small>

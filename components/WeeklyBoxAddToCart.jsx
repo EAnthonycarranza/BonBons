@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useCart } from "./CartProvider";
+import { weeklyBoxDescription } from "@/lib/weekly-box";
 
 export default function WeeklyBoxAddToCart({ box, cartKey, remaining }) {
   const { add, setOpen, items, ready } = useCart();
@@ -25,7 +26,7 @@ export default function WeeklyBoxAddToCart({ box, cartKey, remaining }) {
           add({
             key: cartKey,
             name: box.title,
-            desc: box.items.map((item) => `${item.name}${Number(item.qty) > 1 ? ` \u00d7${item.qty}` : ""}`).join(", "),
+            desc: weeklyBoxDescription(box),
             price: box.price,
             qty: selectedQty,
             icon: "i-favor",
@@ -39,7 +40,7 @@ export default function WeeklyBoxAddToCart({ box, cartKey, remaining }) {
       >
         {max === 0 ? "Available boxes already added" : "Add to pickup request"}
       </button>
-      <p className="wb-add-note">{alreadyAdded > 0 ? `${alreadyAdded} ${alreadyAdded === 1 ? "box is" : "boxes are"} already in your request.` : "A fixed selection, made to share. No online payment."}</p>
+      <p className="wb-add-note">{alreadyAdded > 0 ? `${alreadyAdded} ${alreadyAdded === 1 ? "box is" : "boxes are"} already in your request.` : (box.boxType === "mystery" ? "An assortment selected by Bon Bon. No online payment." : "A curated selection, made to share. No online payment.")}</p>
     </div>
   );
 }

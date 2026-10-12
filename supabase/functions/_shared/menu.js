@@ -73,12 +73,12 @@ export function isMenuImageUrl(value) {
 // flavor in a category of its own.
 export const MENU_CATEGORIES = ["everyday", "pretzel-rods", "rice-crispy-treats", "dipped-oreos", "custom"];
 
-export function validateMenuProduct(input) {
+export function validateMenuProduct(input, categories = MENU_CATEGORIES) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new MenuValidationError("Enter the treat details.");
   function text(key, limit, required = false) {
     const value = input[key] ?? "";
     if (typeof value !== "string" || value.trim().length > limit || (required && !value.trim())) {
-      throw new MenuValidationError(`${key === "name" ? "Flavor name" : key} must be ${required ? "1–" : "no more than "}${limit} characters.`);
+      throw new MenuValidationError(`${key === "name" ? "Product name" : key} must be ${required ? "1–" : "no more than "}${limit} characters.`);
     }
     return value.trim();
   }
@@ -86,7 +86,7 @@ export function validateMenuProduct(input) {
   const slug = text("slug", 100, true);
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new MenuValidationError("Use only lowercase letters, numbers, and single hyphens in the menu link.");
   const price = assertPrice(input.price, "The treat price");
-  if (typeof input.active !== "boolean" || typeof input.bundle_eligible !== "boolean") throw new MenuValidationError("Choose the menu visibility and two-treat offer availability.");
+  if (typeof input.active !== "boolean" || typeof input.bundle_eligible !== "boolean") throw new MenuValidationError("Choose the menu visibility and treat-pack offer availability.");
   const image = text("image", 1000);
   if (!isMenuImageUrl(image)) throw new MenuValidationError("Upload a JPG, PNG, or WebP photo using the photo picker.");
   const sortOrder = input.sort_order ?? 0;
@@ -100,10 +100,15 @@ export function validateMenuProduct(input) {
     if (!valid) throw new MenuValidationError("The source must be an Instagram post link.");
   }
   const category = input.category ?? "everyday";
-  if (!MENU_CATEGORIES.includes(category)) throw new MenuValidationError("Choose a category from the provided list.");
+  if (!categories.some(entry => (typeof entry === "string" ? entry : entry.slug) === category)) throw new MenuValidationError("Choose a saved category, or add a new category first.");
+  const unitCount = input.unit_count ?? 1;
+  if (!Number.isInteger(unitCount) || unitCount < 1 || unitCount > 1000) throw new MenuValidationError("Items per batch must be a whole number from 1 to 1000.");
+  const unitLabel = text("unit_label", 50) || "treats";
+  if (unitCount > 1 && input.bundle_eligible) throw new MenuValidationError("Batches have their own price. Only individual treats can join the pair and mixed-pack offers.");
   return {
-    name, slug, price, unit: "each", blurb: text("blurb", 160), description: text("description", 2000), ingredients: text("ingredients", 5000),
-    image, active: input.active, bundle_eligible: true, category, sort_order: sortOrder,
+    name, slug, price, unit: unitCount > 1 ? `per batch of ${unitCount} ${unitLabel}` : "each", unit_count: unitCount, unit_label: unitLabel,
+    blurb: text("blurb", 160), description: text("description", 2000), ingredients: text("ingredients", 5000),
+    image, active: input.active, bundle_eligible: input.bundle_eligible, category, sort_order: sortOrder,
     allergens: [...new Set(allergens)], badge: text("badge", 32), source_url: source,
     stock_quantity: assertStock(input.stock_quantity), low_stock_threshold: assertThreshold(input.low_stock_threshold),
     icon: "i-cakepop", color: "#F285B5", tint: "242,133,181", badge_class: "", lead_time_hours: 72,
@@ -113,10 +118,10 @@ export function validateMenuProduct(input) {
 export const MAX_BOX_ITEMS = 40;
 export const MAX_BOX_ITEM_QTY = 99;
 
-/** Total cake pops in a box, counting multiples. */
+/** Total individual treats, including every piece in a batch. */
 export function boxPopCount(items) {
   if (!Array.isArray(items)) return 0;
-  return items.reduce((total, item) => total + (Number(item?.qty) || 0), 0);
+  return items.reduce((total, item) => total + (Number(item?.qty) || 0) * (Number(item?.unit_count) || 1), 0);
 }
 
 export function validateWeeklyBox(input) {
@@ -139,7 +144,9 @@ export function validateWeeklyBox(input) {
   // can hold several of the same pop. The name is snapshotted alongside the
   // slug so an old box still reads correctly if a flavor is later renamed.
   const items = input.items ?? [];
-  if (!Array.isArray(items) || !items.length) throw new MenuValidationError("Add at least one cake pop to the box.");
+  const boxType = input.box_type || "listed";
+  if (!["listed", "mystery"].includes(boxType)) throw new MenuValidationError("Choose a listed selection or a mystery box.");
+  if (!Array.isArray(items) || (!items.length && boxType === "listed")) throw new MenuValidationError("Add at least one treat to the box.");
   if (items.length > MAX_BOX_ITEMS) throw new MenuValidationError(`A box can list up to ${MAX_BOX_ITEMS} different flavors.`);
   const seen = new Set();
   const cleanItems = items.map((entry) => {
@@ -149,7 +156,7 @@ export function validateWeeklyBox(input) {
     const note = String(value.note ?? "").trim();
     const qty = value.qty;
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 100) {
-      throw new MenuValidationError("Choose each item from the cake-pop menu.");
+      throw new MenuValidationError("Choose each item from the treat menu.");
     }
     if (seen.has(slug)) throw new MenuValidationError("Each flavor can only be listed once — use its quantity for multiples.");
     seen.add(slug);
@@ -158,8 +165,14 @@ export function validateWeeklyBox(input) {
       throw new MenuValidationError(`Each flavor's quantity must be a whole number from 1 to ${MAX_BOX_ITEM_QTY}.`);
     }
     if (note.length > 160) throw new MenuValidationError("Item notes must be no more than 160 characters.");
-    return { slug, name, qty, note };
+    const unitCount = value.unit_count ?? 1;
+    const unitLabel = String(value.unit_label || "treats").trim();
+    if (!Number.isInteger(unitCount) || unitCount < 1 || unitCount > 1000 || !unitLabel || unitLabel.length > 50) throw new MenuValidationError("Choose a valid item quantity and selling unit.");
+    return { slug, name, qty, note, unit_count: unitCount, unit_label: unitLabel };
   });
+  const treatCount = boxType === "mystery" ? input.treat_count : boxPopCount(cleanItems);
+  if (!Number.isInteger(treatCount) || treatCount < 1 || treatCount > 10000) throw new MenuValidationError("A box must contain between 1 and 10000 individual treats.");
+  if (boxType === "mystery" && cleanItems.length && boxPopCount(cleanItems) !== treatCount) throw new MenuValidationError("The selected contents must match the mystery box's treat count.");
 
   // A limited run must have a real count, so this one is required, not nullable.
   const stock = input.stock_quantity;
@@ -170,7 +183,7 @@ export function validateWeeklyBox(input) {
     slug, title, tagline: text("tagline", 160), description: text("description", 2000),
     price: assertPrice(input.price, "The box price"), stock_quantity: stock,
     low_stock_threshold: assertThreshold(input.low_stock_threshold),
-    items: cleanItems, image, featured: input.featured, active: input.active,
+    items: cleanItems, box_type: boxType, treat_count: treatCount, image, featured: input.featured, active: input.active,
   };
 }
 

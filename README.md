@@ -256,6 +256,39 @@ before deploying this update. `tests/catalog-pages-database.sql` verifies drafts
 publishing, edit conflicts, catalog writes, and public permissions inside a
 transaction that rolls back all fixtures.
 
+### Categories, batches, and flexible weekly boxes
+
+The **Treat menu** opens as a compact product library with category filtering,
+search, list/card views, and 12 products per page. **Categories** manages names
+and display order. **New category** is also available inside an item editor,
+and **Shop settings → Menu categories** uses the same saved categories.
+A category's treat type is fixed after creation; renaming it preserves product
+links and the cake-pop/rice crispy/Oreo offer rules.
+
+In an item editor, select **Batch or pack**, set the count and item label, then
+set the whole batch price. For example, 12 small cookies priced at $18 is one
+selling unit. Ordering two batches means 24 cookies for $36. Stock counts
+complete batches. Presets cover 6, 12, and 24; custom quantities are supported.
+Batch products keep their own prices and do not enter discounted treat packs.
+Individual products have an explicit offer eligibility control.
+
+Weekly boxes accept any saved, nondeleted product, including hidden products
+and whole batches. **Listed selection** shows the exact products and quantities.
+**Mystery box** shows the promised treat count and public description; fixed
+contents are optional and visible only to staff. A batch of 12 counts as 12
+treats in a box. Known contents are snapshotted with their selling quantities.
+Mystery contents live in `private.weekly_box_contents`, are absent from the
+public box row, and are excluded from customer cart/email descriptions.
+New boxes start hidden. Featuring a published box replaces the current live
+feature; a hidden draft does not replace it. Edits check the saved timestamp
+to prevent overwriting another editor's changes.
+
+Apply `supabase/migrations/20261012152301_flexible_categories_batches_and_weekly_boxes.sql`
+before deploying. The migration runs assertions with rollback-only fixtures.
+`tests/flexible-catalog-database.sql` reruns database checks; the JavaScript
+catalog tests run with `npm run test:all`. Neither sends mail or retains test
+products, categories, or boxes.
+
 ### Local events and email updates
 Open **Events & email updates** in the Shop Desk. Save an event as a draft,
 publish it to `/events`, display a cancellation notice, or archive it. Dates
