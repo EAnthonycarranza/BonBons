@@ -1,17 +1,13 @@
 "use client";
 
 import { money } from "@/lib/format";
-import { usePrices } from "./PricesProvider";
 import { useCart } from "./CartProvider";
-import { bundlePrices } from "@/lib/bundles";
 
 /**
- * Offers the better-value bundle for whatever is loose in the cart. One nudge
- * per group, so a cart holding both cake pops and pretzel rods is offered both
- * deals and taking one leaves the other alone.
+ * Offers mixed pairs for loose singles across the menu. Individual prices can
+ * differ; the suggestion uses the actual selected items to calculate savings.
  */
 export default function BundleNudge({ compact = false }) {
-  const prices = usePrices();
   const { bundleGroups = [], convertSinglesToBundles } = useCart();
   const offers = bundleGroups.filter((group) => group.suggestedPacks > 0 && group.potentialSavings > 0);
   if (!offers.length) return null;
@@ -19,7 +15,6 @@ export default function BundleNudge({ compact = false }) {
   return (
     <>
       {offers.map((group) => {
-        const { single } = bundlePrices(group.key, prices);
         const unitsToSwitch = group.suggestedPacks * group.size;
         const packLabel = `${group.suggestedPacks} ${group.suggestedPacks === 1 ? group.packName : group.packNamePlural}`;
         const remainder = group.singleCount - unitsToSwitch;
@@ -33,7 +28,7 @@ export default function BundleNudge({ compact = false }) {
                 {group.singleCount === 1 ? group.noun : group.nounPlural}.
               </b>
               <p>
-                Keep them as {money(single)} singles, or switch {unitsToSwitch} of them to {packLabel}
+                Keep them as individually priced singles, or switch {unitsToSwitch} of them to {packLabel}
                 {remainder > 0 ? ` and keep ${remainder} as singles` : ""}.
               </p>
             </div>
