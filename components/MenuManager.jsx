@@ -851,7 +851,11 @@ function MenuEditor({
   );
 }
 
-export default function MenuManager({ mysteryBagsOnly = false }) {
+export default function MenuManager({
+  mysteryBagsOnly = false,
+  embedded = false,
+}) {
+  const Title = embedded ? "h2" : "h1";
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -992,11 +996,13 @@ export default function MenuManager({ mysteryBagsOnly = false }) {
           <span className="admin-kicker">
             {mysteryBagsOnly ? "Surprise assortments" : "Menu management"}
           </span>
-          <h1>
-            {mysteryBagsOnly
-              ? "A little mystery. A lot of sweet."
-              : "Your sweet collection."}
-          </h1>
+          <Title>
+            {embedded && mysteryBagsOnly
+              ? "Mystery bags."
+              : mysteryBagsOnly
+                ? "A little mystery. A lot of sweet."
+                : "Your sweet collection."}
+          </Title>
           <p>
             {mysteryBagsOnly
               ? "Create, publish, and restock your mystery bags. Every bag has its own price and quantity."
@@ -1026,7 +1032,7 @@ export default function MenuManager({ mysteryBagsOnly = false }) {
           </button>
         </div>
       </header>
-      {mysteryBagsOnly && (
+      {mysteryBagsOnly && !embedded && (
         <section
           className="mystery-bag-intro catalog-panel"
           aria-label="Mystery bag starter"

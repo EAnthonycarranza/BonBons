@@ -12,6 +12,76 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+.boxes-and-bags-head {
+  align-items: center;
+  gap: 24px;
+}
+.boxes-and-bags-head > div {
+  max-width: 730px;
+}
+.boxes-and-bags-head > img {
+  width: 92px;
+  height: auto;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.collection-jump-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.collection-jump-links a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--desk-border);
+  border-radius: 10px;
+  color: #f5d1e5;
+  background: #251b29;
+  font-size: 12px;
+}
+.collection-jump-links a:hover {
+  border-color: #b56391;
+  background: #342031;
+}
+.collection-jump-links svg {
+  width: 16px;
+  height: 16px;
+}
+.collection-workspace {
+  padding: 24px;
+  margin-top: 24px;
+  border: 1px solid var(--desk-border);
+  background: var(--desk-panel);
+  scroll-margin-top: 24px;
+}
+.collection-workspace > .admin-view {
+  margin: 0;
+}
+.collection-workspace .admin-page-head {
+  margin-bottom: 20px;
+}
+.collection-workspace .admin-page-head h2 {
+  margin: 5px 0 0;
+  font-size: clamp(23px, 2.6vw, 30px);
+}
+.collection-workspace .catalog-overview {
+  margin: 20px 0;
+}
+@media (max-width: 700px) {
+  .boxes-and-bags-head > img {
+    width: 68px;
+  }
+  .boxes-and-bags-head {
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .collection-workspace {
+    padding: 16px;
+  }
+}
 .catalog-overview {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

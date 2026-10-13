@@ -16,7 +16,7 @@ import { money } from "@/lib/format";
 import { sellingUnit, boxItemLabel } from "@/lib/menu-categories";
 import "./catalog-admin.css";
 
-function draftFor(box) {
+function draftFor(box, initialType = "listed") {
   return {
     title: box?.title || "",
     slug: box?.slug || "",
@@ -38,7 +38,7 @@ function draftFor(box) {
     image: box?.image || "",
     featured: box?.featured ?? false,
     active: box?.active ?? false,
-    box_type: box?.boxType || "listed",
+    box_type: box?.boxType || initialType,
     treat_count: box?.treatCount || boxPopCount(box?.items) || 12,
   };
 }
@@ -84,8 +84,15 @@ function Modal({ title, label, children, onClose }) {
   );
 }
 
-function BoxEditor({ box, products, categories, onClose, onSaved }) {
-  const initial = useMemo(() => draftFor(box), [box]);
+function BoxEditor({
+  box,
+  initialType = "listed",
+  products,
+  categories,
+  onClose,
+  onSaved,
+}) {
+  const initial = useMemo(() => draftFor(box, initialType), [box, initialType]);
   const [form, setForm] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -773,7 +780,8 @@ function BoxEditor({ box, products, categories, onClose, onSaved }) {
   );
 }
 
-export default function WeeklyBoxManager() {
+export default function WeeklyBoxManager({ embedded = false }) {
+  const Title = embedded ? "h2" : "h1";
   const [boxes, setBoxes] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -869,13 +877,24 @@ export default function WeeklyBoxManager() {
       <div className="admin-page-head">
         <div>
           <span className="admin-kicker">Box of the week</span>
-          <h1>This week&apos;s box.</h1>
+          <Title>
+            {embedded ? "Weekly & mystery boxes." : "This week's box."}
+          </Title>
           <p>
             Curate any mix of treats, or make it a mystery. Set the size, price,
             and available boxes.
           </p>
         </div>
         <div className="catalog-header-actions">
+          <button
+            type="button"
+            className="admin-btn admin-btn-secondary"
+            onClick={() => setEditing({ boxType: "mystery" })}
+            disabled={loading || Boolean(error)}
+          >
+            <AdminIcon name="plus" />
+            New mystery box
+          </button>
           <button
             type="button"
             className="admin-btn admin-btn-secondary"
@@ -1021,6 +1040,7 @@ export default function WeeklyBoxManager() {
       {editing ? (
         <BoxEditor
           box={editing.id ? editing : null}
+          initialType={editing.boxType || "listed"}
           products={products}
           categories={categories}
           onClose={() => setEditing(null)}

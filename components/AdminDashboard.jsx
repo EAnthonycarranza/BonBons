@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import MenuManager from "./MenuManager";
-import WeeklyBoxManager from "./WeeklyBoxManager";
+import AdminBoxesAndBags from "./AdminBoxesAndBags";
 import AdminOrders from "./AdminOrders";
 import AdminSettings from "./AdminSettings";
 import AdminCoupons from "./AdminCoupons";
@@ -20,16 +20,10 @@ const SECTIONS = [
     note: "Products, flavors & availability",
   },
   {
-    id: "mysteryBags",
-    label: "Mystery bags",
-    icon: "coupon",
-    note: "Surprise assortments & bag stock",
-  },
-  {
-    id: "weeklyBox",
-    label: "Box of the week",
+    id: "collections",
+    label: "Boxes & mystery bags",
     icon: "photo",
-    note: "Limited box & prices",
+    note: "Weekly boxes, surprises & stock",
   },
   {
     id: "orders",
@@ -169,14 +163,9 @@ export default function AdminDashboard({ dbReady }) {
           <div hidden={section !== "menu"}>
             <MenuManager />
           </div>
-          {visited.mysteryBags ? (
-            <div hidden={section !== "mysteryBags"}>
-              <MenuManager mysteryBagsOnly />
-            </div>
-          ) : null}
-          {visited.weeklyBox ? (
-            <div hidden={section !== "weeklyBox"}>
-              <WeeklyBoxManager />
+          {visited.collections ? (
+            <div hidden={section !== "collections"}>
+              <AdminBoxesAndBags />
             </div>
           ) : null}
           {visited.orders ? (
