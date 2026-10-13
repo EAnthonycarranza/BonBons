@@ -2,6 +2,11 @@
   font-size: clamp(28px, 3vw, 38px);
   letter-spacing: -0.045em;
 }
+@media (min-width: 701px) {
+  .admin-root .admin-sidebar {
+    overflow-y: auto;
+  }
+}
 .catalog-header-actions {
   display: flex;
   gap: 10px;
