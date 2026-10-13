@@ -15,6 +15,7 @@ import CouponEntry from "@/components/CouponEntry";
 import PickupSchedulePicker from "@/components/PickupSchedulePicker";
 import { validatePickupRequest } from "@/lib/pickup-schedule";
 import { SITE } from "@/lib/sample-data";
+import { MIXED_PACK_RULE } from "@/lib/bundles";
 
 export default function CartPage() {
   const { singleLabel, packLabel, mixedLabel } = usePrices();
@@ -204,7 +205,7 @@ export default function CartPage() {
           <div className="form-wrap checkout-layout">
             <div className="checkout-summary rv-anim">
               <div className="checkout-card-heading"><span className="checkout-step">01</span><div><h2>Your treats</h2><p>Singles, cake-pop pairs, and mixed four-packs, just as you chose.</p></div></div>
-              {items.some(item => item.invalidBundle) && <p role="status" className="form-msg error">Some saved packs no longer match the current offers. Remove them and choose cake-pop pairs or a mixed four-pack with at most 1 rice crispy treat and 2 Oreos.</p>}
+              {items.some(item => item.invalidBundle) && <p role="status" className="form-msg error">Some saved packs no longer match the current offers. Remove them and rebuild your pack. {MIXED_PACK_RULE}</p>}
               <div className="tile" style={{ padding: 8 }}>
                 {items.map((i) => (
                   <div

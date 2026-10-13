@@ -4,7 +4,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getProduct, getProducts } from "@/lib/products";
 import { Icon } from "@/components/Icons";
-import { isCakePopProduct } from "@/lib/bundles";
+import { isCakePopProduct, MIXED_PACK_RULE } from "@/lib/bundles";
 import AddToCart from "@/components/AddToCart";
 
 export const dynamic = "force-dynamic";
@@ -143,7 +143,7 @@ export default async function ProductPage({ params }) {
                       ? `Choose two cake pops for ${packLabel}, or mix four treats for ${money(fourPackPrice)}.`
                       : `Mix four treats for ${money(fourPackPrice)}.`}
                 {product.unitCount === 1 && product.bundleEligible
-                  ? " Maximum 1 rice crispy treat and 2 Oreos per mixed pack."
+                  ? ` ${MIXED_PACK_RULE}`
                   : ""}
               </p>
 

@@ -4,7 +4,7 @@ import { getProducts } from "@/lib/products";
 import ProductCard from "@/components/ProductCard";
 import { getShopSettings } from "@/lib/weekly-box-data";
 import { money } from "@/lib/format";
-import { isCakePopProduct } from "@/lib/bundles";
+import { isCakePopProduct, MIXED_PACK_RULE } from "@/lib/bundles";
 import { categoryName } from "@/lib/menu-categories";
 import "./shop.css";
 
@@ -14,7 +14,7 @@ export async function generateMetadata() {
     await getShopSettings();
   return {
     title: "Shop handmade treats",
-    description: `Browse Bon Bon’s current handmade treats, ingredients, batch sizes, and prices. Cake pops ${money(singlePopPrice)} each or 2 for ${money(treatPairPrice)}. Mix four eligible individual treats for ${money(fourPackPrice)}: maximum 1 rice crispy treat and 2 Oreos.`,
+    description: `Browse Bon Bon’s current handmade treats, ingredients, batch sizes, and prices. Cake pops ${money(singlePopPrice)} each or 2 for ${money(treatPairPrice)}. Mix four eligible individual treats for ${money(fourPackPrice)}. ${MIXED_PACK_RULE}`,
   };
 }
 export default async function ShopPage() {
@@ -47,8 +47,7 @@ export default async function ShopPage() {
             <p>
               Handmade favorites and fresh batches, all in one place. Cake pops
               are {singleLabel} each or 2 for {pairLabel}. Mix four eligible
-              individual treats for {mixedLabel}, with at most 1 rice crispy
-              treat and 2 Oreos per four-pack. Batch sizes and prices are listed
+              individual treats for {mixedLabel}. {MIXED_PACK_RULE} Batch sizes and prices are listed
               with each product.
             </p>
             <Link className="text-link" href="/build-a-box">

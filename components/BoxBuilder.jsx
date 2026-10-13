@@ -8,7 +8,7 @@ import {
   getBundleGroup,
   isCakePopProduct,
   bundleLimitType,
-  MIXED_PACK_LIMITS,
+  mixedPackLimitFor,
   MIXED_PACK_RULE,
   assertBundleSelection,
 } from "@/lib/bundles";
@@ -67,9 +67,7 @@ export default function BoxBuilder({ products = [], initialOffer = "mixed" }) {
       .reduce((n, t) => n + (values[t.id] || 0), 0);
   const atCategoryLimit = (t, values = counts) =>
     sizeId === "mixed" &&
-    MIXED_PACK_LIMITS[bundleLimitType(t)] &&
-    categoryCount(bundleLimitType(t), values) >=
-      MIXED_PACK_LIMITS[bundleLimitType(t)];
+    categoryCount(bundleLimitType(t), values) >= mixedPackLimitFor(t);
 
   function step(id, delta) {
     setCounts((prev) => {
@@ -99,7 +97,7 @@ export default function BoxBuilder({ products = [], initialOffer = "mixed" }) {
   }
 
   function addBox() {
-    if (!full) return;
+    if (!full || selectionError) return;
     assertBundleSelection(
       sizeId,
       treats
@@ -134,6 +132,18 @@ export default function BoxBuilder({ products = [], initialOffer = "mixed" }) {
   }
 
   const lines = treats.filter((t) => counts[t.id] > 0);
+  const selectedTypeCount = new Set(lines.map(bundleLimitType)).size;
+  let selectionError = "";
+  if (full) {
+    try {
+      assertBundleSelection(
+        sizeId,
+        lines.map((t) => ({ ...t, qty: counts[t.id] })),
+      );
+    } catch (error) {
+      selectionError = error.message;
+    }
+  }
   const selectedPhotos = lines.flatMap((t) =>
     Array.from({ length: counts[t.id] }, () => t),
   );
@@ -193,6 +203,10 @@ export default function BoxBuilder({ products = [], initialOffer = "mixed" }) {
             <p className="builder-limits" role="status">
               {MIXED_PACK_RULE}
               <br />
+              Different flavors of the same treat count as one type.
+              <br />
+              Cake pops: {categoryCount("cake-pops")}/3 · Pretzel rods:{" "}
+              {categoryCount("pretzel-rods")}/3 ·{" "}
               Rice crispy treats: {categoryCount("rice-crispy-treats")}/1 ·
               Oreos: {categoryCount("dipped-oreos")}/2
             </p>
@@ -336,13 +350,18 @@ export default function BoxBuilder({ products = [], initialOffer = "mixed" }) {
         </div>
         {!full && (
           <div className="fill-warn">
-            {remaining} more piece{remaining === 1 ? "" : "s"} to fill this box.
+            {sizeId === "mixed" && picked === 3 && selectedTypeCount === 1
+              ? "Add a different treat type to complete your mix."
+              : `${remaining} more piece${remaining === 1 ? "" : "s"} to fill this box.`}
           </div>
+        )}
+        {selectionError && (
+          <p className="fill-warn" role="alert">{selectionError}</p>
         )}
         <div style={{ marginTop: 18 }}>
           <button
             className="btn btn-pink btn-block"
-            disabled={!full || !ready}
+            disabled={!full || Boolean(selectionError) || !ready}
             onClick={addBox}
           >
             {`Add ${size.pieces} ${sizeId === "cakepop" ? "cake pops" : "treats"} for ${packLabel} to request`}

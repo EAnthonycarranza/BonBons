@@ -13,6 +13,7 @@ import {
   validateMenuProduct,
 } from "@/supabase/functions/_shared/menu";
 import { money } from "@/lib/format";
+import { MIXED_PACK_RULE } from "@/lib/bundles";
 import CategoryManager, { announceCatalogChange } from "./CategoryManager";
 import { categoryName, sellingUnit } from "@/lib/menu-categories";
 import {
@@ -673,8 +674,7 @@ function MenuEditor({
                   <span>
                     <b>Include in treat-pack offers</b>
                     <small>
-                      Eligible cake pops can be paired. Mixed four-packs allow
-                      at most 1 rice crispy treat and 2 Oreos.
+                      Eligible cake pops can be paired. {MIXED_PACK_RULE}
                     </small>
                   </span>
                   <input

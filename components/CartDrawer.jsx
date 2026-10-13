@@ -7,6 +7,7 @@ import ProductThumbnail from "./ProductThumbnail";
 import BundleNudge from "./BundleNudge";
 import { money } from "@/lib/format";
 import { trapFocus } from "@/lib/focus-trap";
+import { MIXED_PACK_RULE } from "@/lib/bundles";
 
 export default function CartDrawer() {
   const {
@@ -77,7 +78,7 @@ export default function CartDrawer() {
         </div>
 
         <div className="drawer-body">
-          {items.some(item => item.invalidBundle) && <p className="form-msg error" role="status">Some saved packs no longer match the current offers. Remove them and choose cake-pop pairs or a mixed four-pack with at most 1 rice crispy treat and 2 Oreos.</p>}
+          {items.some(item => item.invalidBundle) && <p className="form-msg error" role="status">Some saved packs no longer match the current offers. Remove them and rebuild your pack. {MIXED_PACK_RULE}</p>}
           {items.length === 0 ? (
             <div className="drawer-empty">
               <Image

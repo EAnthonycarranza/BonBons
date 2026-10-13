@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import AdminIcon from "./AdminIcon";
 import { isMysteryBag, bagContents } from "@/lib/product-offerings";
 import { money } from "@/lib/format";
+import { MIXED_PACK_RULE } from "@/lib/bundles";
 import {
   assertPrice,
   MenuValidationError,
@@ -228,7 +229,7 @@ export default function PricingManager() {
               setSettings((c) => ({ ...c, fourPackPrice: e.target.value }))
             }
           />
-          <small>Four treats: maximum 1 rice crispy treat and 2 Oreos.</small>
+          <small>{MIXED_PACK_RULE}</small>
         </label>
         <button
           type="submit"
