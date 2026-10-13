@@ -10,7 +10,7 @@ import AddToCart from "@/components/AddToCart";
 export const dynamic = "force-dynamic";
 import ProductCard from "@/components/ProductCard";
 import { money } from "@/lib/format";
-import { isStyledProductPhoto } from "@/lib/product-photos";
+import { isStyledProductPhoto, isProductFlyer } from "@/lib/product-photos";
 import { getShopSettings } from "@/lib/weekly-box-data";
 import { isMysteryBag, bagContents } from "@/lib/product-offerings";
 
@@ -48,7 +48,7 @@ export default async function ProductPage({ params }) {
 
           <div className="split">
             <div
-              className="tile product-detail-media rv-anim"
+              className={`tile product-detail-media rv-anim${isProductFlyer(product.image) ? " is-flyer" : ""}`}
               style={{
                 display: "grid",
                 placeItems: "center",
@@ -59,7 +59,11 @@ export default async function ProductPage({ params }) {
               {product.image ? (
                 <Image
                   src={product.image}
-                  alt={`${isStyledProductPhoto(product.image) ? "Styled image of " : ""}${product.name}`}
+                  alt={
+                    isProductFlyer(product.image)
+                      ? `${product.name} flyer`
+                      : `${isStyledProductPhoto(product.image) ? "Styled image of " : ""}${product.name}`
+                  }
                   fill
                   priority
                   sizes="(max-width: 980px) 100vw, 50vw"

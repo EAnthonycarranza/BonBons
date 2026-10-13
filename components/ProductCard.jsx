@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useCart } from "./CartProvider";
 import { Icon } from "./Icons";
 import { money } from "@/lib/format";
-import { isStyledProductPhoto } from "@/lib/product-photos";
+import { isStyledProductPhoto, isProductFlyer } from "@/lib/product-photos";
 import { stockLabel } from "@/lib/weekly-box";
 import { stockState } from "@/supabase/functions/_shared/menu";
 import { bundleGroupForCategory } from "@/lib/bundles";
@@ -59,7 +59,7 @@ export default function ProductCard({ product }) {
     >
       <Link href={`/shop/${product.slug}`} style={{ display: "block" }}>
         <div
-          className={`ph${product.image ? " photo" : ""}`}
+          className={`ph${product.image ? " photo" : ""}${isProductFlyer(product.image) ? " is-flyer" : ""}`}
           style={{
             background: `linear-gradient(150deg,rgba(${product.tint},.22),rgba(${product.tint},.04))`,
           }}
@@ -67,7 +67,11 @@ export default function ProductCard({ product }) {
           {product.image ? (
             <Image
               src={product.image}
-              alt={`${isStyledProductPhoto(product.image) ? "Styled image of " : ""}${product.name} by Bon Bon's`}
+              alt={
+                isProductFlyer(product.image)
+                  ? `${product.name} flyer from Bon Bon's`
+                  : `${isStyledProductPhoto(product.image) ? "Styled image of " : ""}${product.name} by Bon Bon's`
+              }
               fill
               sizes="(max-width: 560px) 100vw, (max-width: 1080px) 50vw, 25vw"
             />
