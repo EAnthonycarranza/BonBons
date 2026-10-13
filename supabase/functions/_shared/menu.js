@@ -71,7 +71,7 @@ export function isMenuImageUrl(value) {
 // A product's category decides which shelf it sits on in the shop and which
 // bundle it counts toward. Kept to a known list so a typo cannot strand a
 // flavor in a category of its own.
-export const MENU_CATEGORIES = ["everyday", "pretzel-rods", "rice-crispy-treats", "dipped-oreos", "custom"];
+export const MENU_CATEGORIES = ["everyday", "pretzel-rods", "rice-crispy-treats", "dipped-oreos", "custom", "mystery-bags"];
 
 export function validateMenuProduct(input, categories = MENU_CATEGORIES) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new MenuValidationError("Enter the treat details.");
@@ -104,9 +104,14 @@ export function validateMenuProduct(input, categories = MENU_CATEGORIES) {
   const unitCount = input.unit_count ?? 1;
   if (!Number.isInteger(unitCount) || unitCount < 1 || unitCount > 1000) throw new MenuValidationError("Items per batch must be a whole number from 1 to 1000.");
   const unitLabel = text("unit_label", 50) || "treats";
+  const offeringType = input.offering_type ?? "standard";
+  if (!["standard", "mystery-bag"].includes(offeringType)) throw new MenuValidationError("Choose an individual item, batch, or mystery bag.");
+  const bonus = offeringType === "mystery-bag" ? text("bonus_description", 160) : "";
+  if (offeringType === "mystery-bag" && (input.bundle_eligible || input.stock_quantity == null || input.stock_quantity === "")) throw new MenuValidationError("Mystery bags need a bags-available count and use their own price.");
   if (unitCount > 1 && input.bundle_eligible) throw new MenuValidationError("Batches have their own price. Only individual treats can join the pair and mixed-pack offers.");
   return {
-    name, slug, price, unit: unitCount > 1 ? `per batch of ${unitCount} ${unitLabel}` : "each", unit_count: unitCount, unit_label: unitLabel,
+    name, slug, price, unit: offeringType === "mystery-bag" ? "per bag" : unitCount > 1 ? `per batch of ${unitCount} ${unitLabel}` : "each", unit_count: unitCount, unit_label: unitLabel,
+    offering_type: offeringType, bonus_description: bonus,
     blurb: text("blurb", 160), description: text("description", 2000), ingredients: text("ingredients", 5000),
     image, active: input.active, bundle_eligible: input.bundle_eligible, category, sort_order: sortOrder,
     allergens: [...new Set(allergens)], badge: text("badge", 32), source_url: source,

@@ -13,13 +13,54 @@ import PageContentManager from "./PageContentManager";
 import AdminIcon from "./AdminIcon";
 
 const SECTIONS = [
-  { id: "menu", label: "Treat menu", icon: "menu", note: "Products, flavors & availability" },
-  { id: "weeklyBox", label: "Box of the week", icon: "photo", note: "Limited box & prices" },
-  { id: "orders", label: "Orders & cart rentals", icon: "orders", note: "Pickup orders and event requests" },
-  { id: "coupons", label: "Coupons", icon: "coupon", note: "Print codes & track redemptions" },
-  { id: "events", label: "Events & email updates", icon: "pin", note: "Local calendar & subscribers" },
-  { id: "pages", label: "Home & About pages", icon: "edit", note: "Content, photos & publishing" },
-  { id: "settings", label: "Shop settings", icon: "settings", note: "Pickup, contact & payment" },
+  {
+    id: "menu",
+    label: "Treat menu",
+    icon: "menu",
+    note: "Products, flavors & availability",
+  },
+  {
+    id: "mysteryBags",
+    label: "Mystery bags",
+    icon: "coupon",
+    note: "Surprise assortments & bag stock",
+  },
+  {
+    id: "weeklyBox",
+    label: "Box of the week",
+    icon: "photo",
+    note: "Limited box & prices",
+  },
+  {
+    id: "orders",
+    label: "Orders & cart rentals",
+    icon: "orders",
+    note: "Pickup orders and event requests",
+  },
+  {
+    id: "coupons",
+    label: "Coupons",
+    icon: "coupon",
+    note: "Print codes & track redemptions",
+  },
+  {
+    id: "events",
+    label: "Events & email updates",
+    icon: "pin",
+    note: "Local calendar & subscribers",
+  },
+  {
+    id: "pages",
+    label: "Home & About pages",
+    icon: "edit",
+    note: "Content, photos & publishing",
+  },
+  {
+    id: "settings",
+    label: "Shop settings",
+    icon: "settings",
+    note: "Pickup, contact & payment",
+  },
 ];
 
 export default function AdminDashboard({ dbReady }) {
@@ -29,35 +70,146 @@ export default function AdminDashboard({ dbReady }) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState("");
   async function logout() {
-    setLoggingOut(true); setError("");
+    setLoggingOut(true);
+    setError("");
     try {
       const response = await fetch("/api/admin/logout", { method: "POST" });
       if (!response.ok) throw new Error("Could not log out. Please try again.");
       router.refresh();
-    } catch (err) { setError(err.message); setLoggingOut(false); }
+    } catch (err) {
+      setError(err.message);
+      setLoggingOut(false);
+    }
   }
-  return <div className="admin-application">
-    <aside className="admin-sidebar">
-      <Link className="admin-brand" href="/"><Image src="/logo-transparent.png" alt="Bon Bon’s Sweets & More" width={58} height={58}/><span><b>Bon Bon&apos;s</b><small>THE SHOP DESK</small></span></Link>
-      <div className="admin-workspace-label">Your workspace</div>
-      <nav aria-label="Admin navigation">{SECTIONS.map(item=><button key={item.id} type="button" aria-label={item.label} className={section===item.id?"is-active":""} aria-current={section===item.id?"page":undefined} onClick={()=>{setVisited(current=>({...current,[item.id]:true}));setSection(item.id);}}><AdminIcon name={item.icon}/><span><b>{item.label}</b><small>{item.note}</small></span>{section===item.id?<i/>:null}</button>)}</nav>
-      <div className="admin-sidebar-note"><span>Made with love.<br/>Managed with care.</span><p>Your menu, orders, and everyday details—all right here.</p></div>
-      <div className="admin-sidebar-bottom"><Link href="/" target="_blank"><AdminIcon name="external"/>Open website</Link><button onClick={logout} disabled={loggingOut}><AdminIcon name="logout"/>{loggingOut?"Logging out…":"Log out"}</button><div className="admin-staff"><span>B</span><div><b>Bon Bon&apos;s team</b><small>Administrator</small></div></div></div>
-    </aside>
-    <div className="admin-main">
-      <header className="admin-topbar"><div><span>Workspace</span><span className="admin-breadcrumb-separator">/</span><b>{SECTIONS.find(item=>item.id===section).label}</b></div><span className="admin-staff-badge">Staff only</span></header>
-      <div className="admin-content">
-        {!dbReady?<p className="admin-alert is-error" role="alert">The database is not connected. Changes and customer requests cannot be saved yet.</p>:null}
-        {error?<p className="admin-alert is-error" role="alert">{error}</p>:null}
-        <div hidden={section!=="menu"}><MenuManager/></div>
-        {visited.weeklyBox?<div hidden={section!=="weeklyBox"}><WeeklyBoxManager/></div>:null}
-        {visited.orders?<div hidden={section!=="orders"}><AdminOrders dbReady={dbReady}/></div>:null}
-        {visited.coupons?<div hidden={section!=="coupons"}><AdminCoupons/></div>:null}
-        {visited.events?<div hidden={section!=="events"}><AdminEvents/></div>:null}
-        {visited.pages?<div hidden={section!=="pages"}><PageContentManager/></div>:null}
-        {visited.settings?<div hidden={section!=="settings"}><AdminSettings/></div>:null}
+  return (
+    <div className="admin-application">
+      <aside className="admin-sidebar">
+        <Link className="admin-brand" href="/">
+          <Image
+            src="/logo-transparent.png"
+            alt="Bon Bon’s Sweets & More"
+            width={58}
+            height={58}
+          />
+          <span>
+            <b>Bon Bon&apos;s</b>
+            <small>THE SHOP DESK</small>
+          </span>
+        </Link>
+        <div className="admin-workspace-label">Your workspace</div>
+        <nav aria-label="Admin navigation">
+          {SECTIONS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-label={item.label}
+              className={section === item.id ? "is-active" : ""}
+              aria-current={section === item.id ? "page" : undefined}
+              onClick={() => {
+                setVisited((current) => ({ ...current, [item.id]: true }));
+                setSection(item.id);
+              }}
+            >
+              <AdminIcon name={item.icon} />
+              <span>
+                <b>{item.label}</b>
+                <small>{item.note}</small>
+              </span>
+              {section === item.id ? <i /> : null}
+            </button>
+          ))}
+        </nav>
+        <div className="admin-sidebar-note">
+          <span>
+            Made with love.
+            <br />
+            Managed with care.
+          </span>
+          <p>Your menu, orders, and everyday details—all right here.</p>
+        </div>
+        <div className="admin-sidebar-bottom">
+          <Link href="/" target="_blank">
+            <AdminIcon name="external" />
+            Open website
+          </Link>
+          <button onClick={logout} disabled={loggingOut}>
+            <AdminIcon name="logout" />
+            {loggingOut ? "Logging out…" : "Log out"}
+          </button>
+          <div className="admin-staff">
+            <span>B</span>
+            <div>
+              <b>Bon Bon&apos;s team</b>
+              <small>Administrator</small>
+            </div>
+          </div>
+        </div>
+      </aside>
+      <div className="admin-main">
+        <header className="admin-topbar">
+          <div>
+            <span>Workspace</span>
+            <span className="admin-breadcrumb-separator">/</span>
+            <b>{SECTIONS.find((item) => item.id === section).label}</b>
+          </div>
+          <span className="admin-staff-badge">Staff only</span>
+        </header>
+        <div className="admin-content">
+          {!dbReady ? (
+            <p className="admin-alert is-error" role="alert">
+              The database is not connected. Changes and customer requests
+              cannot be saved yet.
+            </p>
+          ) : null}
+          {error ? (
+            <p className="admin-alert is-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <div hidden={section !== "menu"}>
+            <MenuManager />
+          </div>
+          {visited.mysteryBags ? (
+            <div hidden={section !== "mysteryBags"}>
+              <MenuManager mysteryBagsOnly />
+            </div>
+          ) : null}
+          {visited.weeklyBox ? (
+            <div hidden={section !== "weeklyBox"}>
+              <WeeklyBoxManager />
+            </div>
+          ) : null}
+          {visited.orders ? (
+            <div hidden={section !== "orders"}>
+              <AdminOrders dbReady={dbReady} />
+            </div>
+          ) : null}
+          {visited.coupons ? (
+            <div hidden={section !== "coupons"}>
+              <AdminCoupons />
+            </div>
+          ) : null}
+          {visited.events ? (
+            <div hidden={section !== "events"}>
+              <AdminEvents />
+            </div>
+          ) : null}
+          {visited.pages ? (
+            <div hidden={section !== "pages"}>
+              <PageContentManager />
+            </div>
+          ) : null}
+          {visited.settings ? (
+            <div hidden={section !== "settings"}>
+              <AdminSettings />
+            </div>
+          ) : null}
+        </div>
+        <footer className="admin-bottomline">
+          <span>Bon Bon&apos;s Sweets &amp; More</span>
+          <span>San Antonio, Texas · Pickup only</span>
+        </footer>
       </div>
-      <footer className="admin-bottomline"><span>Bon Bon&apos;s Sweets &amp; More</span><span>San Antonio, Texas · Pickup only</span></footer>
     </div>
-  </div>;
+  );
 }

@@ -12,6 +12,7 @@ import ProductCard from "@/components/ProductCard";
 import { money } from "@/lib/format";
 import { isStyledProductPhoto } from "@/lib/product-photos";
 import { getShopSettings } from "@/lib/weekly-box-data";
+import { isMysteryBag, bagContents } from "@/lib/product-offerings";
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
@@ -130,11 +131,13 @@ export default async function ProductPage({ params }) {
                   fontWeight: 700,
                 }}
               >
-                {product.unitCount > 1 || !product.bundleEligible
-                  ? `Sold as ${product.unitCount > 1 ? `a batch of ${product.unitCount} ${product.unitLabel}` : "an individual item"} at the price above.`
-                  : isCakePopProduct(product)
-                    ? `Choose two cake pops for ${packLabel}, or mix four treats for ${money(fourPackPrice)}.`
-                    : `Mix four treats for ${money(fourPackPrice)}.`}
+                {isMysteryBag(product)
+                  ? `One mystery bag includes ${bagContents(product)}. Bon Bon chooses the assortment.`
+                  : product.unitCount > 1 || !product.bundleEligible
+                    ? `Sold as ${product.unitCount > 1 ? `a batch of ${product.unitCount} ${product.unitLabel}` : "an individual item"} at the price above.`
+                    : isCakePopProduct(product)
+                      ? `Choose two cake pops for ${packLabel}, or mix four treats for ${money(fourPackPrice)}.`
+                      : `Mix four treats for ${money(fourPackPrice)}.`}
                 {product.unitCount === 1 && product.bundleEligible
                   ? " Maximum 1 rice crispy treat and 2 Oreos per mixed pack."
                   : ""}
@@ -147,18 +150,22 @@ export default async function ProductPage({ params }) {
                 </li>
                 <li>
                   <Icon name="i-check" />{" "}
-                  {product.unitCount > 1
-                    ? `${product.unitCount} ${product.unitLabel} in every batch`
-                    : product.bundleEligible
-                      ? `Mix four eligible treats for ${money(fourPackPrice)}`
-                      : "Priced individually"}
+                  {isMysteryBag(product)
+                    ? `${bagContents(product)} in every bag`
+                    : product.unitCount > 1
+                      ? `${product.unitCount} ${product.unitLabel} in every batch`
+                      : product.bundleEligible
+                        ? `Mix four eligible treats for ${money(fourPackPrice)}`
+                        : "Priced individually"}
                 </li>
                 <li>
                   <Icon name="i-check" /> No event or large order required
                 </li>
                 <li>
-                  <Icon name="i-check" /> Custom colors available when you want
-                  them
+                  <Icon name="i-check" />{" "}
+                  {isMysteryBag(product)
+                    ? "Flavors are a surprise selected by Bon Bon"
+                    : "Custom colors available when you want them"}
                 </li>
                 <li>
                   <Icon name="i-check" /> Pay through our payment link after

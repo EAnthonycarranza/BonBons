@@ -15,6 +15,13 @@ import {
 import { money } from "@/lib/format";
 import CategoryManager, { announceCatalogChange } from "./CategoryManager";
 import { categoryName, sellingUnit } from "@/lib/menu-categories";
+import {
+  MYSTERY_BAG_TEMPLATE,
+  isMysteryBag,
+  sellingContainer,
+  bagContents,
+  syncMysteryBagCopy,
+} from "@/lib/product-offerings";
 import "./catalog-admin.css";
 
 function stockSummary(product) {
@@ -27,13 +34,19 @@ function stockSummary(product) {
   return `${availability.remaining} left${availability.state === "low" ? " · low" : ""}`;
 }
 
-function draftFor(product, nextOrder) {
+function draftFor(product, nextOrder, mysteryBag = false) {
   return {
     name: product?.name || "",
     slug: product?.slug || "",
     price: product?.price ?? 3,
     unit: product?.unit || "each",
-    selling_format: (product?.unitCount || 1) > 1 ? "batch" : "each",
+    selling_format: isMysteryBag(product)
+      ? "mystery-bag"
+      : (product?.unitCount || 1) > 1
+        ? "batch"
+        : "each",
+    offering_type: product?.offeringType || "standard",
+    bonus_description: product?.bonusDescription || "",
     unit_count: product?.unitCount || 1,
     unit_label: product?.unitLabel || "treats",
     blurb: product?.blurb || "",
@@ -49,6 +62,7 @@ function draftFor(product, nextOrder) {
     source_url: product?.sourceUrl || "",
     stock_quantity: product?.stockQuantity ?? null,
     low_stock_threshold: product?.lowStockThreshold ?? 3,
+    ...(!product && mysteryBag ? MYSTERY_BAG_TEMPLATE : {}),
   };
 }
 
@@ -116,6 +130,7 @@ function Modal({ title, label, children, onClose, className = "" }) {
 
 function MenuEditor({
   product,
+  mysteryBag = false,
   nextOrder,
   categories,
   onCategoriesChanged,
@@ -123,8 +138,8 @@ function MenuEditor({
   onSaved,
 }) {
   const initial = useMemo(
-    () => draftFor(product, nextOrder),
-    [product, nextOrder],
+    () => draftFor(product, nextOrder, mysteryBag),
+    [product, nextOrder, mysteryBag],
   );
   const [form, setForm] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -152,19 +167,25 @@ function MenuEditor({
     setConfirmDiscard(true);
   }
   function change(key, value) {
-    setForm((current) => ({
-      ...current,
-      [key]: value,
-      ...(!product && key === "name" ? { slug: menuSlug(value) } : {}),
-      ...(key === "category"
-        ? {
-            bundle_eligible:
-              current.unit_count === 1 &&
-              categories.find((category) => category.slug === value)
-                ?.treatType !== "other",
-          }
-        : {}),
-    }));
+    setForm((current) => {
+      const next = syncMysteryBagCopy(current, {
+        ...current,
+        [key]: value,
+        ...(!product && key === "name" ? { slug: menuSlug(value) } : {}),
+        ...(key === "category"
+          ? {
+              bundle_eligible:
+                current.offering_type !== "mystery-bag" &&
+                current.unit_count === 1 &&
+                categories.find((category) => category.slug === value)
+                  ?.treatType !== "other",
+            }
+          : {}),
+      });
+      if (!product && next.name !== current.name)
+        next.slug = menuSlug(next.name);
+      return next;
+    });
     setError("");
   }
   async function upload(event) {
@@ -248,8 +269,20 @@ function MenuEditor({
         onCancel={() => setConfirmDiscard(false)}
       />
       <Modal
-        label={product ? "Edit menu item" : "New menu item"}
-        title={product ? product.name : "Add a little sweetness."}
+        label={
+          isMysteryBag(form)
+            ? "Mystery bag setup"
+            : product
+              ? "Edit menu item"
+              : "New menu item"
+        }
+        title={
+          product
+            ? product.name
+            : isMysteryBag(form)
+              ? "Create a mystery bag."
+              : "Add a little sweetness."
+        }
         onClose={close}
         className="menu-editor"
       >
@@ -382,6 +415,8 @@ function MenuEditor({
                           : {
                               ...current,
                               selling_format: "each",
+                              offering_type: "standard",
+                              bonus_description: "",
                               unit_count: 1,
                               bundle_eligible:
                                 categories.find(
@@ -409,6 +444,8 @@ function MenuEditor({
                           : {
                               ...current,
                               selling_format: "batch",
+                              offering_type: "standard",
+                              bonus_description: "",
                               unit_count: 12,
                               bundle_eligible: false,
                             },
@@ -420,36 +457,69 @@ function MenuEditor({
                     <small>A dozen cookies, six brownies & more</small>
                   </span>
                 </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="selling-format"
+                    checked={form.selling_format === "mystery-bag"}
+                    onChange={() =>
+                      setForm((current) =>
+                        current.selling_format === "mystery-bag"
+                          ? current
+                          : {
+                              ...current,
+                              selling_format: "mystery-bag",
+                              offering_type: "mystery-bag",
+                              unit_count: 4,
+                              unit_label: "cake pops",
+                              bonus_description: "a sweet surprise",
+                              bundle_eligible: false,
+                              stock_quantity: current.stock_quantity ?? 0,
+                            },
+                      )
+                    }
+                  />
+                  <span>
+                    <b>Mystery bag</b>
+                    <small>A surprise assortment, priced per bag</small>
+                  </span>
+                </label>
               </div>
-              {form.selling_format === "batch" && (
+              {form.selling_format !== "each" && (
                 <div className="catalog-batch-fields">
                   <div
                     className="catalog-presets"
                     role="group"
                     aria-label="Common batch sizes"
                   >
-                    {[6, 12, 24].map((count) => (
-                      <button
-                        type="button"
-                        key={count}
-                        aria-pressed={form.unit_count === count}
-                        onClick={() => change("unit_count", count)}
-                      >
-                        {count === 12
-                          ? "A dozen · 12"
-                          : count === 24
-                            ? "Two dozen · 24"
-                            : "Half dozen · 6"}
-                      </button>
-                    ))}
+                    {(isMysteryBag(form) ? [4, 6, 12] : [6, 12, 24]).map(
+                      (count) => (
+                        <button
+                          type="button"
+                          key={count}
+                          aria-pressed={form.unit_count === count}
+                          onClick={() => change("unit_count", count)}
+                        >
+                          {count === 4
+                            ? "Four-pack · 4"
+                            : count === 12
+                              ? "A dozen · 12"
+                              : count === 24
+                                ? "Two dozen · 24"
+                                : "Half dozen · 6"}
+                        </button>
+                      ),
+                    )}
                   </div>
                   <div className="admin-field-grid">
                     <label className="admin-field">
-                      Items per batch
+                      {isMysteryBag(form)
+                        ? "Main treats per bag"
+                        : "Items per batch"}
                       <input
                         type="number"
                         required
-                        min="2"
+                        min={isMysteryBag(form) ? "1" : "2"}
                         max="1000"
                         step="1"
                         value={form.unit_count}
@@ -475,22 +545,43 @@ function MenuEditor({
                   </div>
                 </div>
               )}
+              {isMysteryBag(form) && (
+                <label className="admin-field">
+                  Extra surprise (optional)
+                  <input
+                    maxLength={160}
+                    value={form.bonus_description}
+                    onChange={(e) =>
+                      change("bonus_description", e.target.value)
+                    }
+                    placeholder="e.g. a sweet surprise"
+                  />
+                  <small>
+                    This is in addition to the main treats above. Exact flavors
+                    stay a surprise; describe the promise customers receive.
+                  </small>
+                </label>
+              )}
               <div className="catalog-sale-preview">
                 <div>
                   <span>Customers order</span>
                   <b>
-                    {form.selling_format === "batch"
-                      ? `One batch of ${form.unit_count} ${form.unit_label}`
-                      : "One individual treat"}
+                    {isMysteryBag(form)
+                      ? `One mystery bag · ${bagContents(form)}`
+                      : form.selling_format === "batch"
+                        ? `One batch of ${form.unit_count} ${form.unit_label}`
+                        : "One individual treat"}
                   </b>
                 </div>
                 <strong>{money(Number(form.price) || 0)}</strong>
               </div>
               <div className="admin-field-grid">
                 <label className="admin-field">
-                  {form.selling_format === "batch"
-                    ? "Price per batch"
-                    : "Price per item"}
+                  {isMysteryBag(form)
+                    ? "Price per bag"
+                    : form.selling_format === "batch"
+                      ? "Price per batch"
+                      : "Price per item"}
                   <input
                     type="number"
                     min="0.01"
@@ -525,28 +616,38 @@ function MenuEditor({
               </div>
               <div className="admin-field-grid">
                 <label className="admin-field">
-                  {form.selling_format === "batch"
-                    ? "Batches available"
-                    : "Quantity available"}
+                  {isMysteryBag(form)
+                    ? "Bags available"
+                    : form.selling_format === "batch"
+                      ? "Batches available"
+                      : "Quantity available"}
                   <input
                     type="number"
                     min="0"
                     max="100000"
                     step="1"
-                    placeholder="Made to order"
+                    placeholder={isMysteryBag(form) ? "0" : "Made to order"}
+                    required={isMysteryBag(form)}
                     value={form.stock_quantity ?? ""}
                     onChange={(e) =>
                       change(
                         "stock_quantity",
-                        e.target.value === "" ? null : Number(e.target.value),
+                        e.target.value === ""
+                          ? isMysteryBag(form)
+                            ? ""
+                            : null
+                          : Number(e.target.value),
                       )
                     }
                   />
                   <small>
-                    {form.selling_format === "batch"
-                      ? "Count complete batches, not individual pieces. "
-                      : ""}
-                    Leave blank for made to order. Set 0 to show sold out.
+                    {isMysteryBag(form)
+                      ? "Count complete bags. Update after confirming orders or selling in person. Set 0 to show sold out."
+                      : form.selling_format === "batch"
+                        ? "Count complete batches, not individual pieces. "
+                        : ""}
+                    {!isMysteryBag(form) &&
+                      "Leave blank for made to order. Set 0 to show sold out."}
                   </small>
                 </label>
                 <label className="admin-field">
@@ -588,8 +689,8 @@ function MenuEditor({
                 </label>
               ) : (
                 <p className="admin-footnote">
-                  This batch is sold at its own price. It can be included in a
-                  weekly box.
+                  This {isMysteryBag(form) ? "bag" : "batch"} is sold at its own
+                  price. It can be included in a weekly box.
                 </p>
               )}
               <div className="catalog-editor-heading">
@@ -717,7 +818,13 @@ function MenuEditor({
               disabled={busy || uploading || (product && !dirty)}
             >
               <AdminIcon name="check" />
-              {busy ? "Saving…" : product ? "Save changes" : "Add menu item"}
+              {busy
+                ? "Saving…"
+                : product
+                  ? "Save changes"
+                  : isMysteryBag(form)
+                    ? "Add mystery bag"
+                    : "Add menu item"}
             </button>
           </footer>
         </form>
@@ -731,7 +838,9 @@ function MenuEditor({
               ...current,
               category: category.slug,
               bundle_eligible:
-                current.unit_count === 1 && category.treatType !== "other",
+                current.offering_type !== "mystery-bag" &&
+                current.unit_count === 1 &&
+                category.treatType !== "other",
             }));
             setCategoryEditor(false);
           }}
@@ -742,7 +851,7 @@ function MenuEditor({
   );
 }
 
-export default function MenuManager() {
+export default function MenuManager({ mysteryBagsOnly = false }) {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -780,11 +889,14 @@ export default function MenuManager() {
     let stopped = false;
     async function refreshCategories() {
       try {
-        const response = await fetch("/api/admin/categories", {
+        const response = await fetch("/api/admin/menu", {
           cache: "no-store",
         });
         const data = await response.json();
-        if (response.ok && !stopped) setCategories(data.categories || []);
+        if (response.ok && !stopped) {
+          setCategories(data.categories || []);
+          setProducts(data.products || []);
+        }
       } catch {}
     }
     window.addEventListener("bonbons-catalog-changed", refreshCategories);
@@ -796,14 +908,17 @@ export default function MenuManager() {
   useEffect(() => {
     setPage(1);
   }, [filter, category, query]);
-  const current = products.filter((product) => !product.deletedAt);
+  const catalogProducts = mysteryBagsOnly
+    ? products.filter(isMysteryBag)
+    : products;
+  const current = catalogProducts.filter((product) => !product.deletedAt);
   const counts = {
     all: current.length,
     live: current.filter((product) => product.active).length,
     hidden: current.filter((product) => !product.active).length,
-    trash: products.length - current.length,
+    trash: catalogProducts.length - current.length,
   };
-  const shown = products
+  const shown = catalogProducts
     .filter(
       (product) =>
         (filter === "trash"
@@ -874,9 +989,19 @@ export default function MenuManager() {
     <div className="admin-view menu-view catalog-view">
       <header className="admin-page-head">
         <div>
-          <span className="admin-kicker">Menu management</span>
-          <h1>Your sweet collection.</h1>
-          <p>Every treat, batch, and category. One place to make it yours.</p>
+          <span className="admin-kicker">
+            {mysteryBagsOnly ? "Surprise assortments" : "Menu management"}
+          </span>
+          <h1>
+            {mysteryBagsOnly
+              ? "A little mystery. A lot of sweet."
+              : "Your sweet collection."}
+          </h1>
+          <p>
+            {mysteryBagsOnly
+              ? "Create, publish, and restock your mystery bags. Every bag has its own price and quantity."
+              : "Every treat, batch, and category. One place to make it yours."}
+          </p>
         </div>
         <div className="catalog-header-actions">
           <button
@@ -891,17 +1016,49 @@ export default function MenuManager() {
           <button
             className="admin-btn admin-btn-primary"
             type="button"
-            onClick={() => setEditor({ product: null })}
+            onClick={() =>
+              setEditor({ product: null, mysteryBag: mysteryBagsOnly })
+            }
             disabled={loading || Boolean(error)}
           >
             <AdminIcon name="plus" />
-            Add menu item
+            {mysteryBagsOnly ? "Add mystery bag" : "Add menu item"}
           </button>
         </div>
       </header>
+      {mysteryBagsOnly && (
+        <section
+          className="mystery-bag-intro catalog-panel"
+          aria-label="Mystery bag starter"
+        >
+          <Image
+            src="/products/mystery-bags-flyer.jpg"
+            alt="Bon Bon's Mystery 4 Pack Bags flyer: four cake pops and a sweet surprise for $10"
+            width={960}
+            height={1280}
+          />
+          <div>
+            <span className="admin-kicker">Your four-pack favorite</span>
+            <h2>
+              Four cake pops.
+              <br />
+              One sweet surprise.
+            </h2>
+            <p>
+              Start with your $10 flyer offer, then choose how many bags are
+              available. Change the size, price, extra surprise, photo,
+              ingredients, and allergens for every new assortment.
+            </p>
+            <small>
+              The flyer is a reference. Your saved bag stock controls
+              availability on the website.
+            </small>
+          </div>
+        </section>
+      )}
       <section className="catalog-overview" aria-label="Menu summary">
         {[
-          ["all", "Products", "menu"],
+          ["all", mysteryBagsOnly ? "Bags" : "Products", "menu"],
           ["live", "Live on the menu", "eye"],
           ["hidden", "Saved as hidden", "hidden"],
         ].map(([key, label, icon]) => (
@@ -953,17 +1110,21 @@ export default function MenuManager() {
       >
         <div className="catalog-panel-header">
           <div>
-            <h2>Product library</h2>
+            <h2>
+              {mysteryBagsOnly ? "Mystery bag collection" : "Product library"}
+            </h2>
             <p>Organize your menu and set what customers can order.</p>
           </div>
           <div className="catalog-store-links">
-            <Link
-              href="/preview/packs"
-              target="_blank"
-              className="admin-text-btn"
-            >
-              Preview packs <AdminIcon name="external" />
-            </Link>
+            {!mysteryBagsOnly && (
+              <Link
+                href="/preview/packs"
+                target="_blank"
+                className="admin-text-btn"
+              >
+                Preview packs <AdminIcon name="external" />
+              </Link>
+            )}
             <Link href="/shop" target="_blank" className="admin-text-btn">
               Storefront <AdminIcon name="external" />
             </Link>
@@ -1086,25 +1247,31 @@ export default function MenuManager() {
                       </div>
                       <h2>{product.name}</h2>
                       <p>
-                        {product.unitCount > 1
-                          ? `${sellingUnit(product)} per batch`
+                        {product.unitCount > 1 || isMysteryBag(product)
+                          ? `${isMysteryBag(product) ? bagContents(product) : sellingUnit(product)} per ${sellingContainer(product)}`
                           : product.blurb || "Individual treat"}
                       </p>
                     </div>
                     <div className="catalog-product-price">
                       <b>{money(product.price)}</b>
                       <span>
-                        {product.unitCount > 1 ? "per batch" : "each"}
+                        {isMysteryBag(product)
+                          ? "per bag"
+                          : product.unitCount > 1
+                            ? "per batch"
+                            : "each"}
                       </span>
                     </div>
                     <div className="catalog-product-stock">
                       <b>{stockSummary(product)}</b>
                       <span>
-                        {product.unitCount > 1
-                          ? "Batch quantities"
-                          : product.bundleEligible
-                            ? "Treat-pack eligible"
-                            : "Individual pricing"}
+                        {isMysteryBag(product)
+                          ? "Bag quantities"
+                          : product.unitCount > 1
+                            ? "Batch quantities"
+                            : product.bundleEligible
+                              ? "Treat-pack eligible"
+                              : "Individual pricing"}
                       </span>
                     </div>
                     <footer className="menu-card-actions">
@@ -1157,21 +1324,32 @@ export default function MenuManager() {
                 <h2>
                   {filter === "trash"
                     ? "Trash is empty."
-                    : "No products match."}
+                    : mysteryBagsOnly && !current.length
+                      ? "Your first mystery bag starts here."
+                      : "No products match."}
                 </h2>
                 <p>
-                  Try a different category or search, or add your next sweet
-                  idea.
+                  {mysteryBagsOnly && !current.length
+                    ? "Create a hidden draft with your four-pack offer, then publish when your bags are ready."
+                    : "Try a different category or search, or add your next sweet idea."}
                 </p>
                 <button
                   className="admin-btn admin-btn-secondary"
                   onClick={() => {
+                    if (mysteryBagsOnly && !current.length) {
+                      setEditor({ product: null, mysteryBag: true });
+                      return;
+                    }
                     setFilter("all");
                     setCategory("all");
                     setQuery("");
                   }}
                 >
-                  Show all products
+                  {mysteryBagsOnly
+                    ? !current.length
+                      ? "Create your first bag"
+                      : "Show all bags"
+                    : "Show all products"}
                 </button>
               </div>
             )}
@@ -1214,6 +1392,7 @@ export default function MenuManager() {
       {editor && (
         <MenuEditor
           product={editor.product}
+          mysteryBag={editor.mysteryBag}
           nextOrder={
             Math.max(0, ...current.map((product) => product.sortOrder)) + 10
           }

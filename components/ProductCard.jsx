@@ -10,11 +10,19 @@ import { stockLabel } from "@/lib/weekly-box";
 import { stockState } from "@/supabase/functions/_shared/menu";
 import { bundleGroupForCategory } from "@/lib/bundles";
 import { saleDescription } from "@/lib/menu-categories";
+import {
+  isMysteryBag,
+  bagContents,
+  sellingContainer,
+} from "@/lib/product-offerings";
 
 export default function ProductCard({ product }) {
   const { add, ready } = useCart();
   const [added, setAdded] = useState(false);
-  const availability = stockState(product.stockQuantity, product.lowStockThreshold);
+  const availability = stockState(
+    product.stockQuantity,
+    product.lowStockThreshold,
+  );
   const soldOut = availability.state === "sold_out";
 
   function onAdd(e) {
@@ -28,7 +36,13 @@ export default function ProductCard({ product }) {
       price: product.price,
       qty: 1,
       bundleEligible: product.bundleEligible,
-      bundleGroup: bundleGroupForCategory(product.category,product.treatType), category: product.category, treatType:product.treatType, unitCount:product.unitCount, unitLabel:product.unitLabel,
+      offeringType: product.offeringType,
+      bonusDescription: product.bonusDescription,
+      bundleGroup: bundleGroupForCategory(product.category, product.treatType),
+      category: product.category,
+      treatType: product.treatType,
+      unitCount: product.unitCount,
+      unitLabel: product.unitLabel,
       image: product.image,
       icon: product.icon,
       color: product.color,
@@ -39,11 +53,16 @@ export default function ProductCard({ product }) {
   }
 
   return (
-    <article className={`prod rv-anim${soldOut ? " is-sold-out" : ""}`} data-motion="card">
+    <article
+      className={`prod rv-anim${soldOut ? " is-sold-out" : ""}`}
+      data-motion="card"
+    >
       <Link href={`/shop/${product.slug}`} style={{ display: "block" }}>
         <div
           className={`ph${product.image ? " photo" : ""}`}
-          style={{ background: `linear-gradient(150deg,rgba(${product.tint},.22),rgba(${product.tint},.04))` }}
+          style={{
+            background: `linear-gradient(150deg,rgba(${product.tint},.22),rgba(${product.tint},.04))`,
+          }}
         >
           {product.image ? (
             <Image
@@ -52,29 +71,70 @@ export default function ProductCard({ product }) {
               fill
               sizes="(max-width: 560px) 100vw, (max-width: 1080px) 50vw, 25vw"
             />
-          ) : <div className="flavor-photo-pending"><Image src="/logo-transparent.png" alt="Bon Bon's Sweets & More" width={150} height={150} /><span>Product photo coming soon</span></div>}
+          ) : (
+            <div className="flavor-photo-pending">
+              <Image
+                src="/logo-transparent.png"
+                alt="Bon Bon's Sweets & More"
+                width={150}
+                height={150}
+              />
+              <span>Product photo coming soon</span>
+            </div>
+          )}
           {product.badge ? (
-            <span className={`badge ${product.badgeClass || ""}`}>{product.badge}</span>
+            <span className={`badge ${product.badgeClass || ""}`}>
+              {product.badge}
+            </span>
           ) : null}
-          {isStyledProductPhoto(product.image) && <span className="styled-photo-label">Styled photo</span>}
+          {isStyledProductPhoto(product.image) && (
+            <span className="styled-photo-label">Styled photo</span>
+          )}
           {soldOut ? <span className="stock-flag is-out">Sold out</span> : null}
         </div>
       </Link>
       <div className="meta">
-        <h3><Link href={`/shop/${product.slug}`}>{product.name}</Link></h3>
+        <h3>
+          <Link href={`/shop/${product.slug}`}>{product.name}</Link>
+        </h3>
         <div className="d">{product.blurb}</div>
-        {product.unitCount > 1 && <p className="product-batch-size">{product.unitCount} {product.unitLabel} per batch</p>}
-        <Link href={`/shop/${product.slug}#ingredients`} className="product-ingredients-link">View ingredients →</Link>
+        {(product.unitCount > 1 || isMysteryBag(product)) && (
+          <p className="product-batch-size">
+            {isMysteryBag(product)
+              ? bagContents(product)
+              : `${product.unitCount} ${product.unitLabel}`}{" "}
+            per {sellingContainer(product)}
+          </p>
+        )}
+        <Link
+          href={`/shop/${product.slug}#ingredients`}
+          className="product-ingredients-link"
+        >
+          View ingredients →
+        </Link>
         {availability.state === "low" ? (
           <p className="stock-line is-low">{stockLabel(availability)}</p>
         ) : null}
         <div className="bot">
-          <span className="p">{money(product.price)} <small>{product.unitCount > 1 ? "per batch" : product.unit}</small></span>
+          <span className="p">
+            {money(product.price)}{" "}
+            <small>
+              {isMysteryBag(product)
+                ? "per bag"
+                : product.unitCount > 1
+                  ? "per batch"
+                  : product.unit}
+            </small>
+          </span>
           <button
             className={`add${added ? " added" : ""}`}
             onClick={onAdd}
             disabled={soldOut || !ready}
-            aria-label={soldOut ? `${product.name} is sold out` : `Add ${product.name} to pickup request`}
+            aria-label={
+              soldOut
+                ? `${product.name} is sold out`
+                : `Add ${product.name} to pickup request`
+            }
           >
             <Icon name={added ? "i-check" : "i-plus"} />
           </button>
