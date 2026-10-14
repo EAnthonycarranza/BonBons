@@ -65,7 +65,7 @@ export default async function ShopPage() {
             />
           </div>
         </div>
-        <nav className="treat-category-nav" aria-label="Treat categories">
+        <nav className="treat-category-nav rv-anim" aria-label="Treat categories">
           {categories.map((category) => (
             <a key={category} href={`#${category}`}>
               {shelfName(category)}
@@ -73,7 +73,7 @@ export default async function ShopPage() {
           ))}
         </nav>
         {!products.length && (
-          <div className="b-card">
+          <div className="b-card rv-anim">
             <h2>The next batch is on its way.</h2>
             <p>
               Check back for available treats, or contact Bonnie to ask what’s
@@ -88,7 +88,7 @@ export default async function ShopPage() {
             key={category}
             aria-labelledby={`${category}-heading`}
           >
-            <div className="category-heading">
+            <div className="category-heading rv-anim">
               <h2 id={`${category}-heading`}>{shelfName(category)}</h2>
               <span>
                 {products.some(

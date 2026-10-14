@@ -15,7 +15,7 @@
   --maxw:1280px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;scroll-padding-top:96px}
+html{scroll-behavior:smooth;scroll-padding-top:96px;scrollbar-gutter:stable}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
@@ -542,17 +542,8 @@ body:not(:has(.pickup-request-form)) .grecaptcha-badge{visibility:hidden!importa
   .socials a{width:42px;height:42px}
 }
 
-/* Progressive enhancement: content never waits for JavaScript or an observer
-   to become readable. Only animate after entry, then return to visible styles. */
+/* Visible fallback; experience.css enhances prepared sections with finite motion. */
 .rv-anim{opacity:1;transform:none}
-.rv-anim.in{animation:reveal-in .6s ease}
-@keyframes reveal-in{
-  from{opacity:0;transform:translateY(20px)}
-  to{opacity:1;transform:none}
-}
-@media (prefers-reduced-motion:reduce){
-  .rv-anim.in{animation:none}
-}
 
 /* toast */
 /* Fading as well as sliding matters here: on mobile the toast sits above the

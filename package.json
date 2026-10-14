@@ -12,7 +12,7 @@
     "start": "node scripts/start-server.mjs",
     "start:heroku": "node scripts/check-production-env.mjs && node scripts/start-server.mjs --hostname 0.0.0.0",
     "lint": "next lint",
-    "test:all": "node --experimental-vm-modules --test tests/email.test.mjs tests/reveal.test.mjs tests/production-env.test.mjs tests/menu.test.mjs tests/pretzel-rods.test.mjs tests/mobile-experience.test.mjs tests/product-photos.test.mjs tests/weekly-box.test.mjs tests/weekly-box-design.test.mjs tests/order-import.test.mjs tests/pickup-delay.test.mjs tests/order-documents.test.mjs tests/payment-choice.test.mjs tests/rent-a-cart.test.mjs tests/coupons.test.mjs tests/events.test.mjs tests/page-content.test.mjs tests/pickup-schedule.test.mjs tests/order-notifications.test.mjs tests/flexible-catalog.test.mjs tests/mystery-bags.test.mjs",
+    "test:all": "node --experimental-vm-modules --test tests/email.test.mjs tests/reveal.test.mjs tests/site-motion.test.mjs tests/production-env.test.mjs tests/menu.test.mjs tests/pretzel-rods.test.mjs tests/mobile-experience.test.mjs tests/product-photos.test.mjs tests/weekly-box.test.mjs tests/weekly-box-design.test.mjs tests/order-import.test.mjs tests/pickup-delay.test.mjs tests/order-documents.test.mjs tests/payment-choice.test.mjs tests/rent-a-cart.test.mjs tests/coupons.test.mjs tests/events.test.mjs tests/page-content.test.mjs tests/pickup-schedule.test.mjs tests/order-notifications.test.mjs tests/flexible-catalog.test.mjs tests/mystery-bags.test.mjs",
     "test:email": "node --experimental-vm-modules --test tests/email.test.mjs",
     "test:reveal": "node --experimental-vm-modules --test tests/reveal.test.mjs",
     "test:config": "node --test tests/production-env.test.mjs",
@@ -26,11 +26,13 @@
     "test:cart": "node --experimental-vm-modules --test tests/rent-a-cart.test.mjs",
     "test:payment": "node --test tests/payment-choice.test.mjs",
     "test:documents": "node --experimental-vm-modules --test tests/order-documents.test.mjs",
-    "test:coupons": "node --experimental-vm-modules --test tests/coupons.test.mjs"
+    "test:coupons": "node --experimental-vm-modules --test tests/coupons.test.mjs",
+    "test:motion": "node --experimental-vm-modules --test tests/reveal.test.mjs tests/site-motion.test.mjs tests/mobile-experience.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",
     "@supabase/supabase-js": "2.112.4",
+    "lenis": "1.3.26",
     "next": "^15.1.6",
     "nodemailer": "9.1.1",
     "pdf-lib": "^1.17.1",

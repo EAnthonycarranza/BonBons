@@ -1,3 +1,4 @@
+import "lenis/dist/lenis.css";
 import "./globals.css";
 import "./storefront.css";
 import "./experience.css";
@@ -10,6 +11,7 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import MobileBar from "@/components/MobileBar";
 import Reveal from "@/components/Reveal";
+import SmoothScroll from "@/components/SmoothScroll";
 import { PricesProvider } from "@/components/PricesProvider";
 import { getShopSettings } from "@/lib/weekly-box-data";
 import { money } from "@/lib/format";
@@ -67,6 +69,7 @@ export default async function RootLayout({ children }) {
           <StorefrontOnly><SiteFooter /><MobileBar /><CartDrawer /><Toast /></StorefrontOnly>
         </CartProvider>
         </PricesProvider>
+        <StorefrontOnly><SmoothScroll /></StorefrontOnly>
         <Reveal />
       </body>
     </html>

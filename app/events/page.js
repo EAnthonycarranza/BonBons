@@ -24,7 +24,7 @@ function EventIcon({ name }) {
 
 function EventCard({ event }) {
   return (
-    <article className={`local-event-card ${event.status === "cancelled" ? "is-cancelled" : ""}`} id={`event-${event.id}`}>
+    <article className={`local-event-card rv-anim ${event.status === "cancelled" ? "is-cancelled" : ""}`} data-motion="card" id={`event-${event.id}`}>
       {event.image ? (
         <div className="local-event-photo">
           <Image src={event.image} alt={`${event.title} flyer`} fill quality={90} sizes="(max-width: 760px) 95vw, (max-width: 1280px) 45vw, 550px"/>
@@ -74,18 +74,18 @@ export default async function EventsPage() {
     <div className="local-events-page wrap">
       <EventCalendarRefresh endsAt={upcoming.map(event => event.endsAt).filter(Boolean).sort()[0] || ""}/>
       <header className="local-events-hero">
-        <div>
+        <div className="rv-anim">
           <span className="local-events-eyebrow"><EventIcon name="location"/>Around San Antonio</span>
           <h1>Sweet treats.<br/><em>Local meetups.</em></h1>
         </div>
-        <div className="local-events-intro">
+        <div className="local-events-intro rv-anim">
           <p>Come say hello, pick up something sweet, and find us at the events we love being part of.</p>
           <a href="#event-updates" className="local-events-update-link">Get event updates <ArrowIcon /></a>
         </div>
       </header>
 
       <section aria-labelledby="upcoming-events">
-        <div className="local-events-heading">
+        <div className="local-events-heading rv-anim">
           <h2 id="upcoming-events">Where we&apos;ll be next</h2>
           <span>{upcoming.length} upcoming {upcoming.length === 1 ? "event" : "events"}</span>
         </div>
@@ -94,7 +94,7 @@ export default async function EventsPage() {
         ) : upcoming.length ? (
           <div className="local-events-grid">{upcoming.map(event => <EventCard key={event.id} event={event}/>)}</div>
         ) : (
-          <div className="local-events-empty">
+          <div className="local-events-empty rv-anim">
             <span aria-hidden="true">♡</span>
             <h3>More sweet stops are on the way.</h3>
             <p>We&apos;re planning our next local appearances. Join the list below and we&apos;ll let you know when they&apos;re announced.</p>
@@ -102,7 +102,7 @@ export default async function EventsPage() {
         )}
       </section>
 
-      <section className="local-events-signup" id="event-updates" aria-labelledby="event-updates-heading">
+      <section className="local-events-signup rv-anim" id="event-updates" aria-labelledby="event-updates-heading">
         <div>
           <span className="local-events-eyebrow"><EventIcon name="mail"/>Let&apos;s stay in touch</span>
           <h2 id="event-updates-heading">A little sweetness<br/><em>in your inbox.</em></h2>
