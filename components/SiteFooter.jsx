@@ -171,9 +171,7 @@ export default async function SiteFooter() {
             <span className="credit-btn-text">
               Website created by <strong>Coding Carranza</strong>
             </span>
-            <span className="credit-btn-arrow" aria-hidden="true">
-              &#8599;
-            </span>
+            <ArrowIcon direction="up-right" className="credit-btn-arrow" />
           </a>
         </div>
       </div>
