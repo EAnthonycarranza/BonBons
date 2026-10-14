@@ -1,4 +1,5 @@
 import Image from "next/image";
+import ArrowIcon from "@/components/ArrowIcon";
 import NewsletterForm from "@/components/NewsletterForm";
 import EventCalendarRefresh from "@/components/EventCalendarRefresh";
 import { getPublicEvents } from "@/lib/events-data";
@@ -52,8 +53,8 @@ function EventCard({ event }) {
         </dl>
         {event.description && <p className="local-event-description">{event.description}</p>}
         <div className="local-event-links">
-          <a className="local-event-directions" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.venue} ${event.address}`)}`} target="_blank" rel="noopener noreferrer">Get directions <span aria-hidden="true">↗</span></a>
-          {event.link && <a className="local-event-website" href={event.link} target="_blank" rel="noopener noreferrer">Event website <span aria-hidden="true">↗</span></a>}
+          <a className="local-event-directions" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.venue} ${event.address}`)}`} target="_blank" rel="noopener noreferrer">Get directions <ArrowIcon direction="up-right" /></a>
+          {event.link && <a className="local-event-website" href={event.link} target="_blank" rel="noopener noreferrer">Event website <ArrowIcon direction="up-right" /></a>}
         </div>
       </div>
     </article>
@@ -79,7 +80,7 @@ export default async function EventsPage() {
         </div>
         <div className="local-events-intro">
           <p>Come say hello, pick up something sweet, and find us at the events we love being part of.</p>
-          <a href="#event-updates" className="local-events-update-link">Get event updates <span aria-hidden="true">↗</span></a>
+          <a href="#event-updates" className="local-events-update-link">Get event updates <ArrowIcon /></a>
         </div>
       </header>
 

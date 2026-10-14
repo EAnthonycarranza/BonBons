@@ -1,4 +1,5 @@
 import Image from "next/image";
+import ArrowIcon from "@/components/ArrowIcon";
 import FaqList from "@/components/FaqList";
 import { SITE } from "@/lib/sample-data";
 
@@ -24,7 +25,7 @@ export default function FaqPage() {
             know.
           </p>
           <a className="text-link" href={`mailto:${SITE.email}`}>
-            Still have a question? Email Bonnie <span aria-hidden="true">↗</span>
+            Still have a question? Email Bonnie <ArrowIcon direction="up-right" />
           </a>
           <Image
             className="faq-photo"
@@ -34,7 +35,7 @@ export default function FaqPage() {
             height={280}
           />
         </div>
-        <div><FaqList /><p style={{ marginTop: 24 }}>Already have a confirmed order? <a className="text-link" href={SITE.paymentUrl} target="_blank" rel="noopener noreferrer">Open payment options ↗</a></p></div>
+        <div><FaqList /><p style={{ marginTop: 24 }}>Already have a confirmed order? <a className="text-link" href={SITE.paymentUrl} target="_blank" rel="noopener noreferrer">Open payment options <ArrowIcon direction="up-right" /></a></p></div>
       </div>
     </section>
   );

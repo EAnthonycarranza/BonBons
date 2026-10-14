@@ -123,7 +123,7 @@ export default async function SiteFooter() {
               <li>San Antonio · Tue, Thu & Fri, 3–8 p.m.</li>
               <li>Other pickup times by request</li>
               <li>Pickup only—no delivery</li>
-              <li><a href={SITE.paymentUrl} target="_blank" rel="noopener noreferrer">Payment options ↗</a></li>
+              <li><a href={SITE.paymentUrl} target="_blank" rel="noopener noreferrer">Payment options <ArrowIcon direction="up-right" /></a></li>
               <li><a href={SITE.phoneHref}>{SITE.phone}</a></li>
               <li><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
               <li>

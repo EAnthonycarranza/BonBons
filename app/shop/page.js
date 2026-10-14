@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getProducts } from "@/lib/products";
 import ProductCard from "@/components/ProductCard";
+import ArrowIcon from "@/components/ArrowIcon";
 import { getShopSettings } from "@/lib/weekly-box-data";
 import { money } from "@/lib/format";
 import { isCakePopProduct, MIXED_PACK_RULE } from "@/lib/bundles";
@@ -51,7 +52,7 @@ export default async function ShopPage() {
               with each product.
             </p>
             <Link className="text-link" href="/build-a-box">
-              Mix & match 4 for {mixedLabel} <span aria-hidden="true">↗</span>
+              Mix & match 4 for {mixedLabel} <ArrowIcon />
             </Link>
           </div>
           <div className="page-masthead-photo">
