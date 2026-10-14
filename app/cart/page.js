@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ProductThumbnail from "@/components/ProductThumbnail";
+import ArrowIcon from "@/components/ArrowIcon";
 import { useCart } from "@/components/CartProvider";
 import { Icon } from "@/components/Icons";
 import BundleNudge from "@/components/BundleNudge";
@@ -171,7 +172,7 @@ export default function CartPage() {
             </p>
           </div>
           <Link className="btn btn-ghost" href="/shop">
-            ← Keep shopping
+            <ArrowIcon direction="left" /> Keep shopping
           </Link>
         </div>
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { pageText } from "@/lib/page-content";
+import ArrowIcon from "./ArrowIcon";
 
 export function PageHeading({ fields, values = {}, level = 2 }) {
   const Tag = `h${level}`;
@@ -10,5 +11,6 @@ export function PageParagraphs({ text, values = {} }) {
 }
 export function PageLink({ href, label, className = "text-link", arrow = "↗" }) {
   if (!href || !label) return null;
-  return <Link className={className} href={href}>{label} <span aria-hidden="true">{arrow}</span></Link>;
+  const direction = { "→": "right", "←": "left", "↗": "up-right" }[arrow];
+  return <Link className={className} href={href}>{label}{" "}{direction ? <ArrowIcon direction={direction}/> : <span aria-hidden="true">{arrow}</span>}</Link>;
 }

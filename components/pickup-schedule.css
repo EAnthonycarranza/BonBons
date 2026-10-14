@@ -43,6 +43,8 @@
   margin-bottom: 16px;
 }
 .pickup-calendar-head button {
+  display: grid;
+  place-items: center;
   background: transparent;
   color: var(--cream);
   border: 1px solid var(--stroke-2);

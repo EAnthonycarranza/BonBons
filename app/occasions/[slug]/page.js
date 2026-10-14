@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { OCCASIONS } from "@/lib/sample-data";
 import { Icon } from "@/components/Icons";
+import ArrowIcon from "@/components/ArrowIcon";
 
 export function generateStaticParams() {
   return OCCASIONS.map((o) => ({ slug: o.slug }));
@@ -76,7 +77,7 @@ export default async function OccasionPage({ params }) {
                       href={`/occasions/${o.slug}`}
                       style={{ color: "var(--pink-2)", fontWeight: 600 }}
                     >
-                      {o.title} →
+                      {o.title} <ArrowIcon />
                     </Link>
                     <div style={{ color: "var(--muted)", fontSize: 14 }}>
                       {o.short}

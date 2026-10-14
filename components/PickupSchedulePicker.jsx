@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import ArrowIcon from "./ArrowIcon";
 import {
   localPickupNow,
   availablePickupTimes,
@@ -88,7 +89,7 @@ export default function PickupSchedulePicker({
                 disabled={month <= today.slice(0, 7) || disabled}
                 onClick={() => moveMonth(-1)}
               >
-                ←
+                <ArrowIcon direction="left" />
               </button>
               <b>
                 {new Intl.DateTimeFormat("en-US", {
@@ -102,7 +103,7 @@ export default function PickupSchedulePicker({
                 aria-label="Next month"
                 onClick={() => moveMonth(1)}
               >
-                →
+                <ArrowIcon />
               </button>
             </div>
             <div className="pickup-calendar-days">

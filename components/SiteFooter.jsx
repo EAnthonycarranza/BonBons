@@ -3,6 +3,7 @@ import { getShopSettings } from "@/lib/weekly-box-data";
 import { money } from "@/lib/format";
 import Image from "next/image";
 import { Icon } from "./Icons";
+import ArrowIcon from "./ArrowIcon";
 import { SITE } from "@/lib/sample-data";
 import { PaymentMethods } from "./PaymentMarks";
 
@@ -126,7 +127,7 @@ export default async function SiteFooter() {
               <li><a href={SITE.phoneHref}>{SITE.phone}</a></li>
               <li><a href={`mailto:${SITE.email}`}>{SITE.email}</a></li>
               <li>
-                <Link href="/faq">How pickup works →</Link>
+                <Link href="/faq">How pickup works <ArrowIcon /></Link>
               </li>
               <li><Link href="/events">Local events & updates</Link></li>
               <li><Link href="/redeem">Redeem a coupon</Link></li>

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCart } from "./CartProvider";
 import { Icon } from "./Icons";
+import ArrowIcon from "./ArrowIcon";
 import { trapFocus } from "@/lib/focus-trap";
 import { usePrices } from "./PricesProvider";
 
@@ -213,9 +214,7 @@ export default function SiteHeader() {
                     <b>{link.label}</b>
                     <small>{link.note}</small>
                   </span>
-                  <span className="mobile-menu-arrow" aria-hidden="true">
-                    →
-                  </span>
+                  <ArrowIcon className="mobile-menu-arrow" />
                 </Link>
               ))}
             </div>
@@ -228,7 +227,7 @@ export default function SiteHeader() {
                 <small>Planning an event?</small>
                 <b>Rent the cake-pop cart</b>
               </span>
-              <span aria-hidden="true">→</span>
+              <ArrowIcon />
             </Link>
           </div>
         </nav>

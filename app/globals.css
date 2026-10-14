@@ -51,6 +51,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .btn-sm{padding:10px 18px;font-size:14px}
 .btn-block{width:100%}
 .btn[disabled]{opacity:.45;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.arrow-icon{display:inline-block;width:1.4em;height:1em;flex-shrink:0;vertical-align:-.12em}
+.btn .arrow-icon,.admin-btn .arrow-icon{width:24px;height:18px}
 
 /* ============================================================
    ANNOUNCEMENT BAR
@@ -129,12 +131,12 @@ button,input,select,textarea{font:inherit;color:inherit}
   .mobile-menu-link:hover,.mobile-menu-link[aria-current="page"]{background:rgba(255,255,255,.035)}
   .mobile-menu-number{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--pink-2)}
   .mobile-menu-copy{display:grid}.mobile-menu-copy b{font-size:17px;color:var(--text)}.mobile-menu-copy small{font-size:12px;color:var(--muted);margin-top:2px}
-  .mobile-menu-arrow{font-size:20px;color:var(--muted);transition:transform .18s ease,color .18s ease}
+  .arrow-icon.mobile-menu-arrow{width:26px;height:20px;color:var(--muted);transition:transform .18s ease,color .18s ease}
   .mobile-menu-link:hover .mobile-menu-arrow{transform:translateX(3px);color:var(--pink-2)}
   .mobile-menu-cta{min-height:76px;margin-top:18px;padding:15px 18px;border-radius:14px;background:var(--pink);color:#fff;
     display:flex;align-items:center;justify-content:space-between;gap:18px;box-shadow:0 14px 30px rgba(255,46,154,.22)}
   .mobile-menu-cta > span:first-child{display:grid}.mobile-menu-cta small{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.76}
-  .mobile-menu-cta b{font-size:16px;margin-top:2px}.mobile-menu-cta > span:last-child{font-size:22px}
+  .mobile-menu-cta b{font-size:16px;margin-top:2px}.mobile-menu-cta > .arrow-icon{width:28px;height:20px}
   .mobile-menu-backdrop{display:block;position:fixed;inset:0;z-index:85;border:0;background:rgba(4,2,7,.58);backdrop-filter:blur(3px);
     opacity:0;visibility:hidden;pointer-events:none;transition:opacity .24s ease,visibility 0s linear .24s}
   .mobile-menu-backdrop.open{opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
@@ -776,6 +778,9 @@ body:has(.admin-page) .mbar{display:none}
 .home-products .sec-top > div{max-width:760px}.home-products .sec-top h2{max-width:17ch;margin-top:10px}
 .text-link{color:var(--pink-2);font-size:14px;font-weight:800;display:inline-flex;align-items:center;gap:8px;padding:10px 0}
 .text-link span{transition:transform .18s}.text-link:hover span{transform:translateX(4px)}
+.text-link > .arrow-icon{transition:transform .18s ease}
+.text-link:hover > .arrow-icon{transform:translateX(3px)}
+.text-link:hover > .arrow-icon--left{transform:translateX(-3px)}
 .home-product-grid .prod{background:var(--bg-2)}
 
 .home-signature{padding-top:32px}

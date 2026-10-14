@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "./CartProvider";
 import { Icon } from "./Icons";
+import ArrowIcon from "./ArrowIcon";
 import { money } from "@/lib/format";
 import { isStyledProductPhoto, isProductFlyer } from "@/lib/product-photos";
 import { stockLabel } from "@/lib/weekly-box";
@@ -114,7 +115,7 @@ export default function ProductCard({ product }) {
           href={`/shop/${product.slug}#ingredients`}
           className="product-ingredients-link"
         >
-          View ingredients →
+          View ingredients <ArrowIcon />
         </Link>
         {availability.state === "low" ? (
           <p className="stock-line is-low">{stockLabel(availability)}</p>
