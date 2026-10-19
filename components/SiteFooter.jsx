@@ -25,10 +25,7 @@ export default async function SiteFooter() {
               style={{ height: 88, width: "auto" }}
             />
             <div className="tag">{SITE.tagline}</div>
-            <p>
-              Handmade in San Antonio, with a little faith and a whole lot of
-              love.
-            </p>
+            <p>{SITE.locationText}</p>
             <div className="socials">
               <a
                 href={SITE.instagram}
