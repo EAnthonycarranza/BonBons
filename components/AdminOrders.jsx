@@ -1,4 +1,5 @@
 "use client";
+import AdminSelect from "./AdminSelect";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ConfirmDialog from "./ConfirmDialog";
@@ -344,14 +345,14 @@ function RecordWorkspace({ record, kind, emailState, pickupLocations, onManageLo
             </div>
             <div className="crm-form-grid">
               <Field label="Order stage">
-                <select value={form.status} onChange={(event) => change("status", event.target.value)}>
+                <AdminSelect value={form.status} onChange={(event) => change("status", event.target.value)}>
                   {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
+                </AdminSelect>
               </Field>
               <Field label="Payment arrangement">
-                <select value={form.paymentStatus} onChange={(event) => change("paymentStatus", event.target.value)}>
+                <AdminSelect value={form.paymentStatus} onChange={(event) => change("paymentStatus", event.target.value)}>
                   {PAYMENT_STATUSES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
+                </AdminSelect>
               </Field>
               <Field label="Confirmed total">
                 <div className="crm-money-input"><span>$</span><input type="number" min="0" step="0.01" value={form.confirmedTotal} onChange={(event) => change("confirmedTotal", event.target.value)} /></div>
@@ -666,9 +667,9 @@ export default function AdminOrders({ dbReady }) {
             </label>
             <label className="crm-stage-filter">
               <span className="sr-only">Filter by stage</span>
-              <select value={stageFilter} onChange={(event) => setStageFilter(event.target.value)}>
+              <AdminSelect value={stageFilter} onChange={(event) => setStageFilter(event.target.value)}>
                 {STAGE_FILTERS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
+              </AdminSelect>
             </label>
           </div>
           <div className="crm-record-list">

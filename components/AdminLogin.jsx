@@ -10,6 +10,7 @@ export default function AdminLogin({ passwordSet }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
@@ -47,8 +48,8 @@ export default function AdminLogin({ passwordSet }) {
       <form onSubmit={submit}>
         <div className="field">
           <label htmlFor="pw" style={{ color: "var(--cream)" }}>Password</label>
-          <input id="pw" type="password" value={password} autoComplete="current-password" required
-            onChange={(e) => setPassword(e.target.value)} />
+          <div className="admin-password-field"><input id="pw" type={showPassword ? "text" : "password"} value={password} autoComplete="current-password" required
+            onChange={(e) => setPassword(e.target.value)} /><button type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}><AdminIcon name={showPassword ? "hidden" : "eye"}/></button></div>
         </div>
         {error && <p className="err" style={{ display: "block", marginBottom: 12 }} role="alert">{error}</p>}
         <button className="admin-btn admin-btn-primary" type="submit" disabled={busy || !passwordSet}>

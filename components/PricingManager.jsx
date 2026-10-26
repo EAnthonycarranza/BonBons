@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import AdminIcon from "./AdminIcon";
+import AdminSelect from "./AdminSelect";
 import { isMysteryBag, bagContents } from "@/lib/product-offerings";
 import { money } from "@/lib/format";
 import { MIXED_PACK_RULE } from "@/lib/bundles";
@@ -18,6 +19,8 @@ import {
  */
 export default function PricingManager() {
   const [products, setProducts] = useState([]);
+  const [search, setSearch] = useState("");
+  const [visibility, setVisibility] = useState("all");
   const [drafts, setDrafts] = useState({});
   const [settings, setSettings] = useState({
     singlePopPrice: "",
@@ -152,6 +155,8 @@ export default function PricingManager() {
   const changed = (product) =>
     String(drafts[product.id] ?? "") !== String(product.price);
 
+  const shownProducts = products.filter(product => product.name.toLowerCase().includes(search.trim().toLowerCase()) && (visibility === "all" || (visibility === "live" ? product.active : !product.active)));
+
   return (
     <section className="admin-setting-card pricing-card">
       <header>
@@ -246,13 +251,15 @@ export default function PricingManager() {
         price; eligible individual treats can join treat-pack offers.
       </p>
 
+      <div className="pricing-product-tools"><label className="admin-field">Find a product<input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search product prices…"/></label><label className="admin-field">Show<AdminSelect value={visibility} onChange={event => setVisibility(event.target.value)}><option value="all">All products</option><option value="live">Live products</option><option value="hidden">Hidden products</option></AdminSelect></label></div>
+      {!loading && <p className="admin-footnote" role="status">{shownProducts.length} of {products.length} products</p>}
       {loading ? (
         <p className="admin-footnote">Loading products…</p>
       ) : products.length === 0 ? (
         <p className="admin-footnote">No products on the menu yet.</p>
-      ) : (
+      ) : !shownProducts.length ? <p className="admin-footnote">No products match. Try another search or filter.</p> : (
         <ul className="pricing-rows">
-          {products.map((product) => (
+          {shownProducts.map((product) => (
             <li key={product.id} className={product.active ? "" : "is-hidden"}>
               <div className="pricing-name">
                 <b>{product.name}</b>

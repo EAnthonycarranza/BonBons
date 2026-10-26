@@ -1,4 +1,6 @@
 "use client";
+import AdminEditorSection, { AdminEditorNav, revealInvalidEditorField } from "./AdminEditorSection";
+import AdminProductPicker from "./AdminProductPicker";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
@@ -52,12 +54,12 @@ function Modal({ title, label, children, onClose }) {
     document.body.style.overflow = "hidden";
     return () => {
       dialog.close();
-      document.body.style.overflow = previousOverflow;
+      if (previousOverflow !== "hidden") document.body.style.overflow = previousOverflow;
     };
   }, []);
   return (
     <dialog
-      className="admin-dialog menu-editor"
+      className="admin-dialog menu-editor box-editor"
       ref={ref}
       aria-labelledby="wbm-dialog-title"
       onCancel={(event) => {
@@ -99,7 +101,7 @@ function BoxEditor({
   const [uploadError, setUploadError] = useState("");
   const [uploadNotice, setUploadNotice] = useState("");
   const [error, setError] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [productPicker, setProductPicker] = useState(false);
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
 
   useEffect(() => {
@@ -290,117 +292,19 @@ function BoxEditor({
         }}
         onCancel={() => setConfirmDiscard(false)}
       />
+      {productPicker && <AdminProductPicker products={products} categories={categories} items={form.items} onAdd={addFlavor} onClose={() => setProductPicker(false)}/>}
       <Modal
         label={box ? "Edit box" : "New box"}
         title={box ? box.title : "Build this week's box."}
         onClose={close}
       >
-        <form onSubmit={save}>
+        <form onSubmit={save} onInvalidCapture={revealInvalidEditorField}>
           <div className="admin-dialog-body">
-            <section
-              className="wbm-artwork-editor"
-              aria-labelledby="wbm-artwork-heading"
-              aria-busy={uploading}
-            >
-              <div className="wbm-artwork-preview">
-                {form.image ? (
-                  <a
-                    href={form.image}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Preview the full box image (opens in a new tab)"
-                  >
-                    <Image
-                      src={form.image}
-                      alt="Box of the Week image preview"
-                      fill
-                      unoptimized
-                      sizes="200px"
-                    />
-                  </a>
-                ) : (
-                  <div>
-                    <AdminIcon name="upload" />
-                    <span>
-                      Your weekly flyer
-                      <br />
-                      or box photo
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="wbm-artwork-controls">
-                <span className="admin-kicker">Made for your social posts</span>
-                <h3 id="wbm-artwork-heading">This week’s spotlight</h3>
-                <p>
-                  Upload the same flyer you share on social media. The complete
-                  image appears on the Box of the Week page and homepage,
-                  without cropping.
-                </p>
-                <label
-                  className={`admin-btn admin-btn-secondary upload-button${uploading ? " is-busy" : ""}`}
-                >
-                  <AdminIcon name="upload" />
-                  {uploading
-                    ? "Uploading…"
-                    : form.image
-                      ? "Replace image"
-                      : "Upload flyer or photo"}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={upload}
-                    disabled={busy || uploading}
-                    aria-label="Upload weekly box flyer or photo"
-                    aria-describedby="wbm-artwork-help"
-                  />
-                </label>
-                <small id="wbm-artwork-help">
-                  JPG, PNG, or WebP · up to 5 MB. Portrait flyers work
-                  especially well; square and landscape images fit too.
-                </small>
-                {form.image && (
-                  <button
-                    type="button"
-                    className="admin-text-btn"
-                    disabled={busy || uploading}
-                    onClick={() => {
-                      change("image", "");
-                      setUploadError("");
-                      setUploadNotice(
-                        "Image removed from this draft. Save the box to publish the change.",
-                      );
-                    }}
-                  >
-                    Remove image from box
-                  </button>
-                )}
-              </div>
-              <p className="wbm-artwork-hint">
-                Keep your flyer’s price and flavors in sync with the box details
-                below. Uploading an image does not change the order contents or
-                price.
-              </p>
-              {uploadNotice && (
-                <p className="wbm-artwork-status" role="status">
-                  {uploadNotice}
-                </p>
-              )}
-              {uploadError && (
-                <p className="admin-alert is-error" role="alert">
-                  {uploadError}
-                </p>
-              )}
-            </section>
+            <div className="box-draft-overview"><span className="box-draft-icon"><AdminIcon name="photo"/></span><div><b>{form.title || "Your next sweet collection"}</b><p>{form.box_type === "mystery" ? "Mystery assortment" : "Listed selection"} · {form.box_type === "mystery" ? form.treat_count : boxPopCount(form.items)} treats · {money(Number(form.price) || 0)}</p></div><span className={`menu-status${form.active ? " is-live" : ""}`}>{form.active ? "Published" : "Hidden"}</span></div>
+            <AdminEditorNav sections={[["details", "Details"], ["stock", "Price & stock"], ["contents", "Contents"], ["artwork", "Artwork"], ["publish", "Publish"]]}/>
             <fieldset disabled={busy || uploading} className="menu-fields">
               <legend className="sr-only">Box details</legend>
-              <div className="catalog-editor-heading">
-                <span>01</span>
-                <div>
-                  <h3>Choose the experience</h3>
-                  <p>Show the selection, or make the unboxing a surprise.</p>
-                </div>
-              </div>
+              <AdminEditorSection id="details" title="Box details" summary={form.box_type === "mystery" ? "Mystery assortment · contents stay private" : "Listed selection · customers see the contents"} defaultOpen>
               <div
                 className="wbm-box-mode"
                 role="radiogroup"
@@ -484,7 +388,6 @@ function BoxEditor({
                   value={form.title}
                   onChange={(e) => change("title", e.target.value)}
                   placeholder="e.g. Celebration Box"
-                  autoFocus
                 />
               </label>
               <label className="admin-field">
@@ -507,6 +410,8 @@ function BoxEditor({
                 />
               </label>
 
+              </AdminEditorSection>
+              <AdminEditorSection id="stock" title="Price & availability" icon="payment" summary={`${money(Number(form.price) || 0)} per box · ${form.stock_quantity || 0} available`}>
               <div className="admin-field-grid">
                 <label className="admin-field">
                   Price per box <span className="admin-required">*</span>
@@ -559,7 +464,9 @@ function BoxEditor({
                 </small>
               </label>
 
-              <fieldset className="menu-allergens">
+              </AdminEditorSection>
+              <AdminEditorSection id="contents" title={form.box_type === "mystery" ? "Staff-only contents" : "Build the assortment"} icon="menu" summary={`${form.items.length} products · ${boxPopCount(form.items)} individual treats`}>
+              <fieldset className="menu-allergens box-contents-fieldset">
                 <legend>
                   {form.box_type === "mystery"
                     ? "Staff-only contents (optional)"
@@ -570,52 +477,7 @@ function BoxEditor({
                   and more. Quantities refer to that product’s selling unit.
                 </p>
 
-                <label className="admin-field wbm-category-filter">
-                  Product category
-                  <select
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                  >
-                    <option value="all">All categories</option>
-                    {categories.map((category) => (
-                      <option key={category.slug} value={category.slug}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="admin-field wbm-add-flavor">
-                  Add a product
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      addFlavor(e.target.value);
-                      e.target.value = "";
-                    }}
-                    disabled={!products.length}
-                  >
-                    <option value="">
-                      {products.length
-                        ? "Choose a flavor…"
-                        : "No flavors on the menu yet"}
-                    </option>
-                    {products
-                      .filter(
-                        (product) =>
-                          categoryFilter === "all" ||
-                          product.category === categoryFilter,
-                      )
-                      .map((product) => (
-                        <option key={product.slug} value={product.slug}>
-                          {product.name}
-                          {product.unitCount > 1
-                            ? ` · ${sellingUnit(product)} per batch`
-                            : ""}
-                          {product.active ? "" : " (hidden)"}
-                        </option>
-                      ))}
-                  </select>
-                </label>
+                <button type="button" className="admin-btn admin-btn-secondary box-browse-products" disabled={!products.length} onClick={() => setProductPicker(true)}><AdminIcon name="plus"/>Browse & add products</button>
 
                 {form.items.length ? (
                   <div className="wbm-items">
@@ -711,6 +573,108 @@ function BoxEditor({
                 )}
               </fieldset>
 
+              </AdminEditorSection>
+              <AdminEditorSection id="artwork" title="Flyer & box photo" icon="photo" summary={form.image ? "Image added · view or replace" : "Optional · upload your artwork"}>
+
+
+            <section
+              className="wbm-artwork-editor"
+              aria-labelledby="wbm-artwork-heading"
+              aria-busy={uploading}
+            >
+              <div className="wbm-artwork-preview">
+                {form.image ? (
+                  <a
+                    href={form.image}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Preview the full box image (opens in a new tab)"
+                  >
+                    <Image
+                      src={form.image}
+                      alt="Box of the Week image preview"
+                      fill
+                      unoptimized
+                      sizes="200px"
+                    />
+                  </a>
+                ) : (
+                  <div>
+                    <AdminIcon name="upload" />
+                    <span>
+                      Your weekly flyer
+                      <br />
+                      or box photo
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="wbm-artwork-controls">
+                <span className="admin-kicker">Made for your social posts</span>
+                <h3 id="wbm-artwork-heading">This week’s spotlight</h3>
+                <p>
+                  Upload the same flyer you share on social media. The complete
+                  image appears on the Box of the Week page and homepage,
+                  without cropping.
+                </p>
+                <label
+                  className={`admin-btn admin-btn-secondary upload-button${uploading ? " is-busy" : ""}`}
+                >
+                  <AdminIcon name="upload" />
+                  {uploading
+                    ? "Uploading…"
+                    : form.image
+                      ? "Replace image"
+                      : "Upload flyer or photo"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={upload}
+                    disabled={busy || uploading}
+                    aria-label="Upload weekly box flyer or photo"
+                    aria-describedby="wbm-artwork-help"
+                  />
+                </label>
+                <small id="wbm-artwork-help">
+                  JPG, PNG, or WebP · up to 5 MB. Portrait flyers work
+                  especially well; square and landscape images fit too.
+                </small>
+                {form.image && (
+                  <button
+                    type="button"
+                    className="admin-text-btn"
+                    disabled={busy || uploading}
+                    onClick={() => {
+                      change("image", "");
+                      setUploadError("");
+                      setUploadNotice(
+                        "Image removed from this draft. Save the box to publish the change.",
+                      );
+                    }}
+                  >
+                    Remove image from box
+                  </button>
+                )}
+              </div>
+              <p className="wbm-artwork-hint">
+                Keep your flyer’s price and flavors in sync with the box details
+                below. Uploading an image does not change the order contents or
+                price.
+              </p>
+              {uploadNotice && (
+                <p className="wbm-artwork-status" role="status">
+                  {uploadNotice}
+                </p>
+              )}
+              {uploadError && (
+                <p className="admin-alert is-error" role="alert">
+                  {uploadError}
+                </p>
+              )}
+            </section>
+
+              </AdminEditorSection>
+              <AdminEditorSection id="publish" title="Website visibility" icon="eye" summary={form.active ? (form.featured ? "Published · featured this week" : "Published on the website") : "Hidden · only visible to admins"}>
               <p className="wbm-editor-summary">
                 {form.box_type === "mystery"
                   ? "Mystery box"
@@ -750,6 +714,7 @@ function BoxEditor({
                   onChange={(e) => change("active", e.target.checked)}
                 />
               </label>
+              </AdminEditorSection>
             </fieldset>
             {error ? (
               <p className="admin-alert is-error" role="alert">

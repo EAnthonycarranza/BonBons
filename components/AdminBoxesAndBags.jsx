@@ -1,12 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import WeeklyBoxManager from "./WeeklyBoxManager";
 import MenuManager from "./MenuManager";
 import AdminIcon from "./AdminIcon";
 import "./catalog-admin.css";
 
 export default function AdminBoxesAndBags() {
+  const [collection, setCollection] = useState("boxes");
   return (
     <div className="admin-view boxes-and-bags">
       <header className="admin-page-head boxes-and-bags-head">
@@ -18,17 +20,17 @@ export default function AdminBoxesAndBags() {
             Set the contents, price, and stock for each collection below.
           </p>
           <nav
-            className="collection-jump-links"
-            aria-label="Jump to collection"
+            className="collection-switcher"
+            aria-label="Choose a collection"
           >
-            <a href="#admin-boxes">
+            <button type="button" aria-pressed={collection === "boxes"} onClick={() => setCollection("boxes")} aria-controls="admin-boxes">
               <AdminIcon name="photo" />
-              Boxes <span aria-hidden="true">↓</span>
-            </a>
-            <a href="#admin-mystery-bags">
+              <span><b>Boxes</b><small>Weekly &amp; mystery boxes</small></span>
+            </button>
+            <button type="button" aria-pressed={collection === "bags"} onClick={() => setCollection("bags")} aria-controls="admin-mystery-bags">
               <AdminIcon name="coupon" />
-              Mystery bags <span aria-hidden="true">↓</span>
-            </a>
+              <span><b>Mystery bags</b><small>Surprises, price &amp; stock</small></span>
+            </button>
           </nav>
         </div>
         <Image
@@ -42,6 +44,7 @@ export default function AdminBoxesAndBags() {
         id="admin-boxes"
         className="collection-workspace catalog-panel"
         aria-label="Weekly and mystery boxes"
+        hidden={collection !== "boxes"}
       >
         <WeeklyBoxManager embedded />
       </section>
@@ -49,6 +52,7 @@ export default function AdminBoxesAndBags() {
         id="admin-mystery-bags"
         className="collection-workspace catalog-panel"
         aria-label="Mystery bags"
+        hidden={collection !== "bags"}
       >
         <MenuManager mysteryBagsOnly embedded />
       </section>

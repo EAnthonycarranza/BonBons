@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,6 +11,8 @@ import AdminCoupons from "./AdminCoupons";
 import AdminEvents from "./AdminEvents";
 import PageContentManager from "./PageContentManager";
 import AdminIcon from "./AdminIcon";
+import AdminMobileNav from "./AdminMobileNav";
+import { ADMIN_MOBILE_QUERY } from "@/lib/admin-layout";
 
 const SECTIONS = [
   {
@@ -63,6 +65,26 @@ export default function AdminDashboard({ dbReady }) {
   const [visited, setVisited] = useState({ menu: true });
   const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState("");
+  const appRef = useRef(null);
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const resize = () => {
+      appRef.current?.style.setProperty("--admin-viewport-height", `${viewport?.height || window.innerHeight}px`);
+      appRef.current?.style.setProperty("--admin-keyboard-inset", `${Math.max(0, window.innerHeight - (viewport?.height || window.innerHeight) - (viewport?.offsetTop || 0))}px`);
+    };
+    resize();
+    viewport?.addEventListener("resize", resize);
+    viewport?.addEventListener("scroll", resize);
+    window.addEventListener("resize", resize);
+    return () => { viewport?.removeEventListener("resize", resize); viewport?.removeEventListener("scroll", resize); window.removeEventListener("resize", resize); };
+  }, []);
+  function selectSection(id) {
+    setVisited((current) => ({ ...current, [id]: true }));
+    setSection(id);
+    if (window.matchMedia(ADMIN_MOBILE_QUERY).matches) {
+      window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+    }
+  }
   async function logout() {
     setLoggingOut(true);
     setError("");
@@ -76,7 +98,8 @@ export default function AdminDashboard({ dbReady }) {
     }
   }
   return (
-    <div className="admin-application">
+    <div className="admin-application" ref={appRef}>
+      <AdminMobileNav sections={SECTIONS} section={section} onSelect={selectSection} onLogout={logout} loggingOut={loggingOut}/>
       <aside className="admin-sidebar">
         <Link className="admin-brand" href="/">
           <Image
@@ -99,10 +122,7 @@ export default function AdminDashboard({ dbReady }) {
               aria-label={item.label}
               className={section === item.id ? "is-active" : ""}
               aria-current={section === item.id ? "page" : undefined}
-              onClick={() => {
-                setVisited((current) => ({ ...current, [item.id]: true }));
-                setSection(item.id);
-              }}
+              onClick={() => selectSection(item.id)}
             >
               <AdminIcon name={item.icon} />
               <span>

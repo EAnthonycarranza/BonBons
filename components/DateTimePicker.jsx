@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AdminIcon from "./AdminIcon";
+import AdminSelect from "./AdminSelect";
 import {
   formatDateValue,
   formatTimeValue,
@@ -50,10 +51,10 @@ export function DatePicker({ value, onChange, id, invalid = false, disabled = fa
     function onKey(event) {
       if (event.key === "Escape") { event.stopPropagation(); close(); }
     }
-    document.addEventListener("mousedown", onDocDown);
+    document.addEventListener("pointerdown", onDocDown);
     document.addEventListener("keydown", onKey, true);
     return () => {
-      document.removeEventListener("mousedown", onDocDown);
+      document.removeEventListener("pointerdown", onDocDown);
       document.removeEventListener("keydown", onKey, true);
     };
   }, [open, close]);
@@ -121,9 +122,9 @@ export function DatePicker({ value, onChange, id, invalid = false, disabled = fa
       {open ? (
         <div className="dtp-pop" role="dialog" aria-label="Choose a pickup date">
           <div className="dtp-pop-head">
-            <button type="button" onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))} aria-label="Previous month">‹</button>
+            <button type="button" onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))} aria-label="Previous month"><AdminIcon name="arrow" style={{ transform: "rotate(180deg)" }}/></button>
             <b>{MONTHS[view.getMonth()]} {view.getFullYear()}</b>
-            <button type="button" onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))} aria-label="Next month">›</button>
+            <button type="button" onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))} aria-label="Next month"><AdminIcon name="arrow"/></button>
           </div>
           <div className="dtp-weekdays" aria-hidden="true">
             {WEEKDAYS.map((day) => <span key={day}>{day}</span>)}
@@ -169,7 +170,7 @@ export function TimePicker({ value, onChange, id, disabled = false }) {
   return (
     <div className="dtp-time">
       <AdminIcon name="orders" />
-      <select
+      <AdminSelect
         id={id}
         value={normalized}
         onChange={(event) => onChange(event.target.value)}
@@ -180,7 +181,7 @@ export function TimePicker({ value, onChange, id, disabled = false }) {
         {options.map((slot) => (
           <option key={slot} value={slot}>{formatTimeValue(slot)}</option>
         ))}
-      </select>
+      </AdminSelect>
     </div>
   );
 }

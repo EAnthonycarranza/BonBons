@@ -1,4 +1,7 @@
 "use client";
+import AdminSelect from "./AdminSelect";
+import AdminEditorSection, { AdminEditorNav, revealInvalidEditorField } from "./AdminEditorSection";
+import { ADMIN_MOBILE_QUERY } from "@/lib/admin-layout";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -94,10 +97,11 @@ function Modal({ title, label, children, onClose, className = "" }) {
     const dialog = ref.current;
     const previousOverflow = document.body.style.overflow;
     dialog.showModal();
+    if (!window.matchMedia(ADMIN_MOBILE_QUERY).matches) dialog.querySelector("[data-editor-autofocus]")?.focus();
     document.body.style.overflow = "hidden";
     return () => {
       dialog.close();
-      document.body.style.overflow = previousOverflow;
+      if (previousOverflow !== "hidden") document.body.style.overflow = previousOverflow;
     };
   }, []);
   return (
@@ -287,8 +291,10 @@ function MenuEditor({
         onClose={close}
         className="menu-editor"
       >
-        <form onSubmit={save}>
+        <form onSubmit={save} onInvalidCapture={revealInvalidEditorField}>
           <div className="admin-dialog-body">
+            <AdminEditorNav sections={[["details", "Details"], ["pricing", "Selling & stock"], ["recipe", "Ingredients"], ["photo", "Photo"], ["publish", "Publish"]]}/>
+            <AdminEditorSection id="photo" title="Product photo" icon="photo" summary={form.image ? "Photo added · view or replace" : "Optional · add a product photo"}>
             <div className="menu-editor-photo">
               <div className="menu-photo-preview">
                 <FlavorPhoto image={form.image} name={form.name} />
@@ -327,17 +333,10 @@ function MenuEditor({
                 {uploadError}
               </p>
             ) : null}
+            </AdminEditorSection>
             <fieldset disabled={busy || uploading} className="menu-fields">
               <legend className="sr-only">Treat details</legend>
-              <div className="catalog-editor-heading">
-                <span>01</span>
-                <div>
-                  <h3>Product details</h3>
-                  <p>
-                    Name it, describe it, and choose its place in your menu.
-                  </p>
-                </div>
-              </div>
+              <AdminEditorSection id="details" title="Product details" summary="Name, description & category" defaultOpen>
               <label className="admin-field">
                 Product name <span className="admin-required">*</span>
                 <input
@@ -346,7 +345,7 @@ function MenuEditor({
                   value={form.name}
                   onChange={(e) => change("name", e.target.value)}
                   placeholder="e.g. Cookie Monster"
-                  autoFocus
+                  data-editor-autofocus
                 />
               </label>
               <label className="admin-field">
@@ -372,7 +371,7 @@ function MenuEditor({
               <div className="catalog-category-picker">
                 <label className="admin-field">
                   Category
-                  <select
+                  <AdminSelect
                     value={form.category}
                     onChange={(e) => change("category", e.target.value)}
                   >
@@ -381,7 +380,7 @@ function MenuEditor({
                         {category.name}
                       </option>
                     ))}
-                  </select>
+                  </AdminSelect>
                 </label>
                 <button
                   className="admin-btn admin-btn-secondary"
@@ -392,13 +391,8 @@ function MenuEditor({
                   New category
                 </button>
               </div>
-              <div className="catalog-editor-heading">
-                <span>02</span>
-                <div>
-                  <h3>Pricing & selling quantity</h3>
-                  <p>Set the price for one item or one complete batch.</p>
-                </div>
-              </div>
+              </AdminEditorSection>
+              <AdminEditorSection id="pricing" title="Selling format, price & stock" summary="Individual treats, batches & availability">
               <div
                 className="catalog-selling-options"
                 role="radiogroup"
@@ -693,15 +687,8 @@ function MenuEditor({
                   price. It can be included in a weekly box.
                 </p>
               )}
-              <div className="catalog-editor-heading">
-                <span>03</span>
-                <div>
-                  <h3>Recipe & finishing details</h3>
-                  <p>
-                    Help customers understand your ingredients and presentation.
-                  </p>
-                </div>
-              </div>
+              </AdminEditorSection>
+              <AdminEditorSection id="recipe" title="Ingredients & allergens" summary="Recipe information customers can view">
               <label className="admin-field">
                 Ingredients
                 <textarea
@@ -760,6 +747,8 @@ function MenuEditor({
                   )}
                 </div>
               </fieldset>
+              </AdminEditorSection>
+              <AdminEditorSection id="publish" title="Website visibility" icon="eye" summary={form.active ? "Live on the menu" : "Hidden from customers"}>
               <label className="admin-toggle-row menu-publish">
                 <span>
                   <b>
@@ -796,6 +785,7 @@ function MenuEditor({
                   View original Instagram post <AdminIcon name="external" />
                 </a>
               ) : null}
+              </AdminEditorSection>
             </fieldset>
             {error ? (
               <p className="admin-alert is-error" role="alert">
@@ -1169,7 +1159,7 @@ export default function MenuManager({
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
-          <select
+          <AdminSelect
             className="catalog-category-filter"
             aria-label="Filter by category"
             value={category}
@@ -1181,7 +1171,7 @@ export default function MenuManager({
                 {entry.name}
               </option>
             ))}
-          </select>
+          </AdminSelect>
           <div
             className="catalog-view-switch"
             role="group"

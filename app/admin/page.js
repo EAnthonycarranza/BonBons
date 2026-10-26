@@ -3,6 +3,7 @@ import { hasSupabaseDatabase } from "@/lib/supabase-data";
 import AdminLogin from "@/components/AdminLogin";
 import AdminDashboard from "@/components/AdminDashboard";
 import "./admin.css";
+import "./admin-mobile.css";
 
 export const metadata = { title: "Staff dashboard", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";

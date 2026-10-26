@@ -1,6 +1,8 @@
 "use client";
+import AdminSelect from "./AdminSelect";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import AdminIcon from "./AdminIcon";
 import ConfirmDialog from "./ConfirmDialog";
 
 const EMPTY_LOCATION = {
@@ -22,7 +24,7 @@ export function PickupLocationPicker({ locations, value, onChange, onManage }) {
 
   return (
     <div className="crm-pickup-picker">
-      <select value={value} onChange={(event) => onChange(event.target.value)} aria-label="Pickup location">
+      <AdminSelect value={value} onChange={(event) => onChange(event.target.value)} aria-label="Pickup location">
         <option value="" disabled>Choose a pickup location</option>
         {hasLegacyValue ? <option value={value}>{value} · saved on this order</option> : null}
         {locations.map((location) => (
@@ -30,7 +32,7 @@ export function PickupLocationPicker({ locations, value, onChange, onManage }) {
             {location.label} · {location.formattedAddress}
           </option>
         ))}
-      </select>
+      </AdminSelect>
       <div className="crm-pickup-picker-actions">
         {value ? (
           <a href={googleMapsUrl(value)} target="_blank" rel="noreferrer">View on Google Maps ↗</a>
@@ -42,6 +44,10 @@ export function PickupLocationPicker({ locations, value, onChange, onManage }) {
 }
 
 export default function PickupLocationManager({ open, locations, onClose, onChanged }) {
+  const dialogRef = useRef(null);
+  const openerRef = useRef(null);
+  const initialRef = useRef(EMPTY_LOCATION);
+  const [discardAction, setDiscardAction] = useState(null);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_LOCATION);
   const [busy, setBusy] = useState("");
@@ -49,32 +55,52 @@ export default function PickupLocationManager({ open, locations, onClose, onChan
   const [pendingDelete, setPendingDelete] = useState(null);
 
   useEffect(() => {
-    if (!open) return undefined;
-    function onKeyDown(event) {
-      if (event.key === "Escape" && !busy) onClose();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [busy, onClose, open]);
+    if (!open) return;
+    const dialog = dialogRef.current;
+    const previousOverflow = document.body.style.overflow;
+    openerRef.current = document.activeElement;
+    dialog.showModal();
+    dialog.querySelector("h2")?.focus();
+    document.body.style.overflow = "hidden";
+    return () => { dialog.close(); if (previousOverflow !== "hidden") document.body.style.overflow = previousOverflow; };
+  }, [open]);
+
+  function finishClose() {
+    dialogRef.current?.close();
+    openerRef.current?.focus({ preventScroll: true });
+    setEditing(null);
+    setForm(EMPTY_LOCATION);
+    setMessage("");
+    onClose();
+  }
+
+  function leave(action) {
+    if (busy) return;
+    if (editing && JSON.stringify(form) !== JSON.stringify(initialRef.current)) { setDiscardAction(action); return; }
+    if (action === "close") finishClose(); else setEditing(null);
+  }
 
   if (!open) return null;
 
   function startAdd() {
     setEditing("new");
     setForm(EMPTY_LOCATION);
+    initialRef.current = EMPTY_LOCATION;
     setMessage("");
   }
 
   function startEdit(location) {
     setEditing(location.id);
-    setForm({
+    const draft = {
       label: location.label,
       streetAddress: location.streetAddress,
       city: location.city,
       state: location.state,
       postalCode: location.postalCode,
       country: location.country,
-    });
+    };
+    initialRef.current = draft;
+    setForm(draft);
     setMessage("");
   }
 
@@ -127,6 +153,7 @@ export default function PickupLocationManager({ open, locations, onClose, onChan
       if (!response.ok) throw new Error(data.error || "Could not delete this pickup location.");
       onChanged(data.locations || []);
       setMessage("Pickup location deleted.");
+      setPendingDelete(null);
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -135,24 +162,25 @@ export default function PickupLocationManager({ open, locations, onClose, onChan
   }
 
   return (
-    <div className="crm-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && !busy && onClose()}>
-      <section className="crm-location-modal" role="dialog" aria-modal="true" aria-labelledby="pickup-location-title">
+    <>
+      <dialog ref={dialogRef} className="admin-dialog crm-location-modal pickup-location-dialog" aria-labelledby="pickup-location-title" onCancel={event => { event.preventDefault(); leave("close"); }}>
         <header>
           <div>
             <span>Pickup settings</span>
-            <h2 id="pickup-location-title">Saved pickup locations</h2>
+            <h2 id="pickup-location-title" tabIndex={-1}>Saved pickup locations</h2>
             <p>Choose from these addresses when confirming an order. Customers receive a Google Maps link in their email.</p>
           </div>
-          <button type="button" className="crm-modal-close" onClick={onClose} aria-label="Close pickup locations">×</button>
+          <button type="button" className="admin-icon-btn" disabled={Boolean(busy)} onClick={() => leave("close")} aria-label="Close pickup locations"><AdminIcon name="close"/></button>
         </header>
 
+        <div className="pickup-modal-body">
         {editing ? (
-          <form className="crm-location-form" onSubmit={save}>
+          <form className="crm-location-form" onSubmit={save}><fieldset disabled={Boolean(busy)} className="pickup-form-fields">
             <div className="crm-location-form-heading">
               <div><span>{editing === "new" ? "New location" : "Edit location"}</span><h3>Complete address</h3></div>
-              <button type="button" onClick={() => setEditing(null)}>Cancel</button>
+              <button type="button" disabled={Boolean(busy)} onClick={() => leave("list")}>Cancel</button>
             </div>
-            <label className="crm-field crm-field-wide"><span>Location name</span><input autoFocus required maxLength={80} value={form.label} onChange={(event) => change("label", event.target.value)} placeholder="For example: West Ave" /></label>
+            <label className="crm-field crm-field-wide"><span>Location name</span><input required maxLength={80} value={form.label} onChange={(event) => change("label", event.target.value)} placeholder="For example: West Ave" /></label>
             <label className="crm-field crm-field-wide"><span>Street address</span><input required maxLength={200} value={form.streetAddress} onChange={(event) => change("streetAddress", event.target.value)} placeholder="Street number and name" /></label>
             <div className="crm-location-form-grid">
               <label className="crm-field"><span>City</span><input required maxLength={100} value={form.city} onChange={(event) => change("city", event.target.value)} /></label>
@@ -160,7 +188,7 @@ export default function PickupLocationManager({ open, locations, onClose, onChan
               <label className="crm-field"><span>ZIP code</span><input required inputMode="numeric" maxLength={20} value={form.postalCode} onChange={(event) => change("postalCode", event.target.value)} placeholder="78216" /></label>
               <label className="crm-field"><span>Country</span><input required maxLength={100} value={form.country} onChange={(event) => change("country", event.target.value)} /></label>
             </div>
-            <div className="crm-location-form-actions">
+            </fieldset><div className="crm-location-form-actions">
               <button className="btn btn-pink btn-sm" type="submit" disabled={busy === "save"}>{busy === "save" ? "Saving…" : "Save pickup location"}</button>
             </div>
           </form>
@@ -188,7 +216,9 @@ export default function PickupLocationManager({ open, locations, onClose, onChan
         )}
 
         {message ? <p className="crm-location-message" role="status">{message}</p> : null}
-      </section>
+        </div>
+      </dialog>
+      <ConfirmDialog open={Boolean(discardAction)} title="Discard location changes?" message="Your unsaved address edits will be lost." confirmLabel="Discard changes" cancelLabel="Keep editing" tone="danger" onCancel={() => setDiscardAction(null)} onConfirm={() => { const action = discardAction; setDiscardAction(null); if (action === "close") finishClose(); else setEditing(null); }}/>
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}
@@ -201,6 +231,6 @@ export default function PickupLocationManager({ open, locations, onClose, onChan
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}
       />
-    </div>
+    </>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import AdminSelect from "./AdminSelect";
+import { ADMIN_MOBILE_QUERY } from "@/lib/admin-layout";
+import { useEffect, useId, useRef, useState } from "react";
 import AdminIcon from "./AdminIcon";
 import ConfirmDialog from "./ConfirmDialog";
 import { TREAT_TYPES, validateCategory } from "@/lib/menu-categories";
@@ -16,6 +18,7 @@ export default function CategoryManager({
   onClose,
 }) {
   const ref = useRef(null);
+  const formId = useId();
   const [rows, setRows] = useState(categories);
   useEffect(() => { setRows(categories); }, [categories]);
   const [editing, setEditing] = useState(null);
@@ -36,10 +39,11 @@ export default function CategoryManager({
     const dialog = ref.current;
     const previousOverflow = document.body.style.overflow;
     dialog.showModal();
+    if (!window.matchMedia(ADMIN_MOBILE_QUERY).matches) dialog.querySelector("[data-editor-autofocus]")?.focus();
     document.body.style.overflow = "hidden";
     return () => {
       dialog.close();
-      document.body.style.overflow = previousOverflow;
+      if (previousOverflow !== "hidden") document.body.style.overflow = previousOverflow;
     };
   }, []);
   useEffect(() => {
@@ -184,7 +188,7 @@ export default function CategoryManager({
               </button>
             ))}
           </aside>
-          <form className="category-manager-form" onSubmit={save}>
+          <form id={formId} className="category-manager-form" onSubmit={save}>
             <span className="admin-kicker">
               {editing ? "Edit category" : "New category"}
             </span>
@@ -198,7 +202,7 @@ export default function CategoryManager({
               <label className="admin-field">
                 Category name
                 <input
-                  autoFocus
+                  data-editor-autofocus
                   required
                   maxLength={60}
                   value={form.name}
@@ -213,7 +217,7 @@ export default function CategoryManager({
               </label>
               <label className="admin-field">
                 Treat type
-                <select
+                <AdminSelect
                   disabled={Boolean(editing)}
                   value={form.treatType}
                   onChange={(event) =>
@@ -228,7 +232,7 @@ export default function CategoryManager({
                       {label}
                     </option>
                   ))}
-                </select>
+                </AdminSelect>
                 <small>
                   Used for cake-pop pairs and the rice crispy/Oreo limits. The
                   type is fixed after creation; products have their own offer
@@ -263,15 +267,14 @@ export default function CategoryManager({
                 {notice}
               </p>
             )}
-            <button
-              type="submit"
-              className="admin-btn admin-btn-primary"
-              disabled={busy || !dirty}
-            >
-              {busy ? "Saving…" : editing ? "Save category" : "Create category"}
-            </button>
           </form>
         </div>
+        <footer className="admin-dialog-footer">
+          <button type="button" className="admin-btn admin-btn-secondary" disabled={busy} onClick={close}>Close</button>
+          <button type="submit" form={formId} className="admin-btn admin-btn-primary" disabled={busy || !dirty}>
+            {busy ? "Saving…" : editing ? "Save category" : "Create category"}
+          </button>
+        </footer>
       </dialog>
       <ConfirmDialog
         open={discard}

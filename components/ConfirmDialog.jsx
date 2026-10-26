@@ -33,7 +33,7 @@ export default function ConfirmDialog({
       document.body.style.overflow = "hidden";
       // Land on Cancel for destructive actions so Enter cannot delete by reflex.
       if (tone !== "danger") confirmRef.current?.focus();
-      return () => { document.body.style.overflow = previousOverflow; };
+      return () => { if (previousOverflow !== "hidden") document.body.style.overflow = previousOverflow; };
     }
     if (!open && dialog.open) dialog.close();
   }, [open, tone]);
